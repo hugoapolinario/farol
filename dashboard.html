@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Vigil — Agent Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; padding: 2rem; }
+    h1 { font-size: 1.4rem; font-weight: 500; margin-bottom: 0.25rem; }
+    .subtitle { font-size: 0.85rem; color: #666; margin-bottom: 2rem; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .stat { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 1rem 1.25rem; }
+    .stat-label { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .stat-value { font-size: 1.6rem; font-weight: 500; color: #fff; }
+    .table-wrap { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; overflow: hidden; margin-bottom: 2rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    thead { background: #222; }
+    th { padding: 0.75rem 1rem; text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #666; font-weight: 500; }
+    td { padding: 0.875rem 1rem; border-top: 1px solid #222; }
+    tr.clickable { cursor: pointer; }
+    tr.clickable:hover td { background: #1f1f1f; }
+    tr.active td { background: #1a1f2e; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: 500; }
+    .success { background: #0d2e1a; color: #4ade80; }
+    .error { background: #2e0d0d; color: #f87171; }
+    .agent-name { font-weight: 500; color: #fff; }
+    .cost { color: #a78bfa; font-weight: 500; }
+    .duration { color: #60a5fa; }
+    .timestamp { color: #555; font-size: 0.8rem; }
+    .steps-count { color: #666; font-size: 0.8rem; }
+    .bar-wrap { background: #2a2a2a; border-radius: 4px; height: 4px; width: 80px; display: inline-block; vertical-align: middle; margin-left: 8px; }
+    .bar { height: 4px; border-radius: 4px; background: #60a5fa; }
+
+    /* Trace panel */
+    .trace-panel { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 1.5rem; display: none; }
+    .trace-panel.visible { display: block; }
+    .trace-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
+    .trace-title { font-size: 1rem; font-weight: 500; color: #fff; margin-bottom: 0.25rem; }
+    .trace-meta { font-size: 0.8rem; color: #555; }
+    .trace-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .trace-stat { background: #222; border-radius: 8px; padding: 0.75rem 1rem; }
+    .trace-stat-label { font-size: 0.7rem; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+    .trace-stat-value { font-size: 1.1rem; font-weight: 500; color: #fff; }
+    .steps-title { font-size: 0.75rem; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
+    .step { display: flex; gap: 1rem; align-items: flex-start; padding: 0.75rem 0; border-top: 1px solid #222; }
+    .step:first-of-type { border-top: none; }
+    .step-num { width: 22px; height: 22px; border-radius: 50%; background: #222; color: #666; font-size: 0.7rem; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .step-type { font-size: 0.75rem; font-weight: 500; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-bottom: 0.25rem; }
+    .web_search { background: #0d1f3c; color: #60a5fa; }
+    .llm_summarise { background: #1a0d3c; color: #a78bfa; }
+    .step-detail { font-size: 0.8rem; color: #555; word-break: break-all; }
+    .close-btn { background: #222; border: 1px solid #2a2a2a; color: #666; padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+    .close-btn:hover { color: #fff; background: #2a2a2a; }
+    .hint { font-size: 0.75rem; color: #444; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+
+  <h1>Vigil</h1>
+  <p class="subtitle">Agent observability dashboard</p>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Total runs</div>
+      <div class="stat-value" id="total-runs">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Success rate</div>
+      <div class="stat-value" id="success-rate">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Avg duration</div>
+      <div class="stat-value" id="avg-duration">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Total cost</div>
+      <div class="stat-value" id="total-cost">—</div>
+    </div>
+  </div>
+
+  <p class="hint">Click any run to see its full trace</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Agent</th>
+          <th>Topic</th>
+          <th>Status</th>
+          <th>Duration</th>
+          <th>Cost</th>
+          <th>Steps</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody id="runs-body"></tbody>
+    </table>
+  </div>
+
+  <div class="trace-panel" id="trace-panel">
+    <div class="trace-header">
+      <div>
+        <div class="trace-title" id="trace-title">—</div>
+        <div class="trace-meta" id="trace-meta">—</div>
+      </div>
+      <button class="close-btn" onclick="closeTrace()">close</button>
+    </div>
+    <div class="trace-stats">
+      <div class="trace-stat">
+        <div class="trace-stat-label">Duration</div>
+        <div class="trace-stat-value" id="trace-duration">—</div>
+      </div>
+      <div class="trace-stat">
+        <div class="trace-stat-label">Cost</div>
+        <div class="trace-stat-value" id="trace-cost">—</div>
+      </div>
+      <div class="trace-stat">
+        <div class="trace-stat-label">Tokens used</div>
+        <div class="trace-stat-value" id="trace-tokens">—</div>
+      </div>
+    </div>
+    <div class="steps-title">Execution steps</div>
+    <div id="trace-steps"></div>
+  </div>
+
+  <script>
+    let allRuns = [];
+    let activeRow = null;
+
+    async function load() {
+        const res = await fetch("http://localhost:8080/runs");
+      allRuns = await res.json();
+
+      document.getElementById("total-runs").textContent = allRuns.length;
+
+      const successes = allRuns.filter(r => r.status === "success").length;
+      document.getElementById("success-rate").textContent =
+        Math.round((successes / allRuns.length) * 100) + "%";
+
+      const avgMs = Math.round(allRuns.reduce((a, r) => a + r.duration_ms, 0) / allRuns.length);
+      document.getElementById("avg-duration").textContent = (avgMs / 1000).toFixed(1) + "s";
+
+      const totalCost = allRuns.reduce((a, r) => a + r.cost_usd, 0);
+      document.getElementById("total-cost").textContent = "$" + totalCost.toFixed(5);
+
+      const maxDuration = Math.max(...allRuns.map(r => r.duration_ms));
+      const tbody = document.getElementById("runs-body");
+
+      allRuns.slice().reverse().forEach((r, i) => {
+        const realIndex = allRuns.length - 1 - i;
+        const barWidth = Math.round((r.duration_ms / maxDuration) * 80);
+        const time = new Date(r.timestamp).toLocaleTimeString();
+        const stepCount = r.steps ? r.steps.length : 0;
+        const row = document.createElement("tr");
+        row.className = "clickable";
+        row.dataset.index = realIndex;
+        row.innerHTML = `
+          <td class="agent-name">${r.agent}</td>
+          <td style="color:#aaa;font-size:0.8rem">${r.topic || '—'}</td>
+          <td><span class="badge ${r.status}">${r.status}</span></td>
+          <td class="duration">
+            ${(r.duration_ms / 1000).toFixed(2)}s
+            <span class="bar-wrap"><span class="bar" style="width:${barWidth}px"></span></span>
+          </td>
+          <td class="cost">$${r.cost_usd}</td>
+          <td class="steps-count">${stepCount} steps</td>
+          <td class="timestamp">${time}</td>`;
+        row.addEventListener("click", () => openTrace(realIndex, row));
+        tbody.appendChild(row);
+      });
+    }
+
+    function openTrace(index, row) {
+      if (activeRow) activeRow.classList.remove("active");
+      activeRow = row;
+      row.classList.add("active");
+
+      const r = allRuns[index];
+      const panel = document.getElementById("trace-panel");
+      panel.classList.add("visible");
+
+      document.getElementById("trace-title").textContent = r.agent + " — " + (r.topic || r.id);
+      document.getElementById("trace-meta").textContent =
+        new Date(r.timestamp + "Z").toLocaleString() + " · " + r.status;
+      document.getElementById("trace-duration").textContent = (r.duration_ms / 1000).toFixed(2) + "s";
+      document.getElementById("trace-cost").textContent = "$" + r.cost_usd;
+      document.getElementById("trace-tokens").textContent =
+        (r.input_tokens + r.output_tokens).toLocaleString();
+
+      const stepsEl = document.getElementById("trace-steps");
+      stepsEl.innerHTML = "";
+
+      if (r.steps && r.steps.length > 0) {
+        r.steps.forEach((s, i) => {
+          const detail = s.url || s.model || "";
+          stepsEl.innerHTML += `
+            <div class="step">
+              <div class="step-num">${i + 1}</div>
+              <div>
+                <span class="step-type ${s.step}">${s.step}</span>
+                <div class="step-detail">${detail}</div>
+              </div>
+            </div>`;
+        });
+      } else {
+        stepsEl.innerHTML = '<div style="color:#444;font-size:0.85rem">No steps recorded</div>';
+      }
+
+      panel.scrollIntoView({ behavior: "smooth" });
+    }
+
+    function closeTrace() {
+      document.getElementById("trace-panel").classList.remove("visible");
+      if (activeRow) activeRow.classList.remove("active");
+      activeRow = null;
+    }
+
+    load();
+  </script>
+</body>
+</html>
