@@ -211,12 +211,11 @@
     <p class="auth-link">Already have an account? <a href="login.html">Log in</a></p>
   </main>
 
+  <script src="/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    const SUPABASE_URL = "https://drmyexzztahpudgrfjsk.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRybXlleHp6dGFocHVkZ3JmanNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0OTc2MjYsImV4cCI6MjA5MTA3MzYyNn0.qNLkBxBN6zNRGweW0f3etOfuIBkdiCEnkt1L7nRsTHQ";
     const { createClient } = supabase;
-    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const client = createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
 
     const form = document.getElementById("signup-form");
     const errorMessage = document.getElementById("error-message");
