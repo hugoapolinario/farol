@@ -952,5 +952,59 @@ farol.<span class="tok-fn">init</span>({ <span class="tok-str">apiKey</span>: pr
       <p>© <span translate="no">2026</span> Farol. Built for indie developers and small teams.</p>
     </div>
   </footer>
+  <script>
+    (function () {
+      const endpoint = "https://app.loops.so/api/newsletter-form/cmnou2v7p005o0iz03tfgexwj";
+      const errorMessage = "Something went wrong, please try again.";
+
+      document.querySelectorAll(".waitlist-form").forEach(function (form) {
+        form.addEventListener("submit", async function (event) {
+          event.preventDefault();
+
+          const emailInput = form.querySelector('input[name="email"]');
+          const hint = form.querySelector(".form-hint");
+          const submitButton = form.querySelector('button[type="submit"]');
+
+          if (!emailInput || !hint) return;
+
+          if (submitButton) submitButton.disabled = true;
+
+          try {
+            const body = new URLSearchParams({ email: emailInput.value.trim() }).toString();
+            const response = await fetch(endpoint, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+              },
+              body: body
+            });
+
+            let data = null;
+            try {
+              data = await response.clone().json();
+            } catch (_err) {
+              data = null;
+            }
+
+            if (!response.ok) {
+              throw new Error("Request failed");
+            }
+
+            const successMessage =
+              (data && typeof data.message === "string" && data.message.trim()) ||
+              (data && typeof data.success === "string" && data.success.trim()) ||
+              "Success!";
+
+            hint.textContent = successMessage;
+            form.reset();
+          } catch (_error) {
+            hint.textContent = errorMessage;
+          } finally {
+            if (submitButton) submitButton.disabled = false;
+          }
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
