@@ -4,17 +4,21 @@ import os
 import statistics
 from datetime import datetime
 from dotenv import load_dotenv
+import resend
 from supabase import create_client
 
 load_dotenv()
 
 LOGS_FILE = "runs.json"
 COST_ALERT_THRESHOLD = 0.0001
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+ALERT_EMAIL = os.getenv("ALERT_EMAIL")
 
 supabase = create_client(
     os.getenv("SUPABASE_URL"),
     os.getenv("SUPABASE_KEY")
 )
+resend.api_key = RESEND_API_KEY
 
 def load_runs():
     if not os.path.exists(LOGS_FILE):
@@ -73,9 +77,6 @@ def save_run(run: dict):
             anomaly = False
             anomaly_reason = None
 
-    run["anomaly"] = anomaly
-    run["anomaly_reason"] = anomaly_reason
-
     # Save to local JSON
     runs = load_runs()
     runs.append(run)
@@ -109,6 +110,31 @@ def save_run(run: dict):
         print(f"[Vigil] COST ALERT — {run['agent']} exceeded ${COST_ALERT_THRESHOLD} threshold (actual: ${run['cost_usd']})")
     if run["anomaly"]:
         print(f"[Vigil] COST ANOMALY DETECTED — {run['anomaly_reason']}")
+        if RESEND_API_KEY and ALERT_EMAIL:
+            email_payload = {
+                "to": [ALERT_EMAIL],
+                "subject": f"[Farol] Cost anomaly detected — {run['agent']}",
+                "text": (
+                    "A cost anomaly was detected by Farol.\n\n"
+                    f"Agent: {run['agent']}\n"
+                    f"Reason: {run.get('anomaly_reason')}\n"
+                    f"Run ID: {run['id']}\n"
+                    f"Timestamp: {run['timestamp']}\n"
+                )
+            }
+            try:
+                resend.Emails.send({
+                    **email_payload,
+                    "from": "Farol <alerts@usefarol.dev>"
+                })
+            except Exception:
+                try:
+                    resend.Emails.send({
+                        **email_payload,
+                        "from": "Farol <onboarding@resend.dev>"
+                    })
+                except Exception:
+                    pass
 
 def trace(agent_name: str, model: str = "claude-haiku-4-5-20251001", cost_per_1k_tokens: float = 0.00025):
     def decorator(func):
