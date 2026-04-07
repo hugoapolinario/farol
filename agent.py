@@ -9,7 +9,7 @@ load_dotenv()
 client = Anthropic()
 firecrawl = FirecrawlApp(api_key=os.getenv("FIRECRAWL_API_KEY"))
 
-@trace(agent_name="research-agent")
+@trace(agent_name="research-agent", farol_key="frl_fTfS5MfRTPVoEfCTetpDQz1N")
 def research_topic(topic: str, run: dict = None):
     print(f"\n Researching: {topic}\n")
     run["topic"] = topic

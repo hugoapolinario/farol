@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Farol — App</title>
+  <style>
+    :root {
+      --bg-deep: #0a0b0d;
+      --bg-surface: #111318;
+      --bg-elevated: #181b22;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8eaef;
+      --text-muted: #8b919d;
+      --accent: #f97316;
+      --accent-dim: rgba(249, 115, 22, 0.14);
+      --accent-glow: rgba(249, 115, 22, 0.35);
+      --success: #4ade80;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --max: 1120px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249, 115, 22, 0.12), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 40%, rgba(249, 115, 22, 0.06), transparent 50%),
+        var(--bg-deep);
+      color: var(--text);
+      color-scheme: dark;
+      min-height: 100vh;
+    }
+
+    .wrap {
+      width: min(100% - 2rem, var(--max));
+      margin-inline: auto;
+    }
+
+    .navbar {
+      border-bottom: 1px solid var(--border);
+      background: rgba(10, 11, 13, 0.82);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-inner {
+      min-height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), #ea580c);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 24px var(--accent-glow);
+    }
+
+    .logo-mark svg {
+      width: 17px;
+      height: 17px;
+      color: #0a0b0d;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+
+    .email {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.58rem 0.9rem;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .btn-ghost:hover {
+      border-color: rgba(249, 115, 22, 0.4);
+      background: var(--accent-dim);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0a0b0d;
+    }
+
+    .btn-primary:hover {
+      background: #fb923c;
+    }
+
+    main {
+      padding: 1.4rem 0 2rem;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+    }
+
+    .api-key-card {
+      padding: 1.15rem;
+      margin-bottom: 1rem;
+    }
+
+    .api-key-label {
+      margin: 0 0 0.45rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .api-key-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .api-key-value {
+      flex: 1 1 300px;
+      margin: 0;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.68rem 0.8rem;
+      font-size: 0.9rem;
+      color: #f8fafc;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .api-key-note {
+      margin: 0.55rem 0 0;
+      font-size: 0.83rem;
+      color: var(--text-muted);
+    }
+
+    .table-wrap {
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    thead {
+      background: var(--bg-elevated);
+    }
+
+    th, td {
+      padding: 0.72rem 0.8rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    tbody tr:hover td {
+      background: rgba(255, 255, 255, 0.015);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.73rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+
+    .success {
+      color: var(--success);
+      background: rgba(74, 222, 128, 0.09);
+      border-color: rgba(74, 222, 128, 0.25);
+    }
+
+    .error {
+      color: #fca5a5;
+      background: rgba(248, 113, 113, 0.12);
+      border-color: rgba(248, 113, 113, 0.28);
+    }
+
+    .baseline {
+      color: #b4bac7;
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .spike {
+      color: #fecaca;
+      background: rgba(248, 113, 113, 0.2);
+      border-color: rgba(248, 113, 113, 0.45);
+      font-weight: 700;
+    }
+
+    .status {
+      margin: 0.8rem 0 0;
+      color: var(--text-muted);
+      font-size: 0.86rem;
+    }
+
+    .last-updated {
+      margin: 0.45rem 0 0;
+      color: var(--text-muted);
+      font-size: 0.79rem;
+    }
+  </style>
+</head>
+<body>
+  <header class="navbar">
+    <div class="wrap nav-inner">
+      <a class="logo" href="#" aria-label="Farol app">
+        <span class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <path d="M12 3L4 9v12h16V9l-8-6z"></path>
+            <path d="M9 21V12h6v9"></path>
+            <circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none"></circle>
+          </svg>
+        </span>
+        Farol
+      </a>
+      <div class="nav-right">
+        <span class="email" id="user-email">—</span>
+        <button class="btn btn-ghost" id="logout-btn" type="button">Log out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="card api-key-card" aria-labelledby="api-key-heading">
+      <p class="api-key-label" id="api-key-heading">Your API key</p>
+      <div class="api-key-row">
+        <p class="api-key-value" id="api-key-value">Loading…</p>
+        <button class="btn btn-primary" id="copy-key-btn" type="button">Copy</button>
+      </div>
+      <p class="api-key-note">Use this key in your SDK config to send traces and costs to Farol.</p>
+    </section>
+
+    <section class="card table-wrap" aria-labelledby="runs-heading">
+      <table>
+        <thead>
+          <tr id="runs-heading">
+            <th>Agent</th>
+            <th>Topic</th>
+            <th>Status</th>
+            <th>Anomaly</th>
+            <th>Duration</th>
+            <th>Cost</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody id="runs-body"></tbody>
+      </table>
+    </section>
+    <p class="last-updated" id="last-updated">Last updated: —</p>
+    <p class="status" id="status-message"></p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://drmyexzztahpudgrfjsk.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRybXlleHp6dGFocHVkZ3JmanNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0OTc2MjYsImV4cCI6MjA5MTA3MzYyNn0.qNLkBxBN6zNRGweW0f3etOfuIBkdiCEnkt1L7nRsTHQ";
+    const { createClient } = supabase;
+    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const userEmailEl = document.getElementById("user-email");
+    const apiKeyValueEl = document.getElementById("api-key-value");
+    const copyKeyBtn = document.getElementById("copy-key-btn");
+    const runsBody = document.getElementById("runs-body");
+    const statusMessage = document.getElementById("status-message");
+    const logoutBtn = document.getElementById("logout-btn");
+    const lastUpdatedEl = document.getElementById("last-updated");
+
+    let currentApiKey = "";
+    let currentUserId = null;
+    let lastRefreshAt = null;
+    let refreshIntervalId = null;
+    let secondsTickerId = null;
+
+    function randomString(length) {
+      const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let out = "";
+      const bytes = new Uint8Array(length);
+      crypto.getRandomValues(bytes);
+      for (let i = 0; i < length; i += 1) {
+        out += alphabet[bytes[i] % alphabet.length];
+      }
+      return out;
+    }
+
+    function setStatus(text) {
+      statusMessage.textContent = text || "";
+    }
+
+    function renderRuns(runs) {
+      runsBody.innerHTML = "";
+
+      if (!runs.length) {
+        runsBody.innerHTML = '<tr><td colspan="7" style="color:#8b919d;">No runs yet.</td></tr>';
+        return;
+      }
+
+      runs.forEach((r) => {
+        const row = document.createElement("tr");
+        const isBaseline = !r.anomaly && typeof r.anomaly_reason === "string" && r.anomaly_reason.includes("Building baseline");
+        const anomalyCell = r.anomaly
+          ? '<span class="badge spike">! spike</span>'
+          : (isBaseline ? '<span class="badge baseline">baseline</span>' : "");
+
+        row.innerHTML = `
+          <td>${r.agent || "—"}</td>
+          <td>${r.topic || "—"}</td>
+          <td><span class="badge ${r.status === "success" ? "success" : "error"}">${r.status || "unknown"}</span></td>
+          <td>${anomalyCell}</td>
+          <td>${r.duration_ms != null ? (Number(r.duration_ms) / 1000).toFixed(2) + "s" : "—"}</td>
+          <td>${r.cost_usd != null ? "$" + Number(r.cost_usd).toFixed(6) : "—"}</td>
+          <td>${r.timestamp ? new Date(r.timestamp).toLocaleString() : "—"}</td>
+        `;
+        runsBody.appendChild(row);
+      });
+    }
+
+    async function getOrCreateApiKey(userId) {
+      const { data: existing, error: fetchError } = await client
+        .from("api_keys")
+        .select("*")
+        .eq("user_id", userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      const existingKey = existing && (existing.api_key || existing.key);
+      if (existingKey) {
+        return existingKey;
+      }
+
+      const generated = "frl_" + randomString(24);
+      const { error: insertError } = await client
+        .from("api_keys")
+        .insert({
+          user_id: userId,
+          api_key: generated
+        });
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      return generated;
+    }
+
+    async function loadRuns(userId) {
+      const { data, error } = await client
+        .from("runs")
+        .select("agent, topic, status, anomaly, anomaly_reason, duration_ms, cost_usd, timestamp")
+        .eq("user_id", userId)
+        .order("timestamp", { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      renderRuns(data || []);
+    }
+
+    function setLastUpdatedNow() {
+      lastRefreshAt = Date.now();
+      lastUpdatedEl.textContent = "Last updated: 0 seconds ago";
+    }
+
+    function startSecondsCounter() {
+      if (secondsTickerId) {
+        clearInterval(secondsTickerId);
+      }
+      secondsTickerId = setInterval(function () {
+        if (!lastRefreshAt) {
+          lastUpdatedEl.textContent = "Last updated: —";
+          return;
+        }
+        const seconds = Math.floor((Date.now() - lastRefreshAt) / 1000);
+        lastUpdatedEl.textContent = `Last updated: ${seconds} seconds ago`;
+      }, 1000);
+    }
+
+    function startAutoRefresh() {
+      if (refreshIntervalId) {
+        clearInterval(refreshIntervalId);
+      }
+      refreshIntervalId = setInterval(async function () {
+        if (!currentUserId) return;
+        try {
+          await loadRuns(currentUserId);
+          setLastUpdatedNow();
+        } catch (_e) {
+          // keep current table data; next cycle will retry
+        }
+      }, 15000);
+    }
+
+    async function init() {
+      const { data, error } = await client.auth.getUser();
+
+      if (error || !data || !data.user) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      const user = data.user;
+      currentUserId = user.id;
+      userEmailEl.textContent = user.email || "Signed in";
+
+      try {
+        setStatus("Loading API key and runs...");
+        currentApiKey = await getOrCreateApiKey(user.id);
+        apiKeyValueEl.textContent = currentApiKey;
+        await loadRuns(user.id);
+        setLastUpdatedNow();
+        startSecondsCounter();
+        startAutoRefresh();
+        setStatus("");
+      } catch (e) {
+        apiKeyValueEl.textContent = "Unavailable";
+        setStatus(e && e.message ? e.message : "Failed to load dashboard data.");
+      }
+    }
+
+    copyKeyBtn.addEventListener("click", async function () {
+      if (!currentApiKey) return;
+      try {
+        await navigator.clipboard.writeText(currentApiKey);
+        const original = copyKeyBtn.textContent;
+        copyKeyBtn.textContent = "Copied";
+        setTimeout(() => {
+          copyKeyBtn.textContent = original;
+        }, 1200);
+      } catch (_e) {
+        setStatus("Unable to copy key.");
+      }
+    });
+
+    logoutBtn.addEventListener("click", async function () {
+      await client.auth.signOut();
+      window.location.href = "login.html";
+    });
+
+    init();
+  </script>
+</body>
+</html>

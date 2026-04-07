@@ -14,9 +14,16 @@ COST_ALERT_THRESHOLD = 0.0001
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 ALERT_EMAIL = os.getenv("ALERT_EMAIL")
 
+_supabase_url = os.getenv("SUPABASE_URL")
 supabase = create_client(
-    os.getenv("SUPABASE_URL"),
+    _supabase_url,
     os.getenv("SUPABASE_KEY")
+)
+_service_key = os.getenv("SUPABASE_SERVICE_KEY")
+supabase_admin = (
+    create_client(_supabase_url, _service_key)
+    if _service_key
+    else supabase
 )
 resend.api_key = RESEND_API_KEY
 
@@ -77,6 +84,9 @@ def save_run(run: dict):
             anomaly = False
             anomaly_reason = None
 
+    run["anomaly"] = anomaly
+    run["anomaly_reason"] = anomaly_reason
+
     # Save to local JSON
     runs = load_runs()
     runs.append(run)
@@ -85,7 +95,28 @@ def save_run(run: dict):
 
     # Save to Supabase
     try:
-        supabase.table("runs").insert({
+        user_id = None
+        if run.get("farol_key"):
+            try:
+                key_res = (
+                    supabase_admin
+                    .table("api_keys")
+                    .select("user_id")
+                    .eq("api_key", run["farol_key"])
+                    .limit(1)
+                    .execute()
+                )
+                key_rows = key_res.data or []
+                if key_rows and key_rows[0].get("user_id"):
+                    user_id = key_rows[0].get("user_id")
+                else:
+                    print("[Farol] Invalid API key — run saved locally only")
+                    return
+            except Exception:
+                print("[Farol] Invalid API key — run saved locally only")
+                return
+
+        payload = {
             "id": run["id"],
             "agent": run["agent"],
             "model": run["model"],
@@ -95,12 +126,16 @@ def save_run(run: dict):
             "input_tokens": run["input_tokens"],
             "output_tokens": run["output_tokens"],
             "cost_usd": float(run["cost_usd"]),
-            "anomaly": run["anomaly"],
-            "anomaly_reason": run["anomaly_reason"],
+            "anomaly": run.get("anomaly", False),
+            "anomaly_reason": run.get("anomaly_reason", None),
             "steps": run["steps"],
             "error": run.get("error"),
             "timestamp": run["timestamp"]
-        }).execute()
+        }
+        if user_id is not None:
+            payload["user_id"] = user_id
+
+        supabase_admin.table("runs").insert(payload).execute()
         print(f"[Vigil] Synced to Supabase")
     except Exception as e:
         print(f"[Vigil] Supabase sync failed: {e}")
@@ -136,7 +171,7 @@ def save_run(run: dict):
                 except Exception:
                     pass
 
-def trace(agent_name: str, model: str = "claude-haiku-4-5-20251001", cost_per_1k_tokens: float = 0.00025):
+def trace(agent_name: str, model: str = "claude-haiku-4-5-20251001", cost_per_1k_tokens: float = 0.00025, farol_key: str = None):
     def decorator(func):
         def wrapper(*args, **kwargs):
             run = {
@@ -150,8 +185,12 @@ def trace(agent_name: str, model: str = "claude-haiku-4-5-20251001", cost_per_1k
                 "output_tokens": 0,
                 "cost_usd": 0.0,
                 "duration_ms": 0,
-                "error": None
+                "error": None,
+                "anomaly": False,
+                "anomaly_reason": None
             }
+            if farol_key:
+                run["farol_key"] = farol_key
 
             start = time.time()
 

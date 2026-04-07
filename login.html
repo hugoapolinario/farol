@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Farol — Login</title>
+  <style>
+    :root {
+      --bg-deep: #0a0b0d;
+      --bg-surface: #111318;
+      --bg-elevated: #181b22;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8eaef;
+      --text-muted: #8b919d;
+      --accent: #f97316;
+      --accent-dim: rgba(249, 115, 22, 0.14);
+      --accent-glow: rgba(249, 115, 22, 0.35);
+      --error: #fda4af;
+      --error-bg: rgba(244, 63, 94, 0.12);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 1.25rem;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249, 115, 22, 0.12), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 40%, rgba(249, 115, 22, 0.06), transparent 50%),
+        var(--bg-deep);
+      color: var(--text);
+      font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+      color-scheme: dark;
+    }
+
+    .card {
+      width: min(100%, 420px);
+      padding: 1.75rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      margin-bottom: 1rem;
+      font-size: 1.02rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), #ea580c);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 24px var(--accent-glow);
+    }
+
+    .logo-mark svg {
+      width: 17px;
+      height: 17px;
+      color: #0a0b0d;
+    }
+
+    h1 {
+      margin: 0 0 1.1rem;
+      font-size: 1.45rem;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+
+    form {
+      display: grid;
+      gap: 0.72rem;
+    }
+
+    label {
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      margin-bottom: 0.28rem;
+      display: inline-block;
+    }
+
+    input {
+      width: 100%;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text);
+      padding: 0.72rem 0.85rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    input:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    .btn {
+      margin-top: 0.25rem;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      color: #0a0b0d;
+      font-size: 0.93rem;
+      font-weight: 700;
+      font-family: inherit;
+      padding: 0.72rem 1rem;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #fb923c;
+      box-shadow: 0 6px 24px var(--accent-glow);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .error {
+      min-height: 1.2rem;
+      margin-top: 0.2rem;
+      color: var(--error);
+      font-size: 0.86rem;
+      background: transparent;
+      border-radius: var(--radius-sm);
+      padding: 0;
+    }
+
+    .error.visible {
+      padding: 0.55rem 0.65rem;
+      background: var(--error-bg);
+      border: 1px solid rgba(244, 63, 94, 0.25);
+    }
+
+    .auth-link {
+      margin-top: 1rem;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .auth-link a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .auth-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <main class="card" aria-labelledby="login-title">
+    <div class="logo" aria-label="Farol">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M12 3L4 9v12h16V9l-8-6z"></path>
+          <path d="M9 21V12h6v9"></path>
+          <circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none"></circle>
+        </svg>
+      </span>
+      Farol
+    </div>
+
+    <h1 id="login-title">Welcome back</h1>
+
+    <form id="login-form" novalidate>
+      <div>
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" required>
+      </div>
+      <div>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+      </div>
+
+      <button class="btn" type="submit" id="login-btn">Log in</button>
+      <p id="error-message" class="error" role="alert" aria-live="polite"></p>
+    </form>
+
+    <p class="auth-link">Don't have an account? <a href="signup.html">Sign up</a></p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://drmyexzztahpudgrfjsk.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRybXlleHp6dGFocHVkZ3JmanNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0OTc2MjYsImV4cCI6MjA5MTA3MzYyNn0.qNLkBxBN6zNRGweW0f3etOfuIBkdiCEnkt1L7nRsTHQ";
+    const { createClient } = supabase;
+    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const form = document.getElementById("login-form");
+    const errorMessage = document.getElementById("error-message");
+    const submitButton = document.getElementById("login-btn");
+
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+
+      errorMessage.textContent = "";
+      errorMessage.classList.remove("visible");
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      submitButton.disabled = true;
+
+      const { error } = await client.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+
+      submitButton.disabled = false;
+
+      if (error) {
+        errorMessage.textContent = error.message;
+        errorMessage.classList.add("visible");
+        return;
+      }
+
+      window.location.href = "app.html";
+    });
+  </script>
+</body>
+</html>

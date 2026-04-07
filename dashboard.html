@@ -2,158 +2,418 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Vigil — Agent Dashboard</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; padding: 2rem; }
-    h1 { font-size: 1.4rem; font-weight: 500; margin-bottom: 0.25rem; }
-    .subtitle { font-size: 0.85rem; color: #666; margin-bottom: 2rem; }
-    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
-    .stat { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 1rem 1.25rem; }
-    .stat-label { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
-    .stat-value { font-size: 1.6rem; font-weight: 500; color: #fff; }
-    .table-wrap { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; overflow: hidden; margin-bottom: 2rem; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-    thead { background: #222; }
-    th { padding: 0.75rem 1rem; text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #666; font-weight: 500; }
-    td { padding: 0.875rem 1rem; border-top: 1px solid #222; }
-    tr.clickable { cursor: pointer; }
-    tr.clickable:hover td { background: #1f1f1f; }
-    tr.active td { background: #1a1f2e; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: 500; }
-    .success { background: #0d2e1a; color: #4ade80; }
-    .error { background: #2e0d0d; color: #f87171; }
-    .agent-name { font-weight: 500; color: #fff; }
-    .cost { color: #a78bfa; font-weight: 500; }
-    .duration { color: #60a5fa; }
-    .timestamp { color: #555; font-size: 0.8rem; }
-    .steps-count { color: #666; font-size: 0.8rem; }
-    .bar-wrap { background: #2a2a2a; border-radius: 4px; height: 4px; width: 80px; display: inline-block; vertical-align: middle; margin-left: 8px; }
-    .bar { height: 4px; border-radius: 4px; background: #60a5fa; }
+    :root {
+      --bg: #0b0c0f;
+      --panel: #121419;
+      --panel-2: #171a21;
+      --line: #262a33;
+      --text: #e7eaf1;
+      --muted: #8d94a3;
+      --accent: #f97316;
+      --accent-soft: rgba(249, 115, 22, 0.12);
+      --good: #34d399;
+      --bad: #fb7185;
+      --warn-bg: #3b121a;
+      --warn-border: #7f1d2d;
+      --radius: 12px;
+    }
 
-    /* Trace panel */
-    .trace-panel { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 1.5rem; display: none; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 800px at 10% -20%, rgba(249, 115, 22, 0.08), transparent 55%),
+        var(--bg);
+      min-height: 100vh;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      background: #0e1014;
+      padding: 1.25rem 0.85rem;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+
+    .brand {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      margin-bottom: 1.35rem;
+      padding: 0.65rem 0.7rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+
+    .brand span { color: var(--accent); }
+    .nav-list { list-style: none; display: grid; gap: 0.45rem; }
+    .nav-item {
+      padding: 0.65rem 0.7rem;
+      border-radius: 9px;
+      border: 1px solid transparent;
+      color: var(--muted);
+      font-size: 0.87rem;
+      font-weight: 500;
+      background: transparent;
+    }
+
+    .nav-item.active {
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(249, 115, 22, 0.14), rgba(249, 115, 22, 0.05));
+      border-color: rgba(249, 115, 22, 0.32);
+    }
+
+    .content { padding: 1.4rem 1.6rem 2rem; }
+    h1 { font-size: 1.4rem; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 0.15rem; }
+    .subtitle { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.2rem; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .stat {
+      background: linear-gradient(180deg, var(--panel-2), var(--panel));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 0.85rem 0.95rem;
+      min-height: 94px;
+      display: grid;
+      align-content: space-between;
+    }
+
+    .stat-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+    .stat-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.09em; }
+    .stat-value { font-size: 1.4rem; font-weight: 600; letter-spacing: -0.01em; }
+    .trend {
+      font-size: 0.72rem;
+      padding: 0.2rem 0.4rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .trend.good { color: var(--good); border-color: rgba(52, 211, 153, 0.35); background: rgba(52, 211, 153, 0.08); }
+    .trend.bad { color: var(--bad); border-color: rgba(251, 113, 133, 0.35); background: rgba(251, 113, 133, 0.09); }
+
+    .sparkline-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      padding: 0.75rem 0.95rem;
+    }
+
+    .sparkline-title {
+      font-size: 0.74rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.45rem;
+    }
+
+    #cost-sparkline { width: 100%; height: 56px; display: block; }
+    .sparkline-hint { margin-top: 0.4rem; font-size: 0.76rem; color: #6e7584; }
+
+    .hint { font-size: 0.75rem; color: #6e7584; margin-bottom: 0.45rem; }
+    .table-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.81rem; }
+    thead { background: #151821; }
+    th {
+      padding: 0.58rem 0.75rem;
+      text-align: left;
+      font-size: 0.65rem;
+      color: #757d8d;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+      border-bottom: 1px solid var(--line);
+    }
+    td { padding: 0.56rem 0.75rem; border-top: 1px solid #1f232d; line-height: 1.35; }
+    tr.clickable { cursor: pointer; }
+    tr.clickable:hover td { background: #191d26; }
+    tr.active td { background: #1f1f28; }
+
+    .badge { display: inline-flex; align-items: center; gap: 0.2rem; padding: 0.13rem 0.46rem; border-radius: 999px; font-size: 0.68rem; font-weight: 600; }
+    .success { background: rgba(52, 211, 153, 0.12); color: var(--good); border: 1px solid rgba(52, 211, 153, 0.25); }
+    .error { background: rgba(248, 113, 113, 0.15); color: #fda4af; border: 1px solid rgba(248, 113, 113, 0.35); }
+    .baseline { background: #242833; color: #a0a7b7; border: 1px solid #353c4d; }
+    .spike { background: rgba(248, 113, 113, 0.17); color: #fecaca; border: 1px solid rgba(248, 113, 113, 0.45); font-weight: 700; }
+
+    .agent-name { font-weight: 600; color: #fff; }
+    .topic { color: #a7adba; font-size: 0.78rem; }
+    .cost { color: #c4b5fd; font-weight: 600; }
+    .duration { color: #93c5fd; white-space: nowrap; }
+    .timestamp { color: #7b8394; font-size: 0.77rem; white-space: nowrap; }
+    .steps-count { color: #9399a7; font-size: 0.76rem; }
+    .bar-wrap { background: #2a2f3a; border-radius: 999px; height: 3px; width: 58px; display: inline-block; vertical-align: middle; margin-left: 6px; }
+    .bar { height: 3px; border-radius: 999px; background: #60a5fa; }
+
+    .trace-panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem; display: none; }
     .trace-panel.visible { display: block; }
-    .trace-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
-    .trace-title { font-size: 1rem; font-weight: 500; color: #fff; margin-bottom: 0.25rem; }
-    .trace-meta { font-size: 0.8rem; color: #555; }
-    .trace-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
-    .trace-stat { background: #222; border-radius: 8px; padding: 0.75rem 1rem; }
-    .trace-stat-label { font-size: 0.7rem; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
-    .trace-stat-value { font-size: 1.1rem; font-weight: 500; color: #fff; }
-    .steps-title { font-size: 0.75rem; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
-    .step { display: flex; gap: 1rem; align-items: flex-start; padding: 0.75rem 0; border-top: 1px solid #222; }
+    .trace-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.95rem; }
+    .trace-title { font-size: 0.97rem; font-weight: 600; color: #fff; margin-bottom: 0.2rem; }
+    .trace-meta { font-size: 0.77rem; color: #767e8d; }
+    .trace-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; margin-bottom: 0.85rem; }
+    .trace-stat { background: #171b23; border: 1px solid #262d39; border-radius: 9px; padding: 0.6rem 0.7rem; }
+    .trace-stat-label { font-size: 0.65rem; color: #747d8f; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.2rem; }
+    .trace-stat-value { font-size: 0.98rem; font-weight: 600; color: #fff; }
+    .steps-title { font-size: 0.68rem; color: #71798a; text-transform: uppercase; letter-spacing: 0.09em; margin-bottom: 0.55rem; }
+    .step { display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.6rem 0; border-top: 1px solid #202631; }
     .step:first-of-type { border-top: none; }
-    .step-num { width: 22px; height: 22px; border-radius: 50%; background: #222; color: #666; font-size: 0.7rem; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-    .step-type { font-size: 0.75rem; font-weight: 500; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-bottom: 0.25rem; }
-    .web_search { background: #0d1f3c; color: #60a5fa; }
-    .llm_summarise { background: #1a0d3c; color: #a78bfa; }
-    .step-detail { font-size: 0.8rem; color: #555; word-break: break-all; }
-    .close-btn { background: #222; border: 1px solid #2a2a2a; color: #666; padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
-    .close-btn:hover { color: #fff; background: #2a2a2a; }
-    .hint { font-size: 0.75rem; color: #444; margin-bottom: 1rem; }
-    .baseline { background: #2a2a2a; color: #a3a3a3; }
-    .anomaly-warning { display: none; margin-bottom: 1.25rem; border: 1px solid #5b1b1b; background: #2e0d0d; color: #fca5a5; border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.85rem; }
+    .step-num { width: 20px; height: 20px; border-radius: 50%; background: #222a38; color: #95a0b2; font-size: 0.66rem; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .step-type { font-size: 0.68rem; font-weight: 600; padding: 0.12rem 0.38rem; border-radius: 4px; display: inline-block; margin-bottom: 0.2rem; }
+    .web_search { background: #142743; color: #93c5fd; }
+    .llm_summarise { background: #2a1d46; color: #c4b5fd; }
+    .step-detail { font-size: 0.76rem; color: #8f97a8; word-break: break-all; }
+    .close-btn { background: #1c212d; border: 1px solid #2b3240; color: #94a0b5; padding: 0.25rem 0.62rem; border-radius: 6px; cursor: pointer; font-size: 0.76rem; }
+    .close-btn:hover { color: #fff; background: #262d3b; }
+    .anomaly-warning { display: none; margin-bottom: 0.7rem; border: 1px solid var(--warn-border); background: var(--warn-bg); color: #fecdd3; border-radius: 8px; padding: 0.58rem 0.72rem; font-size: 0.78rem; }
     .anomaly-warning.visible { display: block; }
+
+    @media (max-width: 1100px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); }
+      .nav-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
   </style>
 </head>
 <body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">Farol <span>Vigil</span></div>
+      <ul class="nav-list">
+        <li class="nav-item active">Dashboard</li>
+        <li class="nav-item">Agents</li>
+        <li class="nav-item">Alerts</li>
+        <li class="nav-item">Settings</li>
+      </ul>
+    </aside>
 
-  <h1>Vigil</h1>
-  <p class="subtitle">Agent observability dashboard</p>
+    <main class="content">
+      <h1>Agent Observability</h1>
+      <p class="subtitle">Live telemetry and cost posture for AI agents</p>
 
-  <div class="stats">
-    <div class="stat">
-      <div class="stat-label">Total runs</div>
-      <div class="stat-value" id="total-runs">—</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Success rate</div>
-      <div class="stat-value" id="success-rate">—</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Avg duration</div>
-      <div class="stat-value" id="avg-duration">—</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Total cost</div>
-      <div class="stat-value" id="total-cost">—</div>
-    </div>
-  </div>
-
-  <p class="hint">Click any run to see its full trace</p>
-
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Agent</th>
-          <th>Topic</th>
-          <th>Status</th>
-          <th>Anomaly</th>
-          <th>Duration</th>
-          <th>Cost</th>
-          <th>Steps</th>
-          <th>Timestamp</th>
-        </tr>
-      </thead>
-      <tbody id="runs-body"></tbody>
-    </table>
-  </div>
-
-  <div class="trace-panel" id="trace-panel">
-    <div class="trace-header">
-      <div>
-        <div class="trace-title" id="trace-title">—</div>
-        <div class="trace-meta" id="trace-meta">—</div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-head">
+            <div class="stat-label">Total runs</div>
+            <div class="trend" id="trend-total">—</div>
+          </div>
+          <div class="stat-value" id="total-runs">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-head">
+            <div class="stat-label">Success rate</div>
+            <div class="trend" id="trend-success">—</div>
+          </div>
+          <div class="stat-value" id="success-rate">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-head">
+            <div class="stat-label">Avg duration</div>
+            <div class="trend" id="trend-duration">—</div>
+          </div>
+          <div class="stat-value" id="avg-duration">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-head">
+            <div class="stat-label">Total cost</div>
+            <div class="trend" id="trend-cost">—</div>
+          </div>
+          <div class="stat-value" id="total-cost">—</div>
+        </div>
       </div>
-      <button class="close-btn" onclick="closeTrace()">close</button>
-    </div>
-    <div class="trace-stats">
-      <div class="trace-stat">
-        <div class="trace-stat-label">Duration</div>
-        <div class="trace-stat-value" id="trace-duration">—</div>
+
+      <div class="sparkline-card">
+        <div class="sparkline-title">Cost trend (last 10 runs)</div>
+        <svg id="cost-sparkline" viewBox="0 0 400 56" preserveAspectRatio="none">
+          <polyline id="cost-sparkline-line" fill="none" stroke="var(--accent)" stroke-width="2"></polyline>
+          <polyline id="cost-sparkline-area" fill="rgba(249, 115, 22, 0.16)" stroke="none"></polyline>
+        </svg>
+        <div class="sparkline-hint" id="sparkline-hint">Waiting for run data…</div>
       </div>
-      <div class="trace-stat">
-        <div class="trace-stat-label">Cost</div>
-        <div class="trace-stat-value" id="trace-cost">—</div>
+
+      <p class="hint">Click any run to see its full trace</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th>Topic</th>
+              <th>Status</th>
+              <th>Anomaly</th>
+              <th>Duration</th>
+              <th>Cost</th>
+              <th>Steps</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="runs-body"></tbody>
+        </table>
       </div>
-      <div class="trace-stat">
-        <div class="trace-stat-label">Tokens used</div>
-        <div class="trace-stat-value" id="trace-tokens">—</div>
+
+      <div class="trace-panel" id="trace-panel">
+        <div class="trace-header">
+          <div>
+            <div class="trace-title" id="trace-title">—</div>
+            <div class="trace-meta" id="trace-meta">—</div>
+          </div>
+          <button class="close-btn" onclick="closeTrace()">close</button>
+        </div>
+        <div class="trace-stats">
+          <div class="trace-stat">
+            <div class="trace-stat-label">Duration</div>
+            <div class="trace-stat-value" id="trace-duration">—</div>
+          </div>
+          <div class="trace-stat">
+            <div class="trace-stat-label">Cost</div>
+            <div class="trace-stat-value" id="trace-cost">—</div>
+          </div>
+          <div class="trace-stat">
+            <div class="trace-stat-label">Tokens used</div>
+            <div class="trace-stat-value" id="trace-tokens">—</div>
+          </div>
+        </div>
+        <div class="anomaly-warning" id="trace-anomaly-warning"></div>
+        <div class="steps-title">Execution steps</div>
+        <div id="trace-steps"></div>
       </div>
-    </div>
-    <div class="anomaly-warning" id="trace-anomaly-warning"></div>
-    <div class="steps-title">Execution steps</div>
-    <div id="trace-steps"></div>
+    </main>
   </div>
 
   <script>
     let allRuns = [];
     let activeRow = null;
 
+    function setTrend(id, delta, goodWhenUp = true) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (Math.abs(delta) < 0.001) {
+        el.textContent = "→ stable";
+        el.className = "trend";
+        return;
+      }
+      const up = delta > 0;
+      const good = goodWhenUp ? up : !up;
+      el.textContent = `${up ? "▲" : "▼"} ${Math.abs(delta).toFixed(1)}%`;
+      el.className = `trend ${good ? "good" : "bad"}`;
+    }
+
+    function drawSparkline(runs) {
+      const line = document.getElementById("cost-sparkline-line");
+      const area = document.getElementById("cost-sparkline-area");
+      const hint = document.getElementById("sparkline-hint");
+      const recent = runs.slice(-10);
+      if (!recent.length) {
+        line.setAttribute("points", "");
+        area.setAttribute("points", "");
+        hint.textContent = "No runs yet";
+        return;
+      }
+
+      const values = recent.map(r => Number(r.cost_usd) || 0);
+      const max = Math.max(...values, 0.000001);
+      const min = Math.min(...values);
+      const range = Math.max(max - min, 0.000001);
+      const w = 400;
+      const h = 56;
+      const points = values.map((v, i) => {
+        const x = values.length === 1 ? 0 : (i / (values.length - 1)) * w;
+        const y = h - (((v - min) / range) * (h - 8)) - 4;
+        return `${x},${y}`;
+      }).join(" ");
+
+      const firstX = values.length === 1 ? 0 : 0;
+      const lastX = values.length === 1 ? 0 : w;
+      const areaPoints = `${firstX},${h} ${points} ${lastX},${h}`;
+
+      line.setAttribute("points", points);
+      area.setAttribute("points", areaPoints);
+      hint.textContent = `Latest: $${values[values.length - 1].toFixed(6)} · High: $${max.toFixed(6)}`;
+    }
+
     async function load() {
-        const res = await fetch("http://localhost:8080/runs");
+      const res = await fetch("http://localhost:8080/runs");
       allRuns = await res.json();
 
-      document.getElementById("total-runs").textContent = allRuns.length;
+      if (!allRuns.length) {
+        document.getElementById("total-runs").textContent = "0";
+        document.getElementById("success-rate").textContent = "0%";
+        document.getElementById("avg-duration").textContent = "0.0s";
+        document.getElementById("total-cost").textContent = "$0.00000";
+        drawSparkline([]);
+        return;
+      }
+
+      const totalRuns = allRuns.length;
+      document.getElementById("total-runs").textContent = totalRuns;
 
       const successes = allRuns.filter(r => r.status === "success").length;
-      document.getElementById("success-rate").textContent =
-        Math.round((successes / allRuns.length) * 100) + "%";
+      const successRate = Math.round((successes / totalRuns) * 100);
+      document.getElementById("success-rate").textContent = successRate + "%";
 
-      const avgMs = Math.round(allRuns.reduce((a, r) => a + r.duration_ms, 0) / allRuns.length);
+      const avgMs = Math.round(allRuns.reduce((a, r) => a + r.duration_ms, 0) / totalRuns);
       document.getElementById("avg-duration").textContent = (avgMs / 1000).toFixed(1) + "s";
 
-      const totalCost = allRuns.reduce((a, r) => a + r.cost_usd, 0);
+      const totalCost = allRuns.reduce((a, r) => a + (Number(r.cost_usd) || 0), 0);
       document.getElementById("total-cost").textContent = "$" + totalCost.toFixed(5);
 
-      const maxDuration = Math.max(...allRuns.map(r => r.duration_ms));
+      const recent = allRuns.slice(-10);
+      const previous = allRuns.slice(-20, -10);
+      const prevRuns = previous.length || 1;
+      const prevTotalRuns = previous.length;
+      const prevSuccesses = previous.filter(r => r.status === "success").length;
+      const prevSuccessRate = prevTotalRuns ? (prevSuccesses / prevTotalRuns) * 100 : successRate;
+      const prevAvgMs = prevTotalRuns ? previous.reduce((a, r) => a + r.duration_ms, 0) / prevRuns : avgMs;
+      const prevTotalCost = prevTotalRuns ? previous.reduce((a, r) => a + (Number(r.cost_usd) || 0), 0) : totalCost;
+
+      const recentTotalRuns = recent.length;
+      const recentSuccessRate = recentTotalRuns
+        ? (recent.filter(r => r.status === "success").length / recentTotalRuns) * 100
+        : successRate;
+      const recentAvgMs = recentTotalRuns
+        ? recent.reduce((a, r) => a + r.duration_ms, 0) / recentTotalRuns
+        : avgMs;
+      const recentTotalCost = recentTotalRuns
+        ? recent.reduce((a, r) => a + (Number(r.cost_usd) || 0), 0)
+        : totalCost;
+
+      const totalRunsDelta = prevTotalRuns ? ((recentTotalRuns - prevTotalRuns) / prevTotalRuns) * 100 : 0;
+      const successDelta = prevSuccessRate ? ((recentSuccessRate - prevSuccessRate) / prevSuccessRate) * 100 : 0;
+      const durationDelta = prevAvgMs ? ((recentAvgMs - prevAvgMs) / prevAvgMs) * 100 : 0;
+      const costDelta = prevTotalCost ? ((recentTotalCost - prevTotalCost) / prevTotalCost) * 100 : 0;
+
+      setTrend("trend-total", totalRunsDelta, true);
+      setTrend("trend-success", successDelta, true);
+      setTrend("trend-duration", durationDelta, false);
+      setTrend("trend-cost", costDelta, false);
+
+      drawSparkline(allRuns);
+
+      const maxDuration = Math.max(...allRuns.map(r => r.duration_ms), 1);
       const tbody = document.getElementById("runs-body");
+      tbody.innerHTML = "";
 
       allRuns.slice().reverse().forEach((r, i) => {
         const realIndex = allRuns.length - 1 - i;
-        const barWidth = Math.round((r.duration_ms / maxDuration) * 80);
+        const barWidth = Math.round((r.duration_ms / maxDuration) * 58);
         const time = new Date(r.timestamp).toLocaleTimeString();
         const stepCount = r.steps ? r.steps.length : 0;
         const row = document.createElement("tr");
@@ -161,11 +421,11 @@
         row.dataset.index = realIndex;
         const isBaseline = !r.anomaly && typeof r.anomaly_reason === "string" && r.anomaly_reason.includes("Building baseline");
         const anomalyCell = r.anomaly
-          ? '<span class="badge error">spike</span>'
+          ? '<span class="badge spike">! spike</span>'
           : (isBaseline ? '<span class="badge baseline">baseline</span>' : "");
         row.innerHTML = `
           <td class="agent-name">${r.agent}</td>
-          <td style="color:#aaa;font-size:0.8rem">${r.topic || '—'}</td>
+          <td class="topic">${r.topic || "—"}</td>
           <td><span class="badge ${r.status}">${r.status}</span></td>
           <td>${anomalyCell}</td>
           <td class="duration">
@@ -221,7 +481,7 @@
             </div>`;
         });
       } else {
-        stepsEl.innerHTML = '<div style="color:#444;font-size:0.85rem">No steps recorded</div>';
+        stepsEl.innerHTML = '<div style="color:#6e7584;font-size:0.85rem">No steps recorded</div>';
       }
 
       panel.scrollIntoView({ behavior: "smooth" });
