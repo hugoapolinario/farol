@@ -1,6 +1,7 @@
 import time
 import json
 import os
+import statistics
 from datetime import datetime
 from dotenv import load_dotenv
 from supabase import create_client
@@ -22,6 +23,59 @@ def load_runs():
         return json.load(f)
 
 def save_run(run: dict):
+    anomaly = False
+    anomaly_reason = None
+
+    try:
+        baseline_response = (
+            supabase
+            .table("runs")
+            .select("cost_usd")
+            .eq("agent", run["agent"])
+            .eq("status", "success")
+            .order("timestamp", desc=True)
+            .limit(20)
+            .execute()
+        )
+        baseline_rows = baseline_response.data or []
+    except Exception as e:
+        print(f"[Vigil] Baseline lookup failed: {e}")
+        baseline_rows = []
+
+    baseline_costs = []
+    for row in baseline_rows:
+        try:
+            baseline_costs.append(float(row.get("cost_usd")))
+        except (TypeError, ValueError, AttributeError):
+            continue
+
+    if len(baseline_costs) < 5:
+        anomaly = False
+        anomaly_reason = "Building baseline — need 5+ runs"
+    else:
+        median_cost = statistics.median(baseline_costs)
+        mean_cost = statistics.mean(baseline_costs)
+        std_dev_cost = statistics.stdev(baseline_costs)
+        current_cost = float(run["cost_usd"])
+
+        is_over_3x_median = current_cost > (3 * median_cost)
+        is_over_2x_and_2std = current_cost > (2 * median_cost) and current_cost > (mean_cost + (2 * std_dev_cost))
+
+        if is_over_3x_median or is_over_2x_and_2std:
+            anomaly = True
+            ratio = (current_cost / median_cost) if median_cost > 0 else float("inf")
+            ratio_text = "∞" if ratio == float("inf") else f"{ratio:.1f}"
+            anomaly_reason = (
+                f"Cost {ratio_text}× above median baseline "
+                f"(median: ${median_cost:.6f}, actual: ${current_cost:.6f})"
+            )
+        else:
+            anomaly = False
+            anomaly_reason = None
+
+    run["anomaly"] = anomaly
+    run["anomaly_reason"] = anomaly_reason
+
     # Save to local JSON
     runs = load_runs()
     runs.append(run)
@@ -40,6 +94,8 @@ def save_run(run: dict):
             "input_tokens": run["input_tokens"],
             "output_tokens": run["output_tokens"],
             "cost_usd": float(run["cost_usd"]),
+            "anomaly": run["anomaly"],
+            "anomaly_reason": run["anomaly_reason"],
             "steps": run["steps"],
             "error": run.get("error"),
             "timestamp": run["timestamp"]
@@ -51,6 +107,8 @@ def save_run(run: dict):
     print(f"[Vigil] Run recorded — {run['duration_ms']}ms | ${run['cost_usd']} | status: {run['status']}")
     if run["cost_usd"] > COST_ALERT_THRESHOLD:
         print(f"[Vigil] COST ALERT — {run['agent']} exceeded ${COST_ALERT_THRESHOLD} threshold (actual: ${run['cost_usd']})")
+    if run["anomaly"]:
+        print(f"[Vigil] COST ANOMALY DETECTED — {run['anomaly_reason']}")
 
 def trace(agent_name: str, model: str = "claude-haiku-4-5-20251001", cost_per_1k_tokens: float = 0.00025):
     def decorator(func):

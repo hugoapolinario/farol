@@ -52,6 +52,9 @@
     .close-btn { background: #222; border: 1px solid #2a2a2a; color: #666; padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
     .close-btn:hover { color: #fff; background: #2a2a2a; }
     .hint { font-size: 0.75rem; color: #444; margin-bottom: 1rem; }
+    .baseline { background: #2a2a2a; color: #a3a3a3; }
+    .anomaly-warning { display: none; margin-bottom: 1.25rem; border: 1px solid #5b1b1b; background: #2e0d0d; color: #fca5a5; border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.85rem; }
+    .anomaly-warning.visible { display: block; }
   </style>
 </head>
 <body>
@@ -87,6 +90,7 @@
           <th>Agent</th>
           <th>Topic</th>
           <th>Status</th>
+          <th>Anomaly</th>
           <th>Duration</th>
           <th>Cost</th>
           <th>Steps</th>
@@ -119,6 +123,7 @@
         <div class="trace-stat-value" id="trace-tokens">—</div>
       </div>
     </div>
+    <div class="anomaly-warning" id="trace-anomaly-warning"></div>
     <div class="steps-title">Execution steps</div>
     <div id="trace-steps"></div>
   </div>
@@ -154,10 +159,15 @@
         const row = document.createElement("tr");
         row.className = "clickable";
         row.dataset.index = realIndex;
+        const isBaseline = !r.anomaly && typeof r.anomaly_reason === "string" && r.anomaly_reason.includes("Building baseline");
+        const anomalyCell = r.anomaly
+          ? '<span class="badge error">spike</span>'
+          : (isBaseline ? '<span class="badge baseline">baseline</span>' : "");
         row.innerHTML = `
           <td class="agent-name">${r.agent}</td>
           <td style="color:#aaa;font-size:0.8rem">${r.topic || '—'}</td>
           <td><span class="badge ${r.status}">${r.status}</span></td>
+          <td>${anomalyCell}</td>
           <td class="duration">
             ${(r.duration_ms / 1000).toFixed(2)}s
             <span class="bar-wrap"><span class="bar" style="width:${barWidth}px"></span></span>
@@ -186,6 +196,14 @@
       document.getElementById("trace-cost").textContent = "$" + r.cost_usd;
       document.getElementById("trace-tokens").textContent =
         (r.input_tokens + r.output_tokens).toLocaleString();
+      const anomalyWarning = document.getElementById("trace-anomaly-warning");
+      if (r.anomaly) {
+        anomalyWarning.textContent = r.anomaly_reason || "Cost anomaly detected.";
+        anomalyWarning.classList.add("visible");
+      } else {
+        anomalyWarning.textContent = "";
+        anomalyWarning.classList.remove("visible");
+      }
 
       const stepsEl = document.getElementById("trace-steps");
       stepsEl.innerHTML = "";
