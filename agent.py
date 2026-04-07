@@ -45,4 +45,4 @@ def research_topic(topic: str, run: dict = None):
     print(message.content[0].text)
 
 if __name__ == "__main__":
-    research_topic("how to build a developer tool startup")
+    research_topic("willingness to pay developer tools monthly subscription")
