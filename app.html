@@ -187,7 +187,7 @@
     }
 
     .table-wrap {
-      overflow: hidden;
+      overflow-x: auto;
     }
 
     table {
@@ -214,8 +214,47 @@
       font-weight: 600;
     }
 
-    tbody tr:hover td {
+    tbody tr.clickable {
+      cursor: pointer;
+    }
+
+    tbody tr.clickable:hover td {
       background: rgba(255, 255, 255, 0.015);
+    }
+
+    tbody tr.active td {
+      background: rgba(249, 115, 22, 0.06);
+    }
+
+    .model-pill {
+      display: inline-block;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.12rem 0.45rem;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    .tokens-cell {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .error-cell {
+      font-size: 0.76rem;
+      color: #f87171;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .badge {
@@ -263,6 +302,154 @@
       color: var(--text-muted);
       font-size: 0.79rem;
     }
+
+    .trace-panel {
+      margin-top: 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+      padding: 1rem;
+      display: none;
+    }
+
+    .trace-panel.visible {
+      display: block;
+    }
+
+    .trace-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.85rem;
+    }
+
+    .trace-title {
+      font-size: 0.98rem;
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+    }
+
+    .trace-meta {
+      font-size: 0.77rem;
+      color: var(--text-muted);
+    }
+
+    .trace-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.6rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .trace-stat {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.55rem 0.65rem;
+    }
+
+    .trace-stat-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.15rem;
+    }
+
+    .trace-stat-value {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .anomaly-warning {
+      display: none;
+      margin-bottom: 0.65rem;
+      border: 1px solid rgba(248, 113, 113, 0.35);
+      background: rgba(127, 29, 29, 0.25);
+      color: #fecaca;
+      border-radius: var(--radius-sm);
+      padding: 0.55rem 0.7rem;
+      font-size: 0.78rem;
+    }
+
+    .anomaly-warning.visible {
+      display: block;
+    }
+
+    .steps-title {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.5rem;
+    }
+
+    .step {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      padding: 0.55rem 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .step:first-of-type {
+      border-top: none;
+    }
+
+    .step-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      color: var(--text-muted);
+      font-size: 0.65rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-type {
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 0.15rem;
+    }
+
+    .web_search {
+      background: rgba(59, 130, 246, 0.15);
+      color: #93c5fd;
+    }
+
+    .llm_summarise {
+      background: rgba(167, 139, 250, 0.15);
+      color: #c4b5fd;
+    }
+
+    .step-detail {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      word-break: break-all;
+    }
+
+    .close-btn {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.76rem;
+      font-family: inherit;
+    }
+
+    .close-btn:hover {
+      color: var(--text);
+      border-color: rgba(249, 115, 22, 0.35);
+    }
   </style>
 </head>
 <body>
@@ -301,10 +488,14 @@
           <tr id="runs-heading">
             <th>Agent</th>
             <th>Topic</th>
+            <th>Model</th>
             <th>Status</th>
             <th>Anomaly</th>
+            <th>Steps</th>
             <th>Duration</th>
+            <th>Tokens</th>
             <th>Cost</th>
+            <th>Error</th>
             <th>Timestamp</th>
           </tr>
         </thead>
@@ -312,6 +503,33 @@
       </table>
     </section>
     <p class="last-updated" id="last-updated">Last updated: —</p>
+
+    <div class="trace-panel" id="trace-panel">
+      <div class="trace-header">
+        <div>
+          <div class="trace-title" id="trace-title">—</div>
+          <div class="trace-meta" id="trace-meta">—</div>
+        </div>
+        <button class="close-btn" type="button" onclick="closeTrace()">close</button>
+      </div>
+      <div class="trace-stats">
+        <div class="trace-stat">
+          <div class="trace-stat-label">Duration</div>
+          <div class="trace-stat-value" id="trace-duration">—</div>
+        </div>
+        <div class="trace-stat">
+          <div class="trace-stat-label">Cost</div>
+          <div class="trace-stat-value" id="trace-cost">—</div>
+        </div>
+        <div class="trace-stat">
+          <div class="trace-stat-label">Tokens used</div>
+          <div class="trace-stat-value" id="trace-tokens">—</div>
+        </div>
+      </div>
+      <div class="anomaly-warning" id="trace-anomaly-warning"></div>
+      <div class="steps-title">Execution steps</div>
+      <div id="trace-steps"></div>
+    </div>
     <p class="status" id="status-message"></p>
   </main>
 
@@ -335,6 +553,17 @@
     let lastRefreshAt = null;
     let refreshIntervalId = null;
     let secondsTickerId = null;
+    let allRuns = [];
+    let activeRow = null;
+
+    function escapeHtml(s) {
+      if (s == null) return "";
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
 
     function randomString(length) {
       const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -355,26 +584,46 @@
       runsBody.innerHTML = "";
 
       if (!runs.length) {
-        runsBody.innerHTML = '<tr><td colspan="7" style="color:#8b919d;">No runs yet.</td></tr>';
+        runsBody.innerHTML = '<tr><td colspan="11" style="color:#8b919d;">No runs yet.</td></tr>';
         return;
       }
 
-      runs.forEach((r) => {
+      runs.forEach((r, i) => {
         const row = document.createElement("tr");
+        row.className = "clickable";
+        row.dataset.index = String(i);
         const isBaseline = !r.anomaly && typeof r.anomaly_reason === "string" && r.anomaly_reason.includes("Building baseline");
         const anomalyCell = r.anomaly
           ? '<span class="badge spike">! spike</span>'
           : (isBaseline ? '<span class="badge baseline">baseline</span>' : "");
+        const stepCount = Array.isArray(r.steps) ? r.steps.length : 0;
+        const inTok = Number(r.input_tokens) || 0;
+        const outTok = Number(r.output_tokens) || 0;
+        const modelName = r.model ? escapeHtml(r.model) : "";
+        const modelCell = r.model
+          ? `<span class="model-pill" title="${modelName}">${modelName}</span>`
+          : "—";
+        let errorCell = "";
+        if (r.status === "error" && r.error != null && String(r.error).length > 0) {
+          const full = String(r.error);
+          const truncated = full.length > 60 ? full.slice(0, 60) + "…" : full;
+          errorCell = `<span class="error-cell" title="${escapeHtml(full)}">${escapeHtml(truncated)}</span>`;
+        }
 
         row.innerHTML = `
-          <td>${r.agent || "—"}</td>
-          <td>${r.topic || "—"}</td>
-          <td><span class="badge ${r.status === "success" ? "success" : "error"}">${r.status || "unknown"}</span></td>
+          <td>${r.agent != null && r.agent !== "" ? escapeHtml(r.agent) : "—"}</td>
+          <td>${r.topic != null && r.topic !== "" ? escapeHtml(r.topic) : "—"}</td>
+          <td>${modelCell}</td>
+          <td><span class="badge ${r.status === "success" ? "success" : "error"}">${escapeHtml(r.status) || "unknown"}</span></td>
           <td>${anomalyCell}</td>
+          <td>${stepCount}</td>
           <td>${r.duration_ms != null ? (Number(r.duration_ms) / 1000).toFixed(2) + "s" : "—"}</td>
+          <td class="tokens-cell">${inTok}in / ${outTok}out</td>
           <td>${r.cost_usd != null ? "$" + Number(r.cost_usd).toFixed(6) : "—"}</td>
+          <td>${errorCell}</td>
           <td>${r.timestamp ? new Date(r.timestamp).toLocaleString() : "—"}</td>
         `;
+        row.addEventListener("click", () => openTrace(i, row));
         runsBody.appendChild(row);
       });
     }
@@ -414,7 +663,7 @@
     async function loadRuns(userId) {
       const { data, error } = await client
         .from("runs")
-        .select("agent, topic, status, anomaly, anomaly_reason, duration_ms, cost_usd, timestamp")
+        .select("id, agent, topic, model, status, anomaly, anomaly_reason, duration_ms, cost_usd, timestamp, steps, input_tokens, output_tokens, error")
         .eq("user_id", userId)
         .order("timestamp", { ascending: false });
 
@@ -422,7 +671,66 @@
         throw error;
       }
 
-      renderRuns(data || []);
+      allRuns = data || [];
+      renderRuns(allRuns);
+    }
+
+    function openTrace(index, row) {
+      if (activeRow) activeRow.classList.remove("active");
+      activeRow = row;
+      row.classList.add("active");
+
+      const r = allRuns[index];
+      if (!r) return;
+
+      const panel = document.getElementById("trace-panel");
+      panel.classList.add("visible");
+
+      document.getElementById("trace-title").textContent = (r.agent || "—") + " — " + (r.topic || r.id || "—");
+      document.getElementById("trace-meta").textContent =
+        (r.timestamp ? new Date(r.timestamp).toLocaleString() : "—") + " · " + (r.status || "unknown");
+      document.getElementById("trace-duration").textContent =
+        r.duration_ms != null ? (Number(r.duration_ms) / 1000).toFixed(2) + "s" : "—";
+      document.getElementById("trace-cost").textContent =
+        r.cost_usd != null ? "$" + Number(r.cost_usd).toFixed(6) : "—";
+      document.getElementById("trace-tokens").textContent =
+        ((Number(r.input_tokens) || 0) + (Number(r.output_tokens) || 0)).toLocaleString();
+
+      const anomalyWarning = document.getElementById("trace-anomaly-warning");
+      if (r.anomaly) {
+        anomalyWarning.textContent = r.anomaly_reason || "Cost anomaly detected.";
+        anomalyWarning.classList.add("visible");
+      } else {
+        anomalyWarning.textContent = "";
+        anomalyWarning.classList.remove("visible");
+      }
+
+      const stepsEl = document.getElementById("trace-steps");
+      stepsEl.innerHTML = "";
+
+      if (r.steps && r.steps.length > 0) {
+        r.steps.forEach((s, si) => {
+          const detail = s.url || s.model || "";
+          stepsEl.innerHTML += `
+            <div class="step">
+              <div class="step-num">${si + 1}</div>
+              <div>
+                <span class="step-type ${s.step}">${escapeHtml(s.step)}</span>
+                <div class="step-detail">${escapeHtml(detail)}</div>
+              </div>
+            </div>`;
+        });
+      } else {
+        stepsEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">No steps recorded</div>';
+      }
+
+      panel.scrollIntoView({ behavior: "smooth" });
+    }
+
+    function closeTrace() {
+      document.getElementById("trace-panel").classList.remove("visible");
+      if (activeRow) activeRow.classList.remove("active");
+      activeRow = null;
     }
 
     function setLastUpdatedNow() {
