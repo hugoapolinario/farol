@@ -154,7 +154,7 @@ def trace(
     model: str = "claude-haiku-4-5-20251001",
     cost_per_1k_tokens: float = 0.00025,
     farol_key: Optional[str] = None,
-    farol_endpoint: str = DEFAULT_INGEST_URL,
+    farol_endpoint: str = "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/ingest",
 ):
     def decorator(func):
         def wrapper(*args, **kwargs):
