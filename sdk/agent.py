@@ -16,7 +16,7 @@ load_dotenv(_ROOT / ".env")
 client = Anthropic()
 firecrawl = FirecrawlApp(api_key=os.getenv("FIRECRAWL_API_KEY"))
 
-@trace(agent_name="research-agent", farol_key="frl_fTfS5MfRTPVoEfCTetpDQz1N", farol_endpoint="http://localhost:8080/api/ingest")
+@trace(agent_name="research-agent", farol_key="frl_fTfS5MfRTPVoEfCTetpDQz1N", farol_endpoint="https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/ingest")
 def research_topic(topic: str, run: dict = None):
     print(f"\n Researching: {topic}\n")
     run["topic"] = topic
@@ -54,7 +54,7 @@ def research_topic(topic: str, run: dict = None):
 if __name__ == "__main__":
     research_topic("how to reduce LLM costs")
 
-@trace(agent_name="market-agent", farol_key="frl_fTfS5MfRTPVoEfCTetpDQz1N", farol_endpoint="http://localhost:8080/api/ingest")
+@trace(agent_name="market-agent", farol_key="frl_fTfS5MfRTPVoEfCTetpDQz1N", farol_endpoint="https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/ingest")
 def market_research(topic: str, run: dict = None):
     print(f"\n Market research: {topic}\n")
     run["topic"] = topic
