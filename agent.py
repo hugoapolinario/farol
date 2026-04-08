@@ -84,4 +84,4 @@ def market_research(topic: str, run: dict = None):
 
 if __name__ == "__main__":
     research_topic("how to reduce LLM costs")
-    market_research("Farol competitors agent observability market 2026")
+    market_research("Latitude.so agent observability pricing features 2026")
