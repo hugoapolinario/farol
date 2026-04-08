@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Farol — Documentation</title>
+  <meta name="description" content="Quick start, SDK reference, and FAQ for Farol agent observability." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #0a0b0d;
+      --bg-surface: #111318;
+      --bg-elevated: #181b22;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8eaef;
+      --text-muted: #8b919d;
+      --accent: #f97316;
+      --accent-dim: rgba(249, 115, 22, 0.14);
+      --accent-glow: rgba(249, 115, 22, 0.35);
+      --font-display: "Fraunces", Georgia, serif;
+      --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+      --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --max: 1120px;
+      --nav-h: 72px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      line-height: 1.65;
+      color: var(--text);
+      background-color: var(--bg-deep);
+      color-scheme: dark;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 1rem;
+      top: -100px;
+      z-index: 9999;
+      padding: 0.65rem 1rem;
+      background: var(--accent);
+      color: #0a0b0d;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+    }
+
+    .skip-link:focus { top: 1rem; outline: 2px solid var(--text); outline-offset: 2px; }
+
+    .page-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249, 115, 22, 0.12), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 40%, rgba(249, 115, 22, 0.06), transparent 50%),
+        var(--bg-deep);
+    }
+
+    .wrap {
+      width: min(100% - 2rem, var(--max));
+      margin-inline: auto;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: var(--nav-h);
+      border-bottom: 1px solid var(--border);
+      background: rgba(10, 11, 13, 0.78);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: var(--nav-h);
+      gap: 1rem;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 600;
+      font-size: 1.125rem;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), #ea580c);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 24px var(--accent-glow);
+    }
+
+    .logo-mark svg { width: 18px; height: 18px; color: #0a0b0d; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.65rem 1.25rem;
+      font-family: var(--font-sans);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    }
+
+    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0a0b0d;
+    }
+
+    .btn-primary:hover {
+      background: #fb923c;
+      box-shadow: 0 4px 24px var(--accent-glow);
+    }
+
+    .docs-shell {
+      display: grid;
+      grid-template-columns: 200px minmax(0, 1fr);
+      gap: 2.5rem;
+      padding: 2rem 0 4rem;
+      align-items: start;
+    }
+
+    @media (max-width: 768px) {
+      .docs-shell {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+      .docs-sidebar {
+        position: static;
+        flex-direction: row;
+        flex-wrap: wrap;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 1rem;
+      }
+    }
+
+    .docs-sidebar {
+      position: sticky;
+      top: calc(var(--nav-h) + 1rem);
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      padding-right: 1rem;
+      border-right: 1px solid var(--border);
+    }
+
+    .docs-sidebar a {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 0.35rem 0;
+      border-radius: var(--radius-sm);
+    }
+
+    .docs-sidebar a:hover { color: var(--accent); }
+
+    .docs-sidebar a:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .docs-main {
+      min-width: 0;
+    }
+
+    .docs-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 3vw, 2.1rem);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 0 0 2rem;
+    }
+
+    .doc-section {
+      scroll-margin-top: calc(var(--nav-h) + 1rem);
+      margin-bottom: 2.75rem;
+    }
+
+    .doc-section:last-child { margin-bottom: 0; }
+
+    .doc-section h2 {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin: 0 0 1rem;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    .doc-section p, .doc-section li {
+      color: var(--text-muted);
+      font-size: 0.9375rem;
+      margin: 0 0 0.85rem;
+    }
+
+    .doc-section ul {
+      margin: 0 0 1rem;
+      padding-left: 1.25rem;
+    }
+
+    .doc-section li { margin-bottom: 0.4rem; }
+
+    .doc-section a.inline {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .doc-section a.inline:hover { text-decoration: underline; }
+
+    .steps {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      counter-reset: step;
+    }
+
+    .steps li {
+      counter-increment: step;
+      position: relative;
+      padding-left: 2.25rem;
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+      font-size: 0.9375rem;
+    }
+
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 6px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(249, 115, 22, 0.35);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+      font-family: var(--font-mono);
+    }
+
+    .code-panel {
+      margin-top: 0.75rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      overflow: hidden;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+    }
+
+    .code-header {
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-elevated);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    pre.code-body {
+      margin: 0;
+      padding: 1rem 1.1rem 1.15rem;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      line-height: 1.65;
+      color: #c4c9d4;
+    }
+
+    .param-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
+
+    .param-table th,
+    .param-table td {
+      text-align: left;
+      padding: 0.65rem 0.85rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    .param-table th {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--accent);
+      width: 38%;
+    }
+
+    .param-table td { color: var(--text-muted); }
+
+    .param-table tr:last-child th,
+    .param-table tr:last-child td { border-bottom: none; }
+
+    .faq-item {
+      margin-bottom: 1.35rem;
+    }
+
+    .faq-item:last-child { margin-bottom: 0; }
+
+    .faq-item h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin: 0 0 0.4rem;
+      color: var(--text);
+    }
+
+    .faq-item p {
+      margin: 0;
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+    }
+
+    .site-footer {
+      padding: 2rem 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .site-footer a { color: var(--accent); text-decoration: none; }
+    .site-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="page-bg" aria-hidden="true"></div>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="wrap nav-inner">
+      <a class="logo" href="index.html" aria-label="Farol home">
+        <span class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <path d="M12 3L4 9v12h16V9l-8-6z" />
+            <path d="M9 21V12h6v9" />
+            <circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none" />
+          </svg>
+        </span>
+        Farol
+      </a>
+      <a class="btn btn-primary" href="/signup.html">Get started</a>
+    </div>
+  </header>
+
+  <main id="main" class="wrap docs-shell">
+    <nav class="docs-sidebar" aria-label="Documentation sections">
+      <a href="#quick-start">Quick start</a>
+      <a href="#sdk-reference">SDK reference</a>
+      <a href="#dashboard">Dashboard</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+
+    <div class="docs-main">
+      <h1 class="docs-title">Documentation</h1>
+
+      <section id="quick-start" class="doc-section" aria-labelledby="quick-start-heading">
+        <h2 id="quick-start-heading">Quick start</h2>
+        <ol class="steps">
+          <li><strong style="color:var(--text)">Install.</strong> <code style="font-family:var(--font-mono);font-size:0.85em;color:var(--text)">pip install farol-sdk</code></li>
+          <li><strong style="color:var(--text)">Get an API key</strong> from <a class="inline" href="https://usefarol.dev/app.html">usefarol.dev/app.html</a> after you sign in.</li>
+          <li><strong style="color:var(--text)">Wrap your agent</strong> — pass token usage on the <code style="font-family:var(--font-mono);font-size:0.85em">run</code> dict; Farol records cost and syncs the run.</li>
+          <li><strong style="color:var(--text)">Run your agent</strong> and open the dashboard to see live runs, cost, and anomalies.</li>
+        </ol>
+        <div class="code-panel" translate="no">
+          <div class="code-header">agent.py</div>
+          <pre class="code-body"><code><span style="color:#c084fc">from</span> farol <span style="color:#c084fc">import</span> trace
+
+<span style="color:#c084fc">@</span>trace(<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key"</span>)
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">run</span>(task, *, run):
+    run[<span style="color:#86efac">"input_tokens"</span>] = <span style="color:#fdba74">120</span>
+    run[<span style="color:#86efac">"output_tokens"</span>] = <span style="color:#fdba74">80</span>
+    <span style="color:#c084fc">return</span> <span style="color:#86efac">"ok"</span></code></pre>
+        </div>
+      </section>
+
+      <section id="sdk-reference" class="doc-section" aria-labelledby="sdk-heading">
+        <h2 id="sdk-heading">SDK reference</h2>
+        <p>The <code style="font-family:var(--font-mono);font-size:0.88em;color:var(--text)">trace</code> decorator wraps your function and passes a <code style="font-family:var(--font-mono);font-size:0.88em">run</code> dict for steps, tokens, and timing.</p>
+        <table class="param-table">
+          <thead>
+            <tr><th scope="col">Parameter</th><th scope="col">Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">agent_name</th>
+              <td>Required. Display name for this agent in the dashboard.</td>
+            </tr>
+            <tr>
+              <th scope="row">farol_key</th>
+              <td>Required. API key from the dashboard; ties runs to your account.</td>
+            </tr>
+            <tr>
+              <th scope="row">model</th>
+              <td>Optional. Model label for display. Default <code style="font-family:var(--font-mono);font-size:0.9em">"unknown"</code>.</td>
+            </tr>
+            <tr>
+              <th scope="row">cost_per_1k_tokens</th>
+              <td>Optional. USD per 1k tokens (input + output) for cost. Default <code style="font-family:var(--font-mono);font-size:0.9em">0.00025</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="dashboard" class="doc-section" aria-labelledby="dashboard-heading">
+        <h2 id="dashboard-heading">Dashboard</h2>
+        <p>Each row is one run. Columns:</p>
+        <ul>
+          <li><strong style="color:var(--text)">Agent</strong> — name you set with <code style="font-family:var(--font-mono);font-size:0.88em">agent_name</code>.</li>
+          <li><strong style="color:var(--text)">Topic</strong> — optional topic string if you set <code style="font-family:var(--font-mono);font-size:0.88em">run["topic"]</code>.</li>
+          <li><strong style="color:var(--text)">Status</strong> — success or error for that run.</li>
+          <li><strong style="color:var(--text)">Anomaly</strong> — cost spike vs your recent baseline, or “baseline” while Farol learns.</li>
+          <li><strong style="color:var(--text)">Steps</strong> — number of recorded steps in the trace.</li>
+          <li><strong style="color:var(--text)">Duration</strong> — wall-clock time for the run.</li>
+          <li><strong style="color:var(--text)">Tokens</strong> — input and output token counts.</li>
+          <li><strong style="color:var(--text)">Cost</strong> — estimated USD from tokens and <code style="font-family:var(--font-mono);font-size:0.88em">cost_per_1k_tokens</code>.</li>
+        </ul>
+      </section>
+
+      <section id="faq" class="doc-section" aria-labelledby="faq-heading">
+        <h2 id="faq-heading">FAQ</h2>
+        <div class="faq-item">
+          <h3>Does Farol store my prompts?</h3>
+          <p>Farol is built for run metadata: timing, tokens, cost, steps, and errors. Do not put secrets in fields you sync. Treat prompt content like any production telemetry—only send what you are comfortable storing in your database.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Which frameworks does Farol support?</h3>
+          <p>Any Python code path: the SDK is a decorator. LangChain, CrewAI, custom loops—wrap the entrypoint and update <code style="font-family:var(--font-mono);font-size:0.88em">run</code> with token counts (and optional steps) however your stack exposes them.</p>
+        </div>
+        <div class="faq-item">
+          <h3>How does cost anomaly detection work?</h3>
+          <p>After enough successful runs for the same agent, Farol compares the current cost to a rolling baseline (median and spread). Large jumps—relative to that baseline—flag as anomalies so you catch bill spikes early.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Can I use Farol without a Farol key?</h3>
+          <p>The decorator runs without a key, but runs are not tied to your dashboard and are not synced under your account. Pass <code style="font-family:var(--font-mono);font-size:0.88em">farol_key</code> from the app to attribute runs to you.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="index.html">Home</a> · <a href="https://usefarol.dev">usefarol.dev</a></p>
+    </div>
+  </footer>
+</body>
+</html>
