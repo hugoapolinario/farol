@@ -26,27 +26,32 @@ def research_topic(topic: str, run: dict = None):
 
     pages = []
     for result in search_results.web:
-        print(f"  Found: {result.url}")
-        pages.append(f"URL: {result.url}\nContent: {result.description}")
-        run["steps"].append({"step": "web_search", "url": result.url})
+        with run.span("web_search", type="tool", metadata={"url": result.url}):
+            print(f"  Found: {result.url}")
+            pages.append(f"URL: {result.url}\nContent: {result.description}")
 
     combined = "\n\n---\n\n".join(pages)
 
     print("\nStep 2 — Asking Claude to summarise...\n")
-    message = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=1024,
-        messages=[
-            {
-                "role": "user",
-                "content": f"Based on the following web research, give me a concise 5-bullet summary about: {topic}\n\n{combined}"
-            }
-        ]
-    )
-
-    run["input_tokens"] = message.usage.input_tokens
-    run["output_tokens"] = message.usage.output_tokens
-    run["steps"].append({"step": "llm_summarise", "model": "claude-haiku-4-5-20251001"})
+    with run.span(
+        "llm_call",
+        type="llm",
+        metadata={"model": "claude-haiku-4-5-20251001", "step": "llm_summarise"},
+    ) as span:
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1024,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Based on the following web research, give me a concise 5-bullet summary about: {topic}\n\n{combined}"
+                }
+            ]
+        )
+        span.input_tokens = message.usage.input_tokens
+        span.output_tokens = message.usage.output_tokens
+        run["input_tokens"] = message.usage.input_tokens
+        run["output_tokens"] = message.usage.output_tokens
 
     print("SUMMARY:")
     print(message.content[0].text)
@@ -64,27 +69,32 @@ def market_research(topic: str, run: dict = None):
 
     pages = []
     for result in search_results.web:
-        print(f"  Found: {result.url}")
-        pages.append(f"URL: {result.url}\nContent: {result.description}")
-        run["steps"].append({"step": "web_search", "url": result.url})
+        with run.span("web_search", type="tool", metadata={"url": result.url}):
+            print(f"  Found: {result.url}")
+            pages.append(f"URL: {result.url}\nContent: {result.description}")
 
     combined = "\n\n---\n\n".join(pages)
 
     print("\nStep 2 — Asking Claude to summarise...\n")
-    message = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=1024,
-        messages=[
-            {
-                "role": "user",
-                "content": f"Based on the following web research, give me a concise 3-bullet market analysis about: {topic}\n\n{combined}"
-            }
-        ]
-    )
-
-    run["input_tokens"] = message.usage.input_tokens
-    run["output_tokens"] = message.usage.output_tokens
-    run["steps"].append({"step": "llm_analyse", "model": "claude-haiku-4-5-20251001"})
+    with run.span(
+        "llm_call",
+        type="llm",
+        metadata={"model": "claude-haiku-4-5-20251001", "step": "llm_analyse"},
+    ) as span:
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1024,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Based on the following web research, give me a concise 3-bullet market analysis about: {topic}\n\n{combined}"
+                }
+            ]
+        )
+        span.input_tokens = message.usage.input_tokens
+        span.output_tokens = message.usage.output_tokens
+        run["input_tokens"] = message.usage.input_tokens
+        run["output_tokens"] = message.usage.output_tokens
 
     print("ANALYSIS:")
     print(message.content[0].text)

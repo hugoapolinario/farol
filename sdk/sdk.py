@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-import time
 import json
 import os
+import secrets
 import statistics
+import string
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 from dotenv import load_dotenv
 import resend
 
@@ -21,6 +23,88 @@ ALERT_EMAIL = os.getenv("ALERT_EMAIL")
 resend.api_key = RESEND_API_KEY
 
 DEFAULT_INGEST_URL = "https://usefarol.dev/api/ingest"
+
+
+def _span_random_suffix(length: int = 4) -> str:
+    alphabet = string.ascii_lowercase + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+class Span:
+    """Context manager for a single timed segment inside a traced run."""
+
+    def __init__(
+        self,
+        run: dict,
+        name: str,
+        *,
+        span_type: str = "tool",
+        metadata: Optional[dict[str, Any]] = None,
+    ):
+        self.run = run
+        self.name = name
+        self.span_type = span_type
+        self.metadata = metadata if metadata is not None else {}
+        self.id = f"span_{int(time.time() * 1000)}_{_span_random_suffix(4)}"
+        self.started_at: Optional[str] = None
+        self.ended_at: Optional[str] = None
+        self.duration_ms: Optional[int] = None
+        self.input_tokens = 0
+        self.output_tokens = 0
+        self.cost_usd = 0.0
+        self.error: Optional[str] = None
+        self.input: Any = None
+        self.output: Any = None
+        self._start_monotonic = 0.0
+
+    def __enter__(self) -> Span:
+        self.started_at = datetime.utcnow().isoformat()
+        self._start_monotonic = time.perf_counter()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+        self.ended_at = datetime.utcnow().isoformat()
+        self.duration_ms = round((time.perf_counter() - self._start_monotonic) * 1000)
+        if exc_type is not None and exc_val is not None:
+            self.error = str(exc_val)
+        self.run.setdefault("spans", []).append(self)
+        return False
+
+    def to_dict(self, include_io: bool) -> dict[str, Any]:
+        d: dict[str, Any] = {
+            "id": self.id,
+            "name": self.name,
+            "type": self.span_type,
+            "metadata": dict(self.metadata),
+            "started_at": self.started_at,
+            "ended_at": self.ended_at,
+            "duration_ms": self.duration_ms,
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "cost_usd": self.cost_usd,
+            "error": self.error,
+        }
+        if include_io:
+            d["input"] = self.input
+            d["output"] = self.output
+        return d
+
+
+class TracedRun(dict):
+    """Run payload dict with ``.span(...)`` for nested span context managers."""
+
+    def span(self, name: str, *, type: str = "tool", metadata: Optional[dict[str, Any]] = None):
+        return Span(self, name, span_type=type, metadata=metadata)
+
+
+def _serialize_run_for_storage(run: dict, capture_io: bool) -> dict[str, Any]:
+    out: dict[str, Any] = {k: v for k, v in run.items() if k != "spans"}
+    spans = run.get("spans") or []
+    out["spans"] = [
+        s.to_dict(capture_io) if isinstance(s, Span) else dict(s)
+        for s in spans
+    ]
+    return out
 
 
 def load_runs():
@@ -66,7 +150,12 @@ def _post_ingest(payload: dict, url: str) -> None:
         print(f"[Farol] Ingest request failed: {e.reason}")
 
 
-def save_run(run: dict, farol_key: Optional[str], farol_endpoint: str):
+def _save_run(
+    run: dict,
+    farol_key: Optional[str],
+    farol_endpoint: str,
+    capture_io: bool = False,
+):
     anomaly = False
     anomaly_reason = None
 
@@ -108,14 +197,16 @@ def save_run(run: dict, farol_key: Optional[str], farol_endpoint: str):
     run["anomaly"] = anomaly
     run["anomaly_reason"] = anomaly_reason
 
+    serial_run = _serialize_run_for_storage(run, capture_io)
+
     runs = load_runs()
-    runs.append(run)
+    runs.append(serial_run)
     with open(LOGS_FILE, "w") as f:
         json.dump(runs, f, indent=2)
 
     if farol_key:
         ingest_url = os.environ.get("FAROL_ENDPOINT", farol_endpoint)
-        payload = {**run, "farol_key": farol_key}
+        payload = {**serial_run, "farol_key": farol_key}
         _post_ingest(payload, ingest_url)
     else:
         print("[Farol] No API key — not sent to Farol (local runs.json only)")
@@ -149,30 +240,41 @@ def save_run(run: dict, farol_key: Optional[str], farol_endpoint: str):
                     pass
 
 
+def save_run(
+    run: dict,
+    farol_key: Optional[str],
+    farol_endpoint: str,
+    capture_io: bool = False,
+):
+    _save_run(run, farol_key, farol_endpoint, capture_io)
+
+
 def trace(
     agent_name: str,
     model: str = "claude-haiku-4-5-20251001",
     cost_per_1k_tokens: float = 0.00025,
     farol_key: Optional[str] = None,
     farol_endpoint: str = "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/ingest",
+    capture_io: bool = False,
 ):
     def decorator(func):
         def wrapper(*args, **kwargs):
-            run = {
-                "id": f"run_{int(time.time())}",
-                "agent": agent_name,
-                "model": model,
-                "timestamp": datetime.utcnow().isoformat(),
-                "status": "running",
-                "steps": [],
-                "input_tokens": 0,
-                "output_tokens": 0,
-                "cost_usd": 0.0,
-                "duration_ms": 0,
-                "error": None,
-                "anomaly": False,
-                "anomaly_reason": None,
-            }
+            run = TracedRun(
+                id=f"run_{int(time.time())}",
+                agent=agent_name,
+                model=model,
+                timestamp=datetime.utcnow().isoformat(),
+                status="running",
+                steps=[],
+                spans=[],
+                input_tokens=0,
+                output_tokens=0,
+                cost_usd=0.0,
+                duration_ms=0,
+                error=None,
+                anomaly=False,
+                anomaly_reason=None,
+            )
             if farol_key:
                 run["farol_key"] = farol_key
 
@@ -192,7 +294,7 @@ def trace(
                     (run["input_tokens"] + run["output_tokens"]) / 1000 * cost_per_1k_tokens,
                     6,
                 )
-                save_run(run, farol_key, farol_endpoint)
+                _save_run(run, farol_key, farol_endpoint, capture_io)
 
         return wrapper
 
