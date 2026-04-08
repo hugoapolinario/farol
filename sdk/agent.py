@@ -1,10 +1,17 @@
 import os
+import sys
+from pathlib import Path
+
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 from anthropic import Anthropic
 from firecrawl import FirecrawlApp
 from dotenv import load_dotenv
 from sdk import trace
 
-load_dotenv()
+load_dotenv(_ROOT / ".env")
 
 client = Anthropic()
 firecrawl = FirecrawlApp(api_key=os.getenv("FIRECRAWL_API_KEY"))

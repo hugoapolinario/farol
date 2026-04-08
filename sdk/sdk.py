@@ -7,9 +7,10 @@ from dotenv import load_dotenv
 import resend
 from supabase import create_client
 
-load_dotenv()
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+load_dotenv(os.path.join(_PROJECT_ROOT, ".env"))
 
-LOGS_FILE = "runs.json"
+LOGS_FILE = os.path.join(_PROJECT_ROOT, "runs.json")
 COST_ALERT_THRESHOLD = 0.0001
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 ALERT_EMAIL = os.getenv("ALERT_EMAIL")

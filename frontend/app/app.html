@@ -965,7 +965,7 @@
       const { data, error } = await client.auth.getUser();
 
       if (error || !data || !data.user) {
-        window.location.href = "login.html";
+        window.location.href = "/login.html";
         return;
       }
 
@@ -1004,7 +1004,7 @@
 
     logoutBtn.addEventListener("click", async function () {
       await client.auth.signOut();
-      window.location.href = "login.html";
+      window.location.href = "/login.html";
     });
 
     agentFilterEl.addEventListener("change", function () {
