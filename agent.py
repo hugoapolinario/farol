@@ -46,3 +46,42 @@ def research_topic(topic: str, run: dict = None):
 
 if __name__ == "__main__":
     research_topic("how to reduce LLM costs")
+
+@trace(agent_name="market-agent", farol_key="frl_fTfS5MfRTPVoEfCTetpDQz1N")
+def market_research(topic: str, run: dict = None):
+    print(f"\n Market research: {topic}\n")
+    run["topic"] = topic
+
+    print("Step 1 — Searching the web...")
+    search_results = firecrawl.search(topic, limit=3)
+
+    pages = []
+    for result in search_results.web:
+        print(f"  Found: {result.url}")
+        pages.append(f"URL: {result.url}\nContent: {result.description}")
+        run["steps"].append({"step": "web_search", "url": result.url})
+
+    combined = "\n\n---\n\n".join(pages)
+
+    print("\nStep 2 — Asking Claude to summarise...\n")
+    message = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1024,
+        messages=[
+            {
+                "role": "user",
+                "content": f"Based on the following web research, give me a concise 3-bullet market analysis about: {topic}\n\n{combined}"
+            }
+        ]
+    )
+
+    run["input_tokens"] = message.usage.input_tokens
+    run["output_tokens"] = message.usage.output_tokens
+    run["steps"].append({"step": "llm_analyse", "model": "claude-haiku-4-5-20251001"})
+
+    print("ANALYSIS:")
+    print(message.content[0].text)
+
+if __name__ == "__main__":
+    research_topic("how to reduce LLM costs")
+    market_research("Farol competitors agent observability market 2026")
