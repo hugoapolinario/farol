@@ -450,6 +450,90 @@
       color: var(--text);
       border-color: rgba(249, 115, 22, 0.35);
     }
+
+    .filter-bar {
+      padding: 0.85rem 1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-bar label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .filter-bar select {
+      min-width: 220px;
+      max-width: min(100%, 420px);
+      flex: 1 1 200px;
+      padding: 0.55rem 0.75rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.88rem;
+      cursor: pointer;
+    }
+
+    .filter-bar select:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    .runs-card {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .runs-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.65rem;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(249, 115, 22, 0.04);
+    }
+
+    @media (max-width: 800px) {
+      .runs-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .runs-summary-item {
+      min-width: 0;
+    }
+
+    .runs-summary-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.2rem;
+    }
+
+    .runs-summary-value {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .runs-summary-value.accent {
+      color: var(--accent);
+    }
+
+    .table-wrap-inner {
+      overflow-x: auto;
+    }
   </style>
 </head>
 <body>
@@ -482,25 +566,52 @@
       <p class="api-key-note">Use this key in your SDK config to send traces and costs to Farol.</p>
     </section>
 
-    <section class="card table-wrap" aria-labelledby="runs-heading">
-      <table>
-        <thead>
-          <tr id="runs-heading">
-            <th>Agent</th>
-            <th>Topic</th>
-            <th>Model</th>
-            <th>Status</th>
-            <th>Anomaly</th>
-            <th>Steps</th>
-            <th>Duration</th>
-            <th>Tokens</th>
-            <th>Cost</th>
-            <th>Error</th>
-            <th>Timestamp</th>
-          </tr>
-        </thead>
-        <tbody id="runs-body"></tbody>
-      </table>
+    <section class="card filter-bar" aria-label="Filter runs by agent">
+      <label for="agent-filter">Agent</label>
+      <select id="agent-filter">
+        <option value="">All agents</option>
+      </select>
+    </section>
+
+    <section class="card runs-card table-wrap" aria-labelledby="runs-heading">
+      <div class="runs-summary" id="runs-summary" aria-live="polite">
+        <div class="runs-summary-item">
+          <div class="runs-summary-label">Total runs</div>
+          <div class="runs-summary-value" id="sum-total">—</div>
+        </div>
+        <div class="runs-summary-item">
+          <div class="runs-summary-label">Success rate</div>
+          <div class="runs-summary-value accent" id="sum-success">—</div>
+        </div>
+        <div class="runs-summary-item">
+          <div class="runs-summary-label">Avg duration</div>
+          <div class="runs-summary-value" id="sum-duration">—</div>
+        </div>
+        <div class="runs-summary-item">
+          <div class="runs-summary-label">Total cost</div>
+          <div class="runs-summary-value accent" id="sum-cost">—</div>
+        </div>
+      </div>
+      <div class="table-wrap-inner">
+        <table>
+          <thead>
+            <tr id="runs-heading">
+              <th>Agent</th>
+              <th>Topic</th>
+              <th>Model</th>
+              <th>Status</th>
+              <th>Anomaly</th>
+              <th>Steps</th>
+              <th>Duration</th>
+              <th>Tokens</th>
+              <th>Cost</th>
+              <th>Error</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="runs-body"></tbody>
+        </table>
+      </div>
     </section>
     <p class="last-updated" id="last-updated">Last updated: —</p>
 
@@ -546,6 +657,9 @@
     const statusMessage = document.getElementById("status-message");
     const logoutBtn = document.getElementById("logout-btn");
     const lastUpdatedEl = document.getElementById("last-updated");
+    const agentFilterEl = document.getElementById("agent-filter");
+
+    const AGENT_NONE_VALUE = "__FAROL_NO_AGENT__";
 
     let currentApiKey = "";
     let currentUserId = null;
@@ -553,6 +667,7 @@
     let refreshIntervalId = null;
     let secondsTickerId = null;
     let allRuns = [];
+    let displayedRuns = [];
     let activeRow = null;
 
     function escapeHtml(s) {
@@ -579,11 +694,90 @@
       statusMessage.textContent = text || "";
     }
 
+    function agentGroupKey(r) {
+      if (r.agent != null && r.agent !== "") return r.agent;
+      return AGENT_NONE_VALUE;
+    }
+
+    function agentOptionLabel(key) {
+      return key === AGENT_NONE_VALUE ? "—" : key;
+    }
+
+    function getFilteredRuns() {
+      const v = agentFilterEl.value;
+      if (v === "") return allRuns.slice();
+      if (v === AGENT_NONE_VALUE) {
+        return allRuns.filter(function (r) {
+          return r.agent == null || r.agent === "";
+        });
+      }
+      return allRuns.filter(function (r) {
+        return r.agent === v;
+      });
+    }
+
+    function populateAgentFilter() {
+      const prev = agentFilterEl.value;
+      agentFilterEl.innerHTML = "";
+      const allOpt = document.createElement("option");
+      allOpt.value = "";
+      allOpt.textContent = "All agents";
+      agentFilterEl.appendChild(allOpt);
+
+      const counts = new Map();
+      for (let i = 0; i < allRuns.length; i += 1) {
+        const k = agentGroupKey(allRuns[i]);
+        counts.set(k, (counts.get(k) || 0) + 1);
+      }
+      const keys = Array.from(counts.keys()).sort(function (a, b) {
+        return agentOptionLabel(a).localeCompare(agentOptionLabel(b), undefined, { sensitivity: "base" });
+      });
+      for (let j = 0; j < keys.length; j += 1) {
+        const key = keys[j];
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = agentOptionLabel(key) + " (" + counts.get(key) + ")";
+        agentFilterEl.appendChild(opt);
+      }
+
+      if (prev && Array.from(agentFilterEl.options).some(function (o) { return o.value === prev; })) {
+        agentFilterEl.value = prev;
+      } else {
+        agentFilterEl.value = "";
+      }
+    }
+
+    function renderSummary(runs) {
+      const n = runs.length;
+      document.getElementById("sum-total").textContent = String(n);
+      if (!n) {
+        document.getElementById("sum-success").textContent = "—";
+        document.getElementById("sum-duration").textContent = "—";
+        document.getElementById("sum-cost").textContent = "—";
+        return;
+      }
+      const successes = runs.filter(function (r) { return r.status === "success"; }).length;
+      document.getElementById("sum-success").textContent = Math.round((successes / n) * 100) + "%";
+      const avgMs = runs.reduce(function (a, r) { return a + (Number(r.duration_ms) || 0); }, 0) / n;
+      document.getElementById("sum-duration").textContent = (avgMs / 1000).toFixed(1) + "s";
+      const totalCost = runs.reduce(function (a, r) { return a + (Number(r.cost_usd) || 0); }, 0);
+      document.getElementById("sum-cost").textContent = "$" + totalCost.toFixed(5);
+    }
+
+    function applyFilterAndRender() {
+      displayedRuns = getFilteredRuns();
+      renderSummary(displayedRuns);
+      renderRuns(displayedRuns);
+    }
+
     function renderRuns(runs) {
       runsBody.innerHTML = "";
 
       if (!runs.length) {
-        runsBody.innerHTML = '<tr><td colspan="11" style="color:#8b919d;">No runs yet.</td></tr>';
+        const msg = allRuns.length
+          ? "No runs match this filter."
+          : "No runs yet.";
+        runsBody.innerHTML = '<tr><td colspan="11" style="color:#8b919d;">' + msg + "</td></tr>";
         return;
       }
 
@@ -671,7 +865,8 @@
       }
 
       allRuns = data || [];
-      renderRuns(allRuns);
+      populateAgentFilter();
+      applyFilterAndRender();
     }
 
     function openTrace(index, row) {
@@ -679,7 +874,7 @@
       activeRow = row;
       row.classList.add("active");
 
-      const r = allRuns[index];
+      const r = displayedRuns[index];
       if (!r) return;
 
       const panel = document.getElementById("trace-panel");
@@ -810,6 +1005,11 @@
     logoutBtn.addEventListener("click", async function () {
       await client.auth.signOut();
       window.location.href = "login.html";
+    });
+
+    agentFilterEl.addEventListener("change", function () {
+      closeTrace();
+      applyFilterAndRender();
     });
 
     init();
