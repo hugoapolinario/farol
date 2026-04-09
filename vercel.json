@@ -8,6 +8,7 @@
     { "source": "/login.html", "destination": "/frontend/auth/login.html" },
     { "source": "/reset.html", "destination": "/frontend/auth/reset.html" },
     { "source": "/update-password.html", "destination": "/frontend/auth/update-password.html" },
+    { "source": "/confirmed.html", "destination": "/frontend/auth/confirmed.html" },
     { "source": "/app.html", "destination": "/frontend/app/app.html" },
     { "source": "/dashboard.html", "destination": "/frontend/app/dashboard.html" },
     { "source": "/docs.html", "destination": "/frontend/docs/docs.html" }
