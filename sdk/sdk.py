@@ -152,6 +152,119 @@ def _post_ingest(payload: dict, url: str) -> None:
         print(f"[Farol] Ingest request failed: {e.reason}")
 
 
+def _escape_slack_mrkdwn(text: Any) -> str:
+    """Escape characters that break Slack mrkdwn field text."""
+    s = str(text)
+    return (
+        s.replace("\\", "\\\\")
+        .replace("*", "\\*")
+        .replace("_", "\\_")
+        .replace("`", "\\`")
+    )
+
+
+def _send_slack_cost_anomaly_alert(run: dict) -> None:
+    webhook = os.getenv("SLACK_WEBHOOK_URL")
+    if not webhook or not str(webhook).strip():
+        return
+
+    agent_name = run.get("agent") or ""
+    header_plain = f"Cost anomaly detected — {agent_name}"
+    if len(header_plain) > 150:
+        header_plain = header_plain[:147] + "..."
+
+    agent_e = _escape_slack_mrkdwn(agent_name)
+    run_id_e = _escape_slack_mrkdwn(run.get("id", ""))
+    try:
+        cost_val = float(run.get("cost_usd", 0))
+    except (TypeError, ValueError):
+        cost_val = 0.0
+    cost_e = _escape_slack_mrkdwn(f"${cost_val:.6f}")
+    reason_raw = run.get("anomaly_reason") or ""
+    if len(reason_raw) > 1800:
+        reason_raw = reason_raw[:1797] + "..."
+    reason_e = _escape_slack_mrkdwn(reason_raw)
+    ts_e = _escape_slack_mrkdwn(run.get("timestamp", ""))
+
+    payload = {
+        "attachments": [
+            {
+                "color": "#E24B4A",
+                "blocks": [
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": header_plain,
+                            "emoji": True,
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "fields": [
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Agent*\n{agent_e}",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Run ID*\n{run_id_e}",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Cost*\n{cost_e}",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Reason*\n{reason_e}",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Timestamp*\n{ts_e}",
+                            },
+                        ],
+                    },
+                    {
+                        "type": "context",
+                        "elements": [
+                            {
+                                "type": "mrkdwn",
+                                "text": "Farol · usefarol.dev",
+                            }
+                        ],
+                    },
+                ],
+            }
+        ]
+    }
+
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        str(webhook).strip(),
+        data=data,
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            if resp.status != 200:
+                body = resp.read().decode("utf-8", errors="replace")
+                print(f"[Farol] Slack alert failed: HTTP {resp.status} {body}")
+    except urllib.error.HTTPError as e:
+        try:
+            err_body = e.read().decode("utf-8", errors="replace")
+        except Exception:
+            err_body = ""
+        detail = f"HTTP {e.code} {e.reason}"
+        if err_body:
+            detail = f"{detail} {err_body}"
+        print(f"[Farol] Slack alert failed: {detail}")
+    except urllib.error.URLError as e:
+        print(f"[Farol] Slack alert failed: {e.reason}")
+    except Exception as e:
+        print(f"[Farol] Slack alert failed: {e}")
+
+
 def _save_run(
     run: dict,
     farol_key: Optional[str],
@@ -241,6 +354,7 @@ def _save_run(
                     resend.Emails.send({**email_payload, "from": "Farol <onboarding@resend.dev>"})
                 except Exception:
                     pass
+        _send_slack_cost_anomaly_alert(run)
 
 
 def save_run(
