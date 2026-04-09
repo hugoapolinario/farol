@@ -766,6 +766,67 @@
     .table-wrap-inner {
       overflow-x: auto;
     }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.65rem;
+      padding: 0.85rem 1rem;
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    @media (max-width: 800px) {
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .chart-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-elevated);
+      padding: 0.55rem 0.65rem;
+      min-height: 260px;
+      max-height: 260px;
+    }
+
+    .chart-canvas {
+      width: 100%;
+      height: 100%;
+      max-height: 260px;
+      display: block;
+    }
+
+    .chart-note {
+      margin: 0.7rem 0 0;
+      text-align: right;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.2;
+      padding-right: 8px;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .overview-card {
+      margin-bottom: 1rem;
+      border-color: rgba(249, 115, 22, 0.16);
+      background:
+        linear-gradient(165deg, rgba(24, 27, 34, 0.95) 0%, rgba(10, 11, 13, 0.98) 100%);
+      overflow: hidden;
+    }
+
+    .overview-label {
+      margin: 0;
+      padding: 0.75rem 1rem;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      background: rgba(249, 115, 22, 0.04);
+    }
   </style>
 </head>
 <body>
@@ -842,14 +903,8 @@
       <p class="api-key-note">Use this key in your SDK config to send traces and costs to Farol.</p>
     </section>
 
-    <section class="card filter-bar" aria-label="Filter runs by agent">
-      <label for="agent-filter">Agent</label>
-      <select id="agent-filter">
-        <option value="">All agents</option>
-      </select>
-    </section>
-
-    <section class="card runs-card table-wrap" aria-labelledby="runs-heading">
+    <section class="card overview-card" aria-labelledby="overview-heading">
+      <p class="overview-label" id="overview-heading">Overview</p>
       <div class="runs-summary" id="runs-summary" aria-live="polite">
         <div class="runs-summary-item">
           <div class="runs-summary-label">Total runs</div>
@@ -868,6 +923,25 @@
           <div class="runs-summary-value accent" id="sum-cost">—</div>
         </div>
       </div>
+      <div class="charts-grid" aria-label="Run analytics charts">
+        <div class="chart-card">
+          <canvas id="cost-chart" class="chart-canvas" aria-label="Cost per run chart"></canvas>
+        </div>
+        <div class="chart-card">
+          <canvas id="success-chart" class="chart-canvas" aria-label="Success rate by agent chart"></canvas>
+          <p id="success-chart-scale-note" class="chart-note" hidden>Scale adjusted to show variance</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card filter-bar" aria-label="Filter runs by agent">
+      <label for="agent-filter">Agent</label>
+      <select id="agent-filter">
+        <option value="">All agents</option>
+      </select>
+    </section>
+
+    <section class="card runs-card table-wrap" aria-labelledby="runs-heading">
       <div class="table-wrap-inner">
         <table>
           <thead>
@@ -922,6 +996,7 @@
 
   <script src="/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script>
     const { createClient } = supabase;
     const client = createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
@@ -949,6 +1024,8 @@
     let allRuns = [];
     let displayedRuns = [];
     let activeRow = null;
+    let costChart = null;
+    let successChart = null;
 
     function syncApiKeyToggleButton() {
       const slash = toggleKeyVisBtn.querySelector(".icon-eye-slash");
@@ -1214,9 +1291,179 @@
       document.getElementById("sum-cost").textContent = "$" + totalCost.toFixed(5);
     }
 
+    function buildCostSeries(runs) {
+      const latestTwenty = runs.slice(0, 20).reverse();
+      return {
+        labels: latestTwenty.map(function (r) {
+          if (!r.timestamp) return "—";
+          return new Date(r.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        }),
+        values: latestTwenty.map(function (r) {
+          return Number(r.cost_usd) || 0;
+        })
+      };
+    }
+
+    function buildSuccessByAgent(runs) {
+      const grouped = new Map();
+      for (let i = 0; i < runs.length; i += 1) {
+        const run = runs[i];
+        const key = run.agent != null && run.agent !== "" ? run.agent : "—";
+        if (!grouped.has(key)) {
+          grouped.set(key, { total: 0, success: 0 });
+        }
+        const stat = grouped.get(key);
+        stat.total += 1;
+        if (run.status === "success") {
+          stat.success += 1;
+        }
+      }
+      const labels = Array.from(grouped.keys()).sort(function (a, b) {
+        return a.localeCompare(b, undefined, { sensitivity: "base" });
+      });
+      const values = labels.map(function (label) {
+        const stat = grouped.get(label);
+        if (!stat || stat.total === 0) return 0;
+        return (stat.success / stat.total) * 100;
+      });
+      const colors = values.map(function (v) {
+        return v >= 100 ? "#4ade80" : "#f97316";
+      });
+      return { labels: labels, values: values, colors: colors };
+    }
+
+    function renderCharts(runs) {
+      if (typeof Chart === "undefined") return;
+
+      const costCanvas = document.getElementById("cost-chart");
+      const successCanvas = document.getElementById("success-chart");
+      const successScaleNoteEl = document.getElementById("success-chart-scale-note");
+      if (!costCanvas || !successCanvas) return;
+
+      const gridColor = "rgba(255, 255, 255, 0.045)";
+      const tickColor = "#8b919d";
+      const titleColor = "#e8eaef";
+
+      const costSeries = buildCostSeries(runs);
+      if (costChart) {
+        costChart.destroy();
+      }
+      costChart = new Chart(costCanvas, {
+        type: "line",
+        data: {
+          labels: costSeries.labels,
+          datasets: [
+            {
+              data: costSeries.values,
+              borderColor: "#f97316",
+              backgroundColor: "transparent",
+              pointBackgroundColor: "#f97316",
+              pointBorderColor: "#f97316",
+              pointRadius: 2,
+              pointHoverRadius: 3,
+              borderWidth: 2,
+              fill: false,
+              tension: 0.2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { display: false },
+            title: {
+              display: true,
+              text: "Cost per run",
+              color: titleColor
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: tickColor, maxRotation: 45, minRotation: 45, autoSkip: true, font: { size: 11 } },
+              grid: { color: gridColor }
+            },
+            y: {
+              ticks: {
+                color: tickColor,
+                font: { size: 11 },
+                callback: function (value) {
+                  return "$" + Number(value).toFixed(6);
+                }
+              },
+              grid: { color: gridColor }
+            }
+          },
+          layout: {
+            padding: {
+              left: 18
+            }
+          }
+        }
+      });
+
+      const successSeries = buildSuccessByAgent(runs);
+      const successMin = Math.max(0, Math.min.apply(null, successSeries.values) - 10);
+      if (successScaleNoteEl) {
+        successScaleNoteEl.hidden = !(successMin > 0);
+      }
+      if (successChart) {
+        successChart.destroy();
+      }
+      successChart = new Chart(successCanvas, {
+        type: "bar",
+        data: {
+          labels: successSeries.labels,
+          datasets: [
+            {
+              data: successSeries.values,
+              backgroundColor: successSeries.colors,
+              borderColor: successSeries.colors,
+              borderWidth: 1,
+              borderRadius: 4,
+              maxBarThickness: 44
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { display: false },
+            title: {
+              display: true,
+              text: "Success rate by agent",
+              color: titleColor
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: tickColor, font: { size: 11 } },
+              grid: { color: gridColor }
+            },
+            y: {
+              min: successMin,
+              max: 100,
+              ticks: {
+                color: tickColor,
+                font: { size: 11 },
+                callback: function (value) {
+                  return Number(value).toFixed(0) + "%";
+                }
+              },
+              grid: { color: gridColor }
+            }
+          }
+        }
+      });
+    }
+
     function applyFilterAndRender() {
       displayedRuns = getFilteredRuns();
       renderSummary(displayedRuns);
+      renderCharts(displayedRuns);
       renderRuns(displayedRuns);
     }
 
