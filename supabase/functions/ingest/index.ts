@@ -109,28 +109,34 @@ Deno.serve(async (req) => {
     }
 
     if (spans.length > 0 && run.id != null) {
-      for (const span of spans) {
-        const s = span as Record<string, unknown>;
-        const { error: spanError } = await supabase.from("spans").insert({
-          id: s.id,
-          name: s.name,
-          type: s.type ?? "tool",
-          started_at: s.started_at,
-          ended_at: s.ended_at,
-          duration_ms: s.duration_ms,
-          input_tokens: s.input_tokens ?? null,
-          output_tokens: s.output_tokens ?? null,
-          cost_usd: s.cost_usd ?? null,
-          metadata: s.metadata ?? {},
-          error: s.error ?? null,
-          input: s.input ?? null,
-          output: s.output ?? null,
-          run_id: run.id,
-          user_id: keyData.user_id,
-        });
-        if (spanError) {
-          console.error("[ingest] Span insert failed:", spanError.message, span);
-        }
+      const spansToInsert = (spans as Record<string, unknown>[]).map((s) => ({
+        id: crypto.randomUUID(),
+        name: s.name,
+        type: s.type ?? "tool",
+        started_at: s.started_at,
+        ended_at: s.ended_at,
+        duration_ms: s.duration_ms,
+        input_tokens: s.input_tokens ?? null,
+        output_tokens: s.output_tokens ?? null,
+        cost_usd: s.cost_usd ?? null,
+        metadata: s.metadata ?? {},
+        error: s.error ?? null,
+        input: s.input ?? null,
+        output: s.output ?? null,
+        run_id: run.id,
+        user_id: keyData.user_id,
+      }));
+
+      const { error: spansBulkError } = await supabase
+        .from("spans")
+        .insert(spansToInsert);
+
+      if (spansBulkError) {
+        console.error(
+          "[ingest] Span bulk insert failed:",
+          spansBulkError.message,
+          spansBulkError,
+        );
       }
     }
 

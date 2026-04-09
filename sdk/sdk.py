@@ -30,6 +30,19 @@ def _span_random_suffix(length: int = 4) -> str:
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
+_SPAN_IO_MAX_CHARS = 50000
+_SPAN_IO_TRUNCATED_SUFFIX = "... [truncated]"
+
+
+def _span_io_for_payload(value: Any) -> Any:
+    if value is None:
+        return None
+    s = value if isinstance(value, str) else str(value)
+    if len(s) <= _SPAN_IO_MAX_CHARS:
+        return s
+    return s[:_SPAN_IO_MAX_CHARS] + _SPAN_IO_TRUNCATED_SUFFIX
+
+
 class Span:
     """Context manager for a single timed segment inside a traced run."""
 
@@ -87,8 +100,8 @@ class Span:
             "error": self.error,
         }
         if include_io:
-            d["input"] = self.input
-            d["output"] = self.output
+            d["input"] = _span_io_for_payload(self.input)
+            d["output"] = _span_io_for_payload(self.output)
         return d
 
 
@@ -375,7 +388,16 @@ def trace(
     capture_io: bool = False,
 ):
     def decorator(func):
+        _capture_io_warned = False
+
         def wrapper(*args, **kwargs):
+            nonlocal _capture_io_warned
+            if capture_io and not _capture_io_warned:
+                print(
+                    "[Farol] WARNING: capture_io is enabled — prompts are being stored "
+                    "in your Farol dashboard"
+                )
+                _capture_io_warned = True
             run = TracedRun(
                 id=f"run_{int(time.time())}",
                 agent=agent_name,
