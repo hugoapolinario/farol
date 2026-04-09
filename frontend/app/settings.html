@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Farol — Account settings</title>
+  <style>
+    :root {
+      --bg-deep: #0a0b0d;
+      --bg-surface: #111318;
+      --bg-elevated: #181b22;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8eaef;
+      --text-muted: #8b919d;
+      --accent: #f97316;
+      --accent-dim: rgba(249, 115, 22, 0.14);
+      --accent-glow: rgba(249, 115, 22, 0.35);
+      --success: #4ade80;
+      --danger: #f87171;
+      --danger-border: rgba(248, 113, 113, 0.45);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --max: 1120px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249, 115, 22, 0.12), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 40%, rgba(249, 115, 22, 0.06), transparent 50%),
+        var(--bg-deep);
+      color: var(--text);
+      color-scheme: dark;
+      min-height: 100vh;
+    }
+
+    .wrap {
+      width: min(100% - 2rem, var(--max));
+      margin-inline: auto;
+    }
+
+    .navbar {
+      border-bottom: 1px solid var(--border);
+      background: rgba(10, 11, 13, 0.82);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-inner {
+      min-height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      min-width: 0;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), #ea580c);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 24px var(--accent-glow);
+    }
+
+    .logo-mark svg {
+      width: 17px;
+      height: 17px;
+      color: #0a0b0d;
+    }
+
+    .nav-link {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    .nav-link:hover {
+      color: var(--accent);
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+
+    .email {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.58rem 0.9rem;
+      transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .btn-ghost:hover:not(:disabled) {
+      border-color: rgba(249, 115, 22, 0.4);
+      background: var(--accent-dim);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0a0b0d;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #fb923c;
+    }
+
+    .btn-danger {
+      background: rgba(248, 113, 113, 0.12);
+      color: #fecaca;
+      border-color: var(--danger-border);
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: rgba(248, 113, 113, 0.22);
+    }
+
+    main {
+      padding: 1.4rem 0 2.5rem;
+    }
+
+    .page-title {
+      margin: 0 0 1.25rem;
+      font-size: 1.35rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+      padding: 1.15rem 1.2rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .section-label {
+      margin: 0 0 0.45rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .api-key-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .api-key-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .btn-api-key-vis {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.55rem;
+      height: 2.55rem;
+      padding: 0;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: inherit;
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+
+    .btn-api-key-vis:hover:not(:disabled) {
+      color: var(--text);
+      border-color: rgba(249, 115, 22, 0.35);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .btn-api-key-vis:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .btn-api-key-vis svg {
+      display: block;
+    }
+
+    .api-key-value {
+      flex: 1 1 280px;
+      margin: 0;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.68rem 0.8rem;
+      font-size: 0.9rem;
+      color: #f8fafc;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .api-key-note {
+      margin: 0.55rem 0 0;
+      font-size: 0.83rem;
+      color: var(--text-muted);
+    }
+
+    .regenerate-row {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: center;
+    }
+
+    .confirm-panel {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(249, 115, 22, 0.35);
+      background: rgba(249, 115, 22, 0.06);
+    }
+
+    .confirm-panel p {
+      margin: 0 0 0.85rem;
+      font-size: 0.9rem;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .confirm-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .danger-card {
+      border-color: var(--danger-border);
+      background:
+        linear-gradient(165deg, rgba(40, 20, 22, 0.5) 0%, var(--bg-deep) 100%);
+    }
+
+    .danger-card .section-label {
+      color: var(--danger);
+    }
+
+    .danger-card > p {
+      margin: 0 0 1rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    .delete-panel {
+      margin-top: 0.75rem;
+      padding: 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--danger-border);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .delete-panel p {
+      margin: 0 0 0.75rem;
+      font-size: 0.88rem;
+      color: #fecaca;
+    }
+
+    .delete-input {
+      width: 100%;
+      max-width: 280px;
+      padding: 0.6rem 0.75rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.88rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .delete-input:focus {
+      outline: 2px solid rgba(248, 113, 113, 0.4);
+      outline-offset: 2px;
+    }
+
+    .status-msg {
+      margin: 0.75rem 0 0;
+      font-size: 0.86rem;
+      min-height: 1.25em;
+    }
+
+    .status-msg.success {
+      color: var(--success);
+    }
+
+    .status-msg.error {
+      color: var(--danger);
+    }
+
+    .status-msg.muted {
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <header class="navbar">
+    <div class="wrap nav-inner">
+      <div class="nav-left">
+        <a class="logo" href="/app.html" aria-label="Farol app">
+          <span class="logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+              <path d="M12 3L4 9v12h16V9l-8-6z"></path>
+              <path d="M9 21V12h6v9"></path>
+              <circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none"></circle>
+            </svg>
+          </span>
+          Farol
+        </a>
+        <a class="nav-link" href="/app.html">Dashboard</a>
+      </div>
+      <div class="nav-right">
+        <span class="email" id="user-email">—</span>
+        <button class="btn btn-ghost" id="logout-btn" type="button">Log out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <h1 class="page-title">Account settings</h1>
+
+    <section class="card" aria-labelledby="api-key-heading">
+      <p class="section-label" id="api-key-heading">API key</p>
+      <div class="api-key-row">
+        <p class="api-key-value" id="api-key-value">Loading…</p>
+        <div class="api-key-actions">
+          <button
+            type="button"
+            class="btn-api-key-vis"
+            id="toggle-key-vis-btn"
+            hidden
+            aria-label="Show API key"
+            aria-pressed="false"
+          >
+            <svg
+              class="icon-eye-slash"
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+              <line x1="1" y1="1" x2="23" y2="23" />
+            </svg>
+            <svg
+              class="icon-eye-open"
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              style="display: none"
+            >
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
+          <button class="btn btn-primary" id="copy-key-btn" type="button">Copy</button>
+        </div>
+      </div>
+      <p class="api-key-note">Use this key in your SDK. Regenerating replaces the key immediately.</p>
+      <div class="regenerate-row">
+        <button class="btn btn-ghost" type="button" id="regenerate-key-btn">Regenerate key</button>
+      </div>
+      <div class="confirm-panel" id="regenerate-confirm" hidden>
+        <p>Warning: your agents will stop reporting immediately until you update them with the new key.</p>
+        <div class="confirm-actions">
+          <button class="btn btn-ghost" type="button" id="regenerate-cancel-btn">Cancel</button>
+          <button class="btn btn-primary" type="button" id="regenerate-yes-btn">Yes, regenerate</button>
+        </div>
+      </div>
+      <p class="status-msg muted" id="regenerate-status" role="status"></p>
+    </section>
+
+    <section class="card danger-card" aria-labelledby="danger-heading">
+      <p class="section-label" id="danger-heading">Danger zone</p>
+      <p>Deleting your account removes all runs, traces, and API keys. This cannot be undone.</p>
+      <button class="btn btn-danger" type="button" id="delete-show-btn">Delete account</button>
+      <div class="delete-panel" id="delete-panel" hidden>
+        <p>Type DELETE to confirm. This will permanently remove your account and all agent data.</p>
+        <input
+          type="text"
+          class="delete-input"
+          id="delete-confirm-input"
+          autocomplete="off"
+          aria-label="Type DELETE to confirm"
+        />
+        <div>
+          <button class="btn btn-danger" type="button" id="delete-confirm-btn" disabled>Confirm deletion</button>
+        </div>
+      </div>
+      <p class="status-msg muted" id="delete-status" role="status"></p>
+    </section>
+  </main>
+
+  <script src="/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const { createClient } = supabase;
+    const client = createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+
+    const ROTATE_KEY_URL = "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/rotate-key";
+    const DELETE_ACCOUNT_URL = "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/delete-account";
+
+    const userEmailEl = document.getElementById("user-email");
+    const apiKeyValueEl = document.getElementById("api-key-value");
+    const toggleKeyVisBtn = document.getElementById("toggle-key-vis-btn");
+    const copyKeyBtn = document.getElementById("copy-key-btn");
+    const logoutBtn = document.getElementById("logout-btn");
+    const regenerateKeyBtn = document.getElementById("regenerate-key-btn");
+    const regenerateConfirmEl = document.getElementById("regenerate-confirm");
+    const regenerateCancelBtn = document.getElementById("regenerate-cancel-btn");
+    const regenerateYesBtn = document.getElementById("regenerate-yes-btn");
+    const regenerateStatusEl = document.getElementById("regenerate-status");
+    const deleteShowBtn = document.getElementById("delete-show-btn");
+    const deletePanelEl = document.getElementById("delete-panel");
+    const deleteInputEl = document.getElementById("delete-confirm-input");
+    const deleteConfirmBtn = document.getElementById("delete-confirm-btn");
+    const deleteStatusEl = document.getElementById("delete-status");
+
+    const API_KEY_MASK = "••••••••••••••••••••••••";
+    let apiKeyVisible = false;
+    let currentApiKey = "";
+
+    function syncApiKeyToggleButton() {
+      const slash = toggleKeyVisBtn.querySelector(".icon-eye-slash");
+      const open = toggleKeyVisBtn.querySelector(".icon-eye-open");
+      if (apiKeyVisible) {
+        slash.style.display = "none";
+        open.style.display = "block";
+        toggleKeyVisBtn.setAttribute("aria-label", "Hide API key");
+        toggleKeyVisBtn.setAttribute("aria-pressed", "true");
+      } else {
+        slash.style.display = "block";
+        open.style.display = "none";
+        toggleKeyVisBtn.setAttribute("aria-label", "Show API key");
+        toggleKeyVisBtn.setAttribute("aria-pressed", "false");
+      }
+    }
+
+    function applyApiKeyDisplay() {
+      if (!currentApiKey) {
+        toggleKeyVisBtn.hidden = true;
+        return;
+      }
+      toggleKeyVisBtn.hidden = false;
+      apiKeyValueEl.textContent = apiKeyVisible ? currentApiKey : API_KEY_MASK;
+      syncApiKeyToggleButton();
+    }
+
+    function randomString(length) {
+      const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let out = "";
+      const bytes = new Uint8Array(length);
+      crypto.getRandomValues(bytes);
+      for (let i = 0; i < length; i += 1) {
+        out += alphabet[bytes[i] % alphabet.length];
+      }
+      return out;
+    }
+
+    async function getOrCreateApiKey(userId) {
+      const { data: existing, error: fetchError } = await client
+        .from("api_keys")
+        .select("*")
+        .eq("user_id", userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      const existingKey = existing && (existing.api_key || existing.key);
+      if (existingKey) {
+        return existingKey;
+      }
+
+      const generated = "frl_" + randomString(24);
+      const { error: insertError } = await client
+        .from("api_keys")
+        .insert({
+          user_id: userId,
+          api_key: generated
+        });
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      return generated;
+    }
+
+    async function getAccessToken() {
+      const { data: { session } } = await client.auth.getSession();
+      return session && session.access_token ? session.access_token : null;
+    }
+
+    function setRegenerateLoading(loading) {
+      regenerateKeyBtn.disabled = loading;
+      regenerateYesBtn.disabled = loading;
+      regenerateCancelBtn.disabled = loading;
+      if (loading) {
+        regenerateYesBtn.textContent = "Regenerating…";
+      } else {
+        regenerateYesBtn.textContent = "Yes, regenerate";
+      }
+    }
+
+    function setDeleteLoading(loading) {
+      deleteShowBtn.disabled = loading;
+      deleteConfirmBtn.disabled = loading || deleteInputEl.value !== "DELETE";
+      deleteInputEl.disabled = loading;
+      if (loading) {
+        deleteConfirmBtn.textContent = "Deleting…";
+      } else {
+        deleteConfirmBtn.textContent = "Confirm deletion";
+        deleteConfirmBtn.disabled = deleteInputEl.value !== "DELETE";
+      }
+    }
+
+    async function init() {
+      const { data, error } = await client.auth.getUser();
+
+      if (error || !data || !data.user) {
+        window.location.href = "/login.html";
+        return;
+      }
+
+      const user = data.user;
+      userEmailEl.textContent = user.email || "Signed in";
+
+      try {
+        currentApiKey = await getOrCreateApiKey(user.id);
+        apiKeyVisible = false;
+        applyApiKeyDisplay();
+      } catch (e) {
+        currentApiKey = "";
+        apiKeyValueEl.textContent = "Unavailable";
+        toggleKeyVisBtn.hidden = true;
+        regenerateStatusEl.textContent = e && e.message ? e.message : "Could not load API key.";
+        regenerateStatusEl.className = "status-msg error";
+      }
+    }
+
+    toggleKeyVisBtn.addEventListener("click", function () {
+      if (!currentApiKey) return;
+      apiKeyVisible = !apiKeyVisible;
+      applyApiKeyDisplay();
+    });
+
+    copyKeyBtn.addEventListener("click", async function () {
+      if (!currentApiKey) return;
+      try {
+        await navigator.clipboard.writeText(currentApiKey);
+        const original = copyKeyBtn.textContent;
+        copyKeyBtn.textContent = "Copied";
+        setTimeout(() => {
+          copyKeyBtn.textContent = original;
+        }, 1200);
+      } catch (_e) {
+        regenerateStatusEl.textContent = "Unable to copy key.";
+        regenerateStatusEl.className = "status-msg error";
+      }
+    });
+
+    logoutBtn.addEventListener("click", async function () {
+      await client.auth.signOut();
+      window.location.href = "/login.html";
+    });
+
+    regenerateKeyBtn.addEventListener("click", function () {
+      regenerateConfirmEl.hidden = false;
+      regenerateStatusEl.textContent = "";
+      regenerateStatusEl.className = "status-msg muted";
+    });
+
+    regenerateCancelBtn.addEventListener("click", function () {
+      regenerateConfirmEl.hidden = true;
+      setRegenerateLoading(false);
+    });
+
+    regenerateYesBtn.addEventListener("click", async function () {
+      regenerateStatusEl.textContent = "";
+      regenerateStatusEl.className = "status-msg muted";
+      setRegenerateLoading(true);
+      try {
+        const token = await getAccessToken();
+        if (!token) {
+          window.location.href = "/login.html";
+          return;
+        }
+        const res = await fetch(ROTATE_KEY_URL, {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json"
+          }
+        });
+        const body = await res.json().catch(function () {
+          return {};
+        });
+        if (!res.ok || !body.success) {
+          throw new Error(body.error || res.statusText || "Request failed");
+        }
+        if (typeof body.api_key === "string" && body.api_key) {
+          currentApiKey = body.api_key;
+        }
+        apiKeyVisible = false;
+        applyApiKeyDisplay();
+        regenerateConfirmEl.hidden = true;
+        regenerateStatusEl.textContent = "API key regenerated. Update your agents with the new key.";
+        regenerateStatusEl.className = "status-msg success";
+      } catch (err) {
+        regenerateStatusEl.textContent = err && err.message ? err.message : "Regeneration failed.";
+        regenerateStatusEl.className = "status-msg error";
+      } finally {
+        setRegenerateLoading(false);
+      }
+    });
+
+    deleteShowBtn.addEventListener("click", function () {
+      deletePanelEl.hidden = false;
+      deleteInputEl.value = "";
+      deleteConfirmBtn.disabled = true;
+      deleteStatusEl.textContent = "";
+      deleteStatusEl.className = "status-msg muted";
+    });
+
+    deleteInputEl.addEventListener("input", function () {
+      deleteConfirmBtn.disabled = deleteInputEl.value !== "DELETE";
+    });
+
+    deleteConfirmBtn.addEventListener("click", async function () {
+      if (deleteInputEl.value !== "DELETE") return;
+      deleteStatusEl.textContent = "";
+      deleteStatusEl.className = "status-msg muted";
+      setDeleteLoading(true);
+      try {
+        const token = await getAccessToken();
+        if (!token) {
+          window.location.href = "/login.html";
+          return;
+        }
+        const res = await fetch(DELETE_ACCOUNT_URL, {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json"
+          }
+        });
+        const body = await res.json().catch(function () {
+          return {};
+        });
+        if (!res.ok || !body.success) {
+          throw new Error(body.error || res.statusText || "Request failed");
+        }
+        window.location.href = "/index.html?deleted=true";
+      } catch (err) {
+        deleteStatusEl.textContent = err && err.message ? err.message : "Deletion failed.";
+        deleteStatusEl.className = "status-msg error";
+        setDeleteLoading(false);
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>
