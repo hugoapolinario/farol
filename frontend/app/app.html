@@ -797,17 +797,6 @@
       display: block;
     }
 
-    .chart-note {
-      margin: 0.7rem 0 0;
-      text-align: right;
-      font-size: 11px;
-      color: var(--text-muted);
-      line-height: 1.2;
-      padding-right: 8px;
-      max-width: 100%;
-      box-sizing: border-box;
-    }
-
     .overview-card {
       margin-bottom: 1rem;
       border-color: rgba(249, 115, 22, 0.16);
@@ -929,7 +918,12 @@
         </div>
         <div class="chart-card">
           <canvas id="success-chart" class="chart-canvas" aria-label="Success rate by agent chart"></canvas>
-          <p id="success-chart-scale-note" class="chart-note" hidden>Scale adjusted to show variance</p>
+        </div>
+        <div class="chart-card">
+          <canvas id="duration-chart" class="chart-canvas" aria-label="Duration per run chart"></canvas>
+        </div>
+        <div class="chart-card">
+          <canvas id="tokens-chart" class="chart-canvas" aria-label="Tokens per run chart"></canvas>
         </div>
       </div>
     </section>
@@ -1026,6 +1020,8 @@
     let activeRow = null;
     let costChart = null;
     let successChart = null;
+    let durationChart = null;
+    let tokensChart = null;
 
     function syncApiKeyToggleButton() {
       const slash = toggleKeyVisBtn.querySelector(".icon-eye-slash");
@@ -1337,8 +1333,9 @@
 
       const costCanvas = document.getElementById("cost-chart");
       const successCanvas = document.getElementById("success-chart");
-      const successScaleNoteEl = document.getElementById("success-chart-scale-note");
-      if (!costCanvas || !successCanvas) return;
+      const durationCanvas = document.getElementById("duration-chart");
+      const tokensCanvas = document.getElementById("tokens-chart");
+      if (!costCanvas || !successCanvas || !durationCanvas || !tokensCanvas) return;
 
       const gridColor = "rgba(255, 255, 255, 0.045)";
       const tickColor = "#8b919d";
@@ -1405,9 +1402,6 @@
 
       const successSeries = buildSuccessByAgent(runs);
       const successMin = Math.max(0, Math.min.apply(null, successSeries.values) - 10);
-      if (successScaleNoteEl) {
-        successScaleNoteEl.hidden = !(successMin > 0);
-      }
       if (successChart) {
         successChart.destroy();
       }
@@ -1452,6 +1446,119 @@
                 callback: function (value) {
                   return Number(value).toFixed(0) + "%";
                 }
+              },
+              grid: { color: gridColor }
+            }
+          }
+        }
+      });
+
+      const recentRuns = runs.slice(0, 20).reverse();
+      const timeLabels = recentRuns.map(function (r) {
+        if (!r.timestamp) return "—";
+        return new Date(r.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      });
+
+      if (durationChart) {
+        durationChart.destroy();
+      }
+      durationChart = new Chart(durationCanvas, {
+        type: "line",
+        data: {
+          labels: timeLabels,
+          datasets: [
+            {
+              data: recentRuns.map(function (r) {
+                return (Number(r.duration_ms) || 0) / 1000;
+              }),
+              borderColor: "#60a5fa",
+              backgroundColor: "transparent",
+              pointBackgroundColor: "#60a5fa",
+              pointBorderColor: "#60a5fa",
+              pointRadius: 2,
+              pointHoverRadius: 3,
+              borderWidth: 2,
+              fill: false,
+              tension: 0.2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { display: false },
+            title: {
+              display: true,
+              text: "Duration per run",
+              color: titleColor
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: tickColor, maxRotation: 45, minRotation: 45, autoSkip: true, font: { size: 11 } },
+              grid: { color: gridColor }
+            },
+            y: {
+              ticks: {
+                color: tickColor,
+                font: { size: 11 },
+                callback: function (value) {
+                  return Number(value).toFixed(1) + "s";
+                }
+              },
+              grid: { color: gridColor }
+            }
+          }
+        }
+      });
+
+      if (tokensChart) {
+        tokensChart.destroy();
+      }
+      tokensChart = new Chart(tokensCanvas, {
+        type: "line",
+        data: {
+          labels: timeLabels,
+          datasets: [
+            {
+              data: recentRuns.map(function (r) {
+                return (Number(r.input_tokens) || 0) + (Number(r.output_tokens) || 0);
+              }),
+              borderColor: "#a78bfa",
+              backgroundColor: "transparent",
+              pointBackgroundColor: "#a78bfa",
+              pointBorderColor: "#a78bfa",
+              pointRadius: 2,
+              pointHoverRadius: 3,
+              borderWidth: 2,
+              fill: false,
+              tension: 0.2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { display: false },
+            title: {
+              display: true,
+              text: "Tokens per run",
+              color: titleColor
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: tickColor, maxRotation: 45, minRotation: 45, autoSkip: true, font: { size: 11 } },
+              grid: { color: gridColor }
+            },
+            y: {
+              ticks: {
+                color: tickColor,
+                font: { size: 11 }
               },
               grid: { color: gridColor }
             }
