@@ -661,6 +661,45 @@
       min-width: 0;
     }
 
+    .wf-io-stack {
+      margin-top: 0.35rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .wf-io-details {
+      font-size: 0.72rem;
+    }
+
+    .wf-io-summary {
+      cursor: pointer;
+      list-style-position: outside;
+      color: var(--text-muted);
+      font-weight: 600;
+      user-select: none;
+    }
+
+    .wf-io-summary:hover {
+      color: var(--text);
+    }
+
+    .wf-io-pre {
+      margin-top: 0.35rem;
+      padding: 0.45rem 0.55rem;
+      max-height: 250px;
+      overflow: auto;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: rgba(0, 0, 0, 0.42);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-sm);
+      color: #d1d5db;
+    }
+
     .trace-loading {
       color: var(--text-muted);
       font-size: 0.85rem;
@@ -1155,6 +1194,32 @@
           }
         }
 
+        let ioHtml = "";
+        const ioParts = [];
+        if (span.input != null && String(span.input).length > 0) {
+          ioParts.push(
+            '<details class="wf-io-details">' +
+              '<summary class="wf-io-summary">Prompt</summary>' +
+              '<div class="wf-io-pre">' +
+              escapeHtml(String(span.input)) +
+              "</div>" +
+              "</details>"
+          );
+        }
+        if (span.output != null && String(span.output).length > 0) {
+          ioParts.push(
+            '<details class="wf-io-details">' +
+              '<summary class="wf-io-summary">Response</summary>' +
+              '<div class="wf-io-pre">' +
+              escapeHtml(String(span.output)) +
+              "</div>" +
+              "</details>"
+          );
+        }
+        if (ioParts.length > 0) {
+          ioHtml = '<div class="wf-io-stack">' + ioParts.join("") + "</div>";
+        }
+
         parts.push('<div class="wf-row">');
         parts.push('<div class="wf-row-grid">');
         parts.push(
@@ -1196,6 +1261,7 @@
         parts.push(tokensHtml);
         parts.push(errHtml);
         parts.push(metaHtml);
+        parts.push(ioHtml);
         parts.push("</div></div></div>");
       }
       parts.push("</div>");

@@ -16,7 +16,7 @@ load_dotenv(_ROOT / ".env")
 client = Anthropic()
 firecrawl = FirecrawlApp(api_key=os.getenv("FIRECRAWL_API_KEY"))
 
-@trace(agent_name="research-agent", farol_key="frl_fTfS5MfRTPVoEfCTetpDQz1N", farol_endpoint="https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/ingest")
+@trace(agent_name="research-agent", farol_key="frl_fTfS5MfRTPVoEfCTetpDQz1N", farol_endpoint="https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/ingest", capture_io=True)
 def research_topic(topic: str, run: dict = None):
     print(f"\n Researching: {topic}\n")
     run["topic"] = topic
@@ -33,6 +33,7 @@ def research_topic(topic: str, run: dict = None):
     combined = "\n\n---\n\n".join(pages)
 
     print("\nStep 2 — Asking Claude to summarise...\n")
+    user_prompt = f"Based on the following web research, give me a concise 5-bullet summary about: {topic}\n\n{combined}"
     with run.span(
         "llm_call",
         type="llm",
@@ -44,10 +45,12 @@ def research_topic(topic: str, run: dict = None):
             messages=[
                 {
                     "role": "user",
-                    "content": f"Based on the following web research, give me a concise 5-bullet summary about: {topic}\n\n{combined}"
+                    "content": user_prompt
                 }
             ]
         )
+        span.input = user_prompt
+        span.output = message.content[0].text
         span.input_tokens = message.usage.input_tokens
         span.output_tokens = message.usage.output_tokens
         run["input_tokens"] = message.usage.input_tokens
@@ -59,7 +62,7 @@ def research_topic(topic: str, run: dict = None):
 if __name__ == "__main__":
     research_topic("how to reduce LLM costs")
 
-@trace(agent_name="market-agent", farol_key="frl_fTfS5MfRTPVoEfCTetpDQz1N", farol_endpoint="https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/ingest")
+@trace(agent_name="market-agent", farol_key="frl_fTfS5MfRTPVoEfCTetpDQz1N", farol_endpoint="https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/ingest", capture_io=True)
 def market_research(topic: str, run: dict = None):
     print(f"\n Market research: {topic}\n")
     run["topic"] = topic
@@ -76,6 +79,7 @@ def market_research(topic: str, run: dict = None):
     combined = "\n\n---\n\n".join(pages)
 
     print("\nStep 2 — Asking Claude to summarise...\n")
+    user_prompt = f"Based on the following web research, give me a concise 3-bullet market analysis about: {topic}\n\n{combined}"
     with run.span(
         "llm_call",
         type="llm",
@@ -87,10 +91,12 @@ def market_research(topic: str, run: dict = None):
             messages=[
                 {
                     "role": "user",
-                    "content": f"Based on the following web research, give me a concise 3-bullet market analysis about: {topic}\n\n{combined}"
+                    "content": user_prompt
                 }
             ]
         )
+        span.input = user_prompt
+        span.output = message.content[0].text
         span.input_tokens = message.usage.input_tokens
         span.output_tokens = message.usage.output_tokens
         run["input_tokens"] = message.usage.input_tokens
