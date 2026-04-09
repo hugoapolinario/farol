@@ -67,6 +67,10 @@
       margin-bottom: 0;
       text-decoration: none;
       color: var(--text);
+      gap: 0.5rem;
+      font-size: 1.125rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
     }
 
     .navbar .logo:hover {
@@ -80,11 +84,21 @@
     }
 
     .auth-shell {
-      flex: 1;
+      min-height: calc(100vh - 68px);
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 1.25rem;
+    }
+
+    .navbar .logo-mark {
+      width: 32px;
+      height: 32px;
+    }
+
+    .navbar .logo-mark svg {
+      width: 18px;
+      height: 18px;
     }
 
     .card {
