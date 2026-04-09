@@ -163,85 +163,6 @@
       background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
     }
 
-    .api-key-card {
-      padding: 1.15rem;
-      margin-bottom: 1rem;
-    }
-
-    .api-key-label {
-      margin: 0 0 0.45rem;
-      font-size: 0.78rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--accent);
-      font-weight: 600;
-    }
-
-    .api-key-row {
-      display: flex;
-      gap: 0.75rem;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .api-key-actions {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-shrink: 0;
-    }
-
-    .btn-api-key-vis {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 2.55rem;
-      height: 2.55rem;
-      padding: 0;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border);
-      background: var(--bg-elevated);
-      color: var(--text-muted);
-      cursor: pointer;
-      font-family: inherit;
-      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-    }
-
-    .btn-api-key-vis:hover {
-      color: var(--text);
-      border-color: rgba(249, 115, 22, 0.35);
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    .btn-api-key-vis:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
-    }
-
-    .btn-api-key-vis svg {
-      display: block;
-    }
-
-    .api-key-value {
-      flex: 1 1 300px;
-      margin: 0;
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 0.68rem 0.8rem;
-      font-size: 0.9rem;
-      color: #f8fafc;
-      overflow-x: auto;
-      white-space: nowrap;
-    }
-
-    .api-key-note {
-      margin: 0.55rem 0 0;
-      font-size: 0.83rem;
-      color: var(--text-muted);
-    }
-
     .table-wrap {
       overflow-x: auto;
     }
@@ -897,59 +818,6 @@
   </header>
 
   <main class="wrap">
-    <section class="card api-key-card" aria-labelledby="api-key-heading">
-      <p class="api-key-label" id="api-key-heading">Your API key</p>
-      <div class="api-key-row">
-        <p class="api-key-value" id="api-key-value">Loading…</p>
-        <div class="api-key-actions">
-          <button
-            type="button"
-            class="btn-api-key-vis"
-            id="toggle-key-vis-btn"
-            hidden
-            aria-label="Show API key"
-            aria-pressed="false"
-          >
-            <svg
-              class="icon-eye-slash"
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-              <line x1="1" y1="1" x2="23" y2="23" />
-            </svg>
-            <svg
-              class="icon-eye-open"
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-              style="display: none"
-            >
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-          </button>
-          <button class="btn btn-primary" id="copy-key-btn" type="button">Copy</button>
-        </div>
-      </div>
-      <p class="api-key-note">Use this key in your SDK config to send traces and costs to Farol.</p>
-    </section>
-
     <section class="card overview-card" aria-labelledby="overview-heading">
       <p class="overview-label" id="overview-heading">Overview</p>
       <div class="runs-summary" id="runs-summary" aria-live="polite">
@@ -1054,12 +922,6 @@
     const client = createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
 
     const userEmailEl = document.getElementById("user-email");
-    const apiKeyValueEl = document.getElementById("api-key-value");
-    const toggleKeyVisBtn = document.getElementById("toggle-key-vis-btn");
-    const copyKeyBtn = document.getElementById("copy-key-btn");
-
-    const API_KEY_MASK = "••••••••••••••••••••••••";
-    let apiKeyVisible = false;
     const runsBody = document.getElementById("runs-body");
     const statusMessage = document.getElementById("status-message");
     const logoutBtn = document.getElementById("logout-btn");
@@ -1068,7 +930,6 @@
 
     const AGENT_NONE_VALUE = "__FAROL_NO_AGENT__";
 
-    let currentApiKey = "";
     let currentUserId = null;
     let lastRefreshAt = null;
     let refreshIntervalId = null;
@@ -1080,32 +941,6 @@
     let successChart = null;
     let durationChart = null;
     let tokensChart = null;
-
-    function syncApiKeyToggleButton() {
-      const slash = toggleKeyVisBtn.querySelector(".icon-eye-slash");
-      const open = toggleKeyVisBtn.querySelector(".icon-eye-open");
-      if (apiKeyVisible) {
-        slash.style.display = "none";
-        open.style.display = "block";
-        toggleKeyVisBtn.setAttribute("aria-label", "Hide API key");
-        toggleKeyVisBtn.setAttribute("aria-pressed", "true");
-      } else {
-        slash.style.display = "block";
-        open.style.display = "none";
-        toggleKeyVisBtn.setAttribute("aria-label", "Show API key");
-        toggleKeyVisBtn.setAttribute("aria-pressed", "false");
-      }
-    }
-
-    function applyApiKeyDisplay() {
-      if (!currentApiKey) {
-        toggleKeyVisBtn.hidden = true;
-        return;
-      }
-      toggleKeyVisBtn.hidden = false;
-      apiKeyValueEl.textContent = apiKeyVisible ? currentApiKey : API_KEY_MASK;
-      syncApiKeyToggleButton();
-    }
 
     function escapeHtml(s) {
       if (s == null) return "";
@@ -1285,17 +1120,6 @@
       }
       parts.push("</div>");
       stepsEl.innerHTML = parts.join("");
-    }
-
-    function randomString(length) {
-      const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-      let out = "";
-      const bytes = new Uint8Array(length);
-      crypto.getRandomValues(bytes);
-      for (let i = 0; i < length; i += 1) {
-        out += alphabet[bytes[i] % alphabet.length];
-      }
-      return out;
     }
 
     function setStatus(text) {
@@ -1712,38 +1536,6 @@
       });
     }
 
-    async function getOrCreateApiKey(userId) {
-      const { data: existing, error: fetchError } = await client
-        .from("api_keys")
-        .select("*")
-        .eq("user_id", userId)
-        .limit(1)
-        .maybeSingle();
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      const existingKey = existing && (existing.api_key || existing.key);
-      if (existingKey) {
-        return existingKey;
-      }
-
-      const generated = "frl_" + randomString(24);
-      const { error: insertError } = await client
-        .from("api_keys")
-        .insert({
-          user_id: userId,
-          api_key: generated
-        });
-
-      if (insertError) {
-        throw insertError;
-      }
-
-      return generated;
-    }
-
     async function loadRuns(userId) {
       const { data, error } = await client
         .from("runs")
@@ -1874,43 +1666,16 @@
       userEmailEl.textContent = user.email || "Signed in";
 
       try {
-        setStatus("Loading API key and runs...");
-        currentApiKey = await getOrCreateApiKey(user.id);
-        apiKeyVisible = false;
-        applyApiKeyDisplay();
+        setStatus("Loading runs...");
         await loadRuns(user.id);
         setLastUpdatedNow();
         startSecondsCounter();
         startAutoRefresh();
         setStatus("");
       } catch (e) {
-        currentApiKey = "";
-        apiKeyVisible = false;
-        apiKeyValueEl.textContent = "Unavailable";
-        toggleKeyVisBtn.hidden = true;
         setStatus(e && e.message ? e.message : "Failed to load dashboard data.");
       }
     }
-
-    toggleKeyVisBtn.addEventListener("click", function () {
-      if (!currentApiKey) return;
-      apiKeyVisible = !apiKeyVisible;
-      applyApiKeyDisplay();
-    });
-
-    copyKeyBtn.addEventListener("click", async function () {
-      if (!currentApiKey) return;
-      try {
-        await navigator.clipboard.writeText(currentApiKey);
-        const original = copyKeyBtn.textContent;
-        copyKeyBtn.textContent = "Copied";
-        setTimeout(() => {
-          copyKeyBtn.textContent = original;
-        }, 1200);
-      } catch (_e) {
-        setStatus("Unable to copy key.");
-      }
-    });
 
     logoutBtn.addEventListener("click", async function () {
       await client.auth.signOut();
