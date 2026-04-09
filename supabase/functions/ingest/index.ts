@@ -5,14 +5,71 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const RATE_LIMIT_MAX = 100;
+const RATE_WINDOW_MS = 60 * 60 * 1000;
+
+type RateBucket = { count: number; resetAt: number };
+
+const rateLimitMap = new Map<string, RateBucket>();
+
+function rateLimitKey(body: Record<string, unknown>, req: Request): string {
+  const fk = body.farol_key;
+  if (typeof fk === "string" && fk.trim() !== "") {
+    return `key:${fk}`;
+  }
+  const xf = req.headers.get("x-forwarded-for");
+  if (xf) {
+    const first = xf.split(",")[0]?.trim();
+    if (first) return `ip:${first}`;
+  }
+  return "ip:unknown";
+}
+
+function checkRateLimit(key: string): { ok: true } | { ok: false; retryAfterSec: number } {
+  const now = Date.now();
+  let bucket = rateLimitMap.get(key);
+  if (!bucket || now >= bucket.resetAt) {
+    bucket = { count: 0, resetAt: now + RATE_WINDOW_MS };
+    rateLimitMap.set(key, bucket);
+  }
+  if (bucket.count >= RATE_LIMIT_MAX) {
+    const retryAfterSec = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+    return { ok: false, retryAfterSec };
+  }
+  bucket.count += 1;
+  return { ok: true };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const body = await req.json();
-    const { farol_key, spans: rawSpans, ...run } = body;
+    const body = await req.json() as Record<string, unknown>;
+    const rl = checkRateLimit(rateLimitKey(body, req));
+    if (!rl.ok) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Rate limit exceeded. Max 100 requests per hour.",
+        }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "Retry-After": String(rl.retryAfterSec),
+          },
+        }
+      );
+    }
+
+    const { farol_key, spans: rawSpans, ...run } = body as {
+      farol_key?: string;
+      spans?: unknown;
+      [key: string]: unknown;
+    };
     const spans = Array.isArray(rawSpans) ? rawSpans : [];
 
     if (!farol_key) {
