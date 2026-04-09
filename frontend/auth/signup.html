@@ -21,6 +21,7 @@
       --success-dim: rgba(74, 222, 128, 0.1);
       --radius: 12px;
       --radius-sm: 8px;
+      --max: 1120px;
     }
 
     * {
@@ -30,9 +31,9 @@
     body {
       margin: 0;
       min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      padding: 0;
       background:
         radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249, 115, 22, 0.12), transparent 55%),
         radial-gradient(ellipse 60% 40% at 100% 40%, rgba(249, 115, 22, 0.06), transparent 50%),
@@ -40,6 +41,50 @@
       color: var(--text);
       font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
       color-scheme: dark;
+    }
+
+    .wrap {
+      width: min(100% - 2rem, var(--max));
+      margin-inline: auto;
+    }
+
+    .navbar {
+      border-bottom: 1px solid var(--border);
+      background: rgba(10, 11, 13, 0.82);
+      backdrop-filter: blur(12px);
+      flex-shrink: 0;
+    }
+
+    .nav-inner {
+      min-height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .navbar .logo {
+      margin-bottom: 0;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .navbar .logo:hover {
+      color: var(--text);
+    }
+
+    .navbar .logo:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+      border-radius: 8px;
+    }
+
+    .auth-shell {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
     }
 
     .card {
@@ -55,10 +100,13 @@
       display: inline-flex;
       align-items: center;
       gap: 0.55rem;
-      margin-bottom: 1rem;
       font-size: 1.02rem;
       font-weight: 600;
       letter-spacing: -0.01em;
+    }
+
+    .card .logo {
+      margin-bottom: 1rem;
     }
 
     .logo-mark {
@@ -236,6 +284,22 @@
   </style>
 </head>
 <body>
+  <header class="navbar">
+    <div class="wrap nav-inner">
+      <a class="logo" href="/index.html" aria-label="Farol home">
+        <span class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <path d="M12 3L4 9v12h16V9l-8-6z"></path>
+            <path d="M9 21V12h6v9"></path>
+            <circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none"></circle>
+          </svg>
+        </span>
+        Farol
+      </a>
+    </div>
+  </header>
+
+  <div class="auth-shell">
   <main class="card" aria-labelledby="signup-title">
     <div class="logo" aria-label="Farol">
       <span class="logo-mark" aria-hidden="true">
@@ -284,6 +348,7 @@
 
     <p class="auth-link" id="signup-auth-link">Already have an account? <a href="/login.html">Log in</a></p>
   </main>
+  </div>
 
   <script src="/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
