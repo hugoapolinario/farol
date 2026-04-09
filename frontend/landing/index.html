@@ -742,20 +742,31 @@
 
     /* Footer */
     .site-footer {
-      padding: 2.5rem 0;
+      padding: 2rem 0;
       border-top: 1px solid var(--border);
       text-align: center;
       color: var(--text-muted);
-      font-size: 0.875rem;
+      font-size: 13px;
+    }
+
+    .site-footer p {
+      margin: 0;
+    }
+
+    .site-footer p + p {
+      margin-top: 0.4rem;
     }
 
     .site-footer a {
-      color: var(--accent);
-      text-decoration: none;
+      color: var(--text-muted);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: rgba(139, 145, 157, 0.45);
     }
 
     .site-footer a:hover {
-      text-decoration: underline;
+      color: var(--text);
+      text-decoration-color: rgba(232, 234, 239, 0.5);
     }
 
     .site-footer a:focus-visible {
@@ -984,7 +995,12 @@ farol.<span class="tok-fn">init</span>({ <span class="tok-str">apiKey</span>: pr
 
   <footer class="site-footer">
     <div class="wrap">
-      <p>© <span translate="no">2026</span> Farol. Built for indie developers and small teams.</p>
+      <p>© <span translate="no">2026</span> Farol. All rights reserved.</p>
+      <p>
+        <a href="/privacy.html">Privacy Policy</a>
+        <span aria-hidden="true"> · </span>
+        <a href="/terms.html">Terms of Service</a>
+      </p>
     </div>
   </footer>
   <script>
