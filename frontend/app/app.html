@@ -435,6 +435,200 @@
       word-break: break-all;
     }
 
+    .waterfall {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .wf-row {
+      padding-bottom: 0.35rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .wf-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .wf-row-grid {
+      display: grid;
+      grid-template-columns: minmax(92px, 10.5rem) 1fr;
+      gap: 0.65rem;
+      align-items: start;
+    }
+
+    @media (max-width: 520px) {
+      .wf-row-grid {
+        grid-template-columns: minmax(72px, 28%) 1fr;
+        gap: 0.45rem;
+      }
+    }
+
+    .wf-row-label {
+      padding-top: 0.35rem;
+      min-width: 0;
+    }
+
+    .wf-label-name {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.25;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .wf-label-type {
+      display: inline-block;
+      margin-top: 0.2rem;
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.12rem 0.38rem;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .wf-track-section {
+      min-width: 0;
+    }
+
+    .wf-track {
+      position: relative;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.075);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-sm);
+      margin-bottom: 0.35rem;
+      overflow: visible;
+    }
+
+    .wf-bar {
+      position: absolute;
+      top: 4px;
+      height: 24px;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.35rem;
+      padding: 0 0.45rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      box-sizing: border-box;
+      line-height: 1.2;
+      white-space: nowrap;
+      min-width: 8%;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .wf-bar.wf-bar-split {
+      justify-content: space-between;
+    }
+
+    .wf-bar-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+      flex: 1 1 auto;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .wf-bar.span-llm {
+      background: linear-gradient(180deg, rgba(249, 115, 22, 0.45), rgba(234, 88, 12, 0.3));
+      border: 1px solid rgba(249, 115, 22, 0.5);
+      border-left: 3px solid rgba(251, 146, 60, 0.95);
+      color: #ffedd5;
+      box-shadow:
+        0 0 14px rgba(249, 115, 22, 0.14),
+        inset 1px 0 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .wf-bar.span-tool {
+      background: rgba(180, 198, 222, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-left: 3px solid rgba(125, 165, 220, 0.9);
+      color: #dce3ee;
+      box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .wf-dur {
+      flex-shrink: 0;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.65rem;
+      font-weight: 600;
+      opacity: 0.95;
+    }
+
+    .wf-bar .wf-dur {
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+    }
+
+    .wf-dur-outside {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: #b4bcc8;
+      white-space: nowrap;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .wf-tokens {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-bottom: 0.28rem;
+    }
+
+    .wf-span-error {
+      font-size: 0.72rem;
+      color: #f87171;
+      margin-bottom: 0.28rem;
+      word-break: break-word;
+    }
+
+    .wf-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 0.65rem;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+
+    .wf-meta-kv {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.25rem;
+      max-width: 100%;
+    }
+
+    .wf-meta-k {
+      color: #6b7280;
+      flex-shrink: 0;
+    }
+
+    .wf-meta-v {
+      color: #a8b0bd;
+      word-break: break-all;
+      min-width: 0;
+    }
+
+    .trace-loading {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 0.35rem 0;
+    }
+
     .close-btn {
       background: var(--bg-elevated);
       border: 1px solid var(--border);
@@ -638,7 +832,7 @@
         </div>
       </div>
       <div class="anomaly-warning" id="trace-anomaly-warning"></div>
-      <div class="steps-title">Execution steps</div>
+      <div class="steps-title" id="trace-detail-title">Execution steps</div>
       <div id="trace-steps"></div>
     </div>
     <p class="status" id="status-message"></p>
@@ -677,6 +871,150 @@
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
+    }
+
+    function formatMetaValue(v) {
+      if (v == null) return "";
+      if (typeof v === "object") {
+        try {
+          return JSON.stringify(v);
+        } catch (_e) {
+          return String(v);
+        }
+      }
+      return String(v);
+    }
+
+    function renderTraceStepsFallback(r, stepsEl) {
+      stepsEl.innerHTML = "";
+      if (r.steps && r.steps.length > 0) {
+        r.steps.forEach((s, si) => {
+          const detail = s.url || s.model || "";
+          stepsEl.innerHTML += `
+            <div class="step">
+              <div class="step-num">${si + 1}</div>
+              <div>
+                <span class="step-type ${s.step}">${escapeHtml(s.step)}</span>
+                <div class="step-detail">${escapeHtml(detail)}</div>
+              </div>
+            </div>`;
+        });
+      } else {
+        stepsEl.innerHTML =
+          '<div style="color:var(--text-muted);font-size:0.85rem">No steps recorded</div>';
+      }
+    }
+
+    function renderWaterfall(run, spans, stepsEl) {
+      let maxSpanDur = 0;
+      for (let si = 0; si < spans.length; si += 1) {
+        const d = Math.max(0, Number(spans[si].duration_ms) || 0);
+        if (d > maxSpanDur) maxSpanDur = d;
+      }
+      const maxDuration = Math.max(1, maxSpanDur, Number(run.duration_ms) || 0);
+      const logDenom = Math.log10(maxDuration + 1);
+
+      const parts = ['<div class="waterfall">'];
+      for (let i = 0; i < spans.length; i += 1) {
+        const span = spans[i];
+        const typ = (span.type != null ? String(span.type) : "tool").toLowerCase();
+        const barClass = typ === "llm" ? "span-llm" : "span-tool";
+        const name = span.name != null ? String(span.name) : "span";
+        const dur = Number(span.duration_ms);
+        let durLabel = "—";
+        if (Number.isFinite(dur)) {
+          durLabel =
+            dur % 1 === 0 ? String(Math.round(dur)) + "ms" : dur + "ms";
+        }
+
+        const durMs = Math.max(0, Number(span.duration_ms) || 0);
+        let widthPct =
+          (Math.log10(durMs + 1) / logDenom) * 100;
+        widthPct = Math.max(8, widthPct);
+        widthPct = Math.min(88, widthPct);
+
+        const nameInsideBar = widthPct >= 34;
+
+        const inTok = Number(span.input_tokens) || 0;
+        const outTok = Number(span.output_tokens) || 0;
+        let tokensHtml = "";
+        if (inTok > 0 || outTok > 0) {
+          const tokParts = [];
+          if (inTok > 0) tokParts.push(escapeHtml(String(inTok)) + " in");
+          if (outTok > 0) tokParts.push(escapeHtml(String(outTok)) + " out");
+          tokensHtml = '<div class="wf-tokens">' + tokParts.join(" · ") + "</div>";
+        }
+
+        let errHtml = "";
+        if (span.error != null && String(span.error).length > 0) {
+          errHtml =
+            '<div class="wf-span-error">' + escapeHtml(String(span.error)) + "</div>";
+        }
+
+        let metaHtml = "";
+        const meta = span.metadata;
+        if (meta && typeof meta === "object" && !Array.isArray(meta)) {
+          const keys = Object.keys(meta);
+          if (keys.length) {
+            metaHtml = '<div class="wf-meta">';
+            for (let k = 0; k < keys.length; k += 1) {
+              const key = keys[k];
+              metaHtml +=
+                '<span class="wf-meta-kv"><span class="wf-meta-k">' +
+                escapeHtml(key) +
+                '</span><span class="wf-meta-v">' +
+                escapeHtml(formatMetaValue(meta[key])) +
+                "</span></span>";
+            }
+            metaHtml += "</div>";
+          }
+        }
+
+        parts.push('<div class="wf-row">');
+        parts.push('<div class="wf-row-grid">');
+        parts.push(
+          '<div class="wf-row-label">' +
+            '<div class="wf-label-name" title="' +
+            escapeHtml(name) +
+            '">' +
+            escapeHtml(name) +
+            "</div>" +
+            '<span class="wf-label-type">' +
+            escapeHtml(typ) +
+            "</span></div>"
+        );
+        let barInner = "";
+        if (nameInsideBar) {
+          barInner +=
+            '<span class="wf-bar-name">' + escapeHtml(name) + "</span>";
+        }
+
+        parts.push('<div class="wf-track-section">');
+        parts.push('<div class="wf-track">');
+        parts.push(
+          '<div class="wf-bar ' +
+            barClass +
+            '" style="left:0;width:' +
+            widthPct.toFixed(2) +
+            '%;">' +
+            barInner +
+            "</div>"
+        );
+        parts.push(
+          '<span class="wf-dur-outside" style="left:calc(' +
+            widthPct.toFixed(2) +
+            "% + 10px)\">" +
+            escapeHtml(durLabel) +
+            "</span>"
+        );
+        parts.push("</div>");
+        parts.push(tokensHtml);
+        parts.push(errHtml);
+        parts.push(metaHtml);
+        parts.push("</div></div></div>");
+      }
+      parts.push("</div>");
+      stepsEl.innerHTML = parts.join("");
     }
 
     function randomString(length) {
@@ -816,7 +1154,9 @@
           <td>${errorCell}</td>
           <td>${r.timestamp ? new Date(r.timestamp).toLocaleString() : "—"}</td>
         `;
-        row.addEventListener("click", () => openTrace(i, row));
+        row.addEventListener("click", function () {
+          void openTrace(i, row);
+        });
         runsBody.appendChild(row);
       });
     }
@@ -869,7 +1209,7 @@
       applyFilterAndRender();
     }
 
-    function openTrace(index, row) {
+    async function openTrace(index, row) {
       if (activeRow) activeRow.classList.remove("active");
       activeRow = row;
       row.classList.add("active");
@@ -900,22 +1240,31 @@
       }
 
       const stepsEl = document.getElementById("trace-steps");
-      stepsEl.innerHTML = "";
+      const detailTitleEl = document.getElementById("trace-detail-title");
+      stepsEl.innerHTML = '<div class="trace-loading">Loading trace…</div>';
 
-      if (r.steps && r.steps.length > 0) {
-        r.steps.forEach((s, si) => {
-          const detail = s.url || s.model || "";
-          stepsEl.innerHTML += `
-            <div class="step">
-              <div class="step-num">${si + 1}</div>
-              <div>
-                <span class="step-type ${s.step}">${escapeHtml(s.step)}</span>
-                <div class="step-detail">${escapeHtml(detail)}</div>
-              </div>
-            </div>`;
-        });
+      let spans = [];
+      if (r.id != null && r.id !== "") {
+        try {
+          const { data, error } = await client
+            .from("spans")
+            .select("*")
+            .eq("run_id", r.id)
+            .order("started_at", { ascending: true });
+          if (!error && data && data.length) {
+            spans = data;
+          }
+        } catch (_e) {
+          spans = [];
+        }
+      }
+
+      if (spans.length > 0) {
+        detailTitleEl.textContent = "Trace timeline";
+        renderWaterfall(r, spans, stepsEl);
       } else {
-        stepsEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">No steps recorded</div>';
+        detailTitleEl.textContent = "Execution steps";
+        renderTraceStepsFallback(r, stepsEl);
       }
 
       panel.scrollIntoView({ behavior: "smooth" });

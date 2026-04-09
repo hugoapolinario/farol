@@ -48,7 +48,7 @@ class Span:
         self.id = f"span_{int(time.time() * 1000)}_{_span_random_suffix(4)}"
         self.started_at: Optional[str] = None
         self.ended_at: Optional[str] = None
-        self.duration_ms: Optional[int] = None
+        self.duration_ms: Optional[float] = None
         self.input_tokens = 0
         self.output_tokens = 0
         self.cost_usd = 0.0
@@ -64,7 +64,9 @@ class Span:
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
         self.ended_at = datetime.utcnow().isoformat()
-        self.duration_ms = round((time.perf_counter() - self._start_monotonic) * 1000)
+        self.duration_ms = round(
+            (time.perf_counter() - self._start_monotonic) * 1000, 1
+        )
         if exc_type is not None and exc_val is not None:
             self.error = str(exc_val)
         self.run.setdefault("spans", []).append(self)
@@ -207,6 +209,7 @@ def _save_run(
     if farol_key:
         ingest_url = os.environ.get("FAROL_ENDPOINT", farol_endpoint)
         payload = {**serial_run, "farol_key": farol_key}
+        
         _post_ingest(payload, ingest_url)
     else:
         print("[Farol] No API key — not sent to Farol (local runs.json only)")
