@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Terms of Service — Farol</title>
+  <meta name="description" content="Terms of Service for Farol agent observability." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #0a0b0d;
+      --bg-surface: #111318;
+      --bg-elevated: #181b22;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8eaef;
+      --text-muted: #8b919d;
+      --accent: #f97316;
+      --accent-dim: rgba(249, 115, 22, 0.14);
+      --accent-glow: rgba(249, 115, 22, 0.35);
+      --font-display: "Fraunces", Georgia, serif;
+      --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+      --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --max: 1120px;
+      --nav-h: 72px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      line-height: 1.65;
+      color: var(--text);
+      background-color: var(--bg-deep);
+      color-scheme: dark;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 1rem;
+      top: -100px;
+      z-index: 9999;
+      padding: 0.65rem 1rem;
+      background: var(--accent);
+      color: #0a0b0d;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+    }
+
+    .skip-link:focus { top: 1rem; outline: 2px solid var(--text); outline-offset: 2px; }
+
+    .page-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249, 115, 22, 0.12), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 40%, rgba(249, 115, 22, 0.06), transparent 50%),
+        var(--bg-deep);
+    }
+
+    .wrap {
+      width: min(100% - 2rem, var(--max));
+      margin-inline: auto;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: var(--nav-h);
+      border-bottom: 1px solid var(--border);
+      background: rgba(10, 11, 13, 0.78);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: var(--nav-h);
+      gap: 1rem;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 600;
+      font-size: 1.125rem;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), #ea580c);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 24px var(--accent-glow);
+    }
+
+    .logo-mark svg { width: 18px; height: 18px; color: #0a0b0d; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.65rem 1.25rem;
+      font-family: var(--font-sans);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    }
+
+    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0a0b0d;
+    }
+
+    .btn-primary:hover {
+      background: #fb923c;
+      box-shadow: 0 4px 24px var(--accent-glow);
+    }
+
+    .legal-main {
+      padding: 2.5rem 0 4rem;
+    }
+
+    .legal-doc {
+      max-width: 42rem;
+      margin: 0 auto;
+    }
+
+    .legal-doc h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin: 0 0 0.5rem;
+      color: var(--text);
+    }
+
+    .legal-meta {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin: 0 0 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .legal-doc h2 {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 2rem 0 0.75rem;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .legal-doc h2:first-of-type { margin-top: 0; }
+
+    .legal-doc p {
+      margin: 0 0 1rem;
+      color: var(--text-muted);
+      font-size: 0.9375rem;
+    }
+
+    .legal-doc p:last-child { margin-bottom: 0; }
+
+    .legal-doc ul {
+      margin: 0 0 1rem;
+      padding-left: 1.25rem;
+      color: var(--text-muted);
+      font-size: 0.9375rem;
+    }
+
+    .legal-doc li { margin-bottom: 0.5rem; }
+
+    .legal-doc li:last-child { margin-bottom: 0; }
+
+    .legal-doc a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .legal-doc a:hover { text-decoration: underline; }
+
+    .legal-note {
+      margin-top: 1rem;
+      padding: 1rem 1.1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .site-footer {
+      padding: 2rem 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .site-footer a { color: var(--accent); text-decoration: none; }
+    .site-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="page-bg" aria-hidden="true"></div>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="wrap nav-inner">
+      <a class="logo" href="../landing/index.html" aria-label="Farol home">
+        <span class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <path d="M12 3L4 9v12h16V9l-8-6z" />
+            <path d="M9 21V12h6v9" />
+            <circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none" />
+          </svg>
+        </span>
+        Farol
+      </a>
+      <a class="btn btn-primary" href="../auth/signup.html">Get started</a>
+    </div>
+  </header>
+
+  <main id="main" class="wrap legal-main">
+    <article class="legal-doc">
+      <h1>Terms of Service</h1>
+      <p class="legal-meta">Last updated: April 2026</p>
+
+      <h2 id="agreement">Agreement</h2>
+      <p>
+        By accessing or using Farol’s websites, APIs, SDKs, and dashboards (collectively, the “Service”), you agree to these Terms of Service. If you are using the Service on behalf of an organization, you represent that you have authority to bind that organization. If you do not agree, do not use the Service.
+      </p>
+
+      <h2 id="service">Service description</h2>
+      <p>
+        Farol provides observability for AI agents: recording runs, costs, traces, and related metadata so you can monitor behavior and spending. Features, limits, and availability may vary by plan. We may modify, suspend, or discontinue parts of the Service with reasonable notice where practicable, except for urgent security or legal reasons.
+      </p>
+
+      <h2 id="acceptable-use">Acceptable use</h2>
+      <p>You agree not to misuse the Service. Without limitation, you must not:</p>
+      <ul>
+        <li>Probe, scan, or attack our systems, or attempt unauthorized access to data or accounts.</li>
+        <li>Use the Service to distribute malware, conduct fraud, or violate applicable law.</li>
+        <li>Send spam, unsolicited bulk communications, or harass others using our infrastructure.</li>
+        <li>Overload or interfere with the Service in a way that harms other customers (for example, abusive automation against rate limits).</li>
+        <li>Reverse engineer the Service except where mandatory law allows.</li>
+      </ul>
+      <p>We may suspend or terminate access for violations.</p>
+
+      <h2 id="payment">Payment, subscription, and cancellation</h2>
+      <p>
+        Paid plans are billed on a subscription basis as shown at checkout or in your account. Fees are non-refundable except where required by law or expressly stated. You authorize us and our payment processors to charge your payment method on the billing cycle you select.
+      </p>
+      <p>
+        You may cancel your subscription through the account or billing interface. Cancellation stops future renewals; you typically retain access until the end of the current paid period unless otherwise stated. We may change pricing with advance notice; continued use after the effective date constitutes acceptance.
+      </p>
+
+      <h2 id="liability">Limitation of liability</h2>
+      <p>
+        To the maximum extent permitted by applicable law, the Service is provided “as is” without warranties of any kind, whether express or implied. Farol and its suppliers are not liable for any indirect, incidental, special, consequential, or punitive damages, or for loss of profits, data, or goodwill, arising from your use of the Service.
+      </p>
+      <p>
+        Our aggregate liability for claims arising out of or related to the Service shall not exceed the greater of (a) the amounts you paid us for the Service in the twelve months before the claim or (b) one hundred euros (€100), except where liability cannot be limited under mandatory law.
+      </p>
+
+      <h2 id="sla">Availability and SLA</h2>
+      <p>
+        We strive to keep the Service reliable, but we do not guarantee uninterrupted or error-free operation. Unless a separate written agreement specifies otherwise, <strong style="color:var(--text)">free and starter tiers are provided without a service-level agreement (SLA)</strong> and without uptime guarantees. Enterprise or custom plans may include different commitments if expressly agreed in writing.
+      </p>
+
+      <h2 id="law">Governing law</h2>
+      <p>
+        These Terms are governed by the laws of <strong style="color:var(--text)">Spain</strong>, without regard to conflict-of-law principles. Courts located in Spain shall have exclusive jurisdiction over disputes, subject to any mandatory rights you may have as a consumer in your country of residence.
+      </p>
+
+      <h2 id="contact">Contact</h2>
+      <p>For legal notices or questions about these Terms, contact <a href="mailto:legal@usefarol.dev">legal@usefarol.dev</a>.</p>
+
+      <h2 id="changes">Changes</h2>
+      <p>We may update these Terms from time to time. We will post the updated version on this page and revise the “Last updated” date. Material changes may be communicated by email or in-product notice where appropriate.</p>
+
+      <div class="legal-note">
+        These Terms are a general template for a product website and are not tailored legal advice. See also our <a href="privacy.html">Privacy Policy</a>.
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="../landing/index.html">Home</a> · <a href="privacy.html">Privacy</a> · <a href="https://usefarol.dev">usefarol.dev</a></p>
+    </div>
+  </footer>
+</body>
+</html>

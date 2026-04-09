@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy Policy — Farol</title>
+  <meta name="description" content="Privacy Policy for Farol agent observability." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #0a0b0d;
+      --bg-surface: #111318;
+      --bg-elevated: #181b22;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8eaef;
+      --text-muted: #8b919d;
+      --accent: #f97316;
+      --accent-dim: rgba(249, 115, 22, 0.14);
+      --accent-glow: rgba(249, 115, 22, 0.35);
+      --font-display: "Fraunces", Georgia, serif;
+      --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+      --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --max: 1120px;
+      --nav-h: 72px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      line-height: 1.65;
+      color: var(--text);
+      background-color: var(--bg-deep);
+      color-scheme: dark;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 1rem;
+      top: -100px;
+      z-index: 9999;
+      padding: 0.65rem 1rem;
+      background: var(--accent);
+      color: #0a0b0d;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+    }
+
+    .skip-link:focus { top: 1rem; outline: 2px solid var(--text); outline-offset: 2px; }
+
+    .page-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249, 115, 22, 0.12), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 40%, rgba(249, 115, 22, 0.06), transparent 50%),
+        var(--bg-deep);
+    }
+
+    .wrap {
+      width: min(100% - 2rem, var(--max));
+      margin-inline: auto;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: var(--nav-h);
+      border-bottom: 1px solid var(--border);
+      background: rgba(10, 11, 13, 0.78);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: var(--nav-h);
+      gap: 1rem;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 600;
+      font-size: 1.125rem;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), #ea580c);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 24px var(--accent-glow);
+    }
+
+    .logo-mark svg { width: 18px; height: 18px; color: #0a0b0d; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.65rem 1.25rem;
+      font-family: var(--font-sans);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    }
+
+    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0a0b0d;
+    }
+
+    .btn-primary:hover {
+      background: #fb923c;
+      box-shadow: 0 4px 24px var(--accent-glow);
+    }
+
+    .legal-main {
+      padding: 2.5rem 0 4rem;
+    }
+
+    .legal-doc {
+      max-width: 42rem;
+      margin: 0 auto;
+    }
+
+    .legal-doc h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin: 0 0 0.5rem;
+      color: var(--text);
+    }
+
+    .legal-meta {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin: 0 0 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .legal-doc h2 {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 2rem 0 0.75rem;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .legal-doc h2:first-of-type { margin-top: 0; }
+
+    .legal-doc p {
+      margin: 0 0 1rem;
+      color: var(--text-muted);
+      font-size: 0.9375rem;
+    }
+
+    .legal-doc p:last-child { margin-bottom: 0; }
+
+    .legal-doc ul {
+      margin: 0 0 1rem;
+      padding-left: 1.25rem;
+      color: var(--text-muted);
+      font-size: 0.9375rem;
+    }
+
+    .legal-doc li { margin-bottom: 0.5rem; }
+
+    .legal-doc li:last-child { margin-bottom: 0; }
+
+    .legal-doc a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .legal-doc a:hover { text-decoration: underline; }
+
+    .legal-note {
+      margin-top: 1rem;
+      padding: 1rem 1.1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .site-footer {
+      padding: 2rem 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .site-footer a { color: var(--accent); text-decoration: none; }
+    .site-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="page-bg" aria-hidden="true"></div>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="wrap nav-inner">
+      <a class="logo" href="../landing/index.html" aria-label="Farol home">
+        <span class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <path d="M12 3L4 9v12h16V9l-8-6z" />
+            <path d="M9 21V12h6v9" />
+            <circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none" />
+          </svg>
+        </span>
+        Farol
+      </a>
+      <a class="btn btn-primary" href="../auth/signup.html">Get started</a>
+    </div>
+  </header>
+
+  <main id="main" class="wrap legal-main">
+    <article class="legal-doc">
+      <h1>Privacy Policy</h1>
+      <p class="legal-meta">Last updated: April 2026</p>
+
+      <h2 id="intro">Introduction</h2>
+      <p>
+        Farol (“we”, “us”) provides agent observability software. This Privacy Policy explains how we collect, use, store, and share information when you use our service at usefarol.dev and related products.
+      </p>
+
+      <h2 id="collect">What data we collect</h2>
+      <p>We process information needed to run the observability service, including:</p>
+      <ul>
+        <li><strong style="color:var(--text)">Account data</strong> — such as email and authentication identifiers you provide when you sign up.</li>
+        <li><strong style="color:var(--text)">Agent run metadata</strong> — for each traced run, this may include timing, token counts, estimated cost, status, agent name, model label, structured steps or spans, and error messages when something fails.</li>
+        <li><strong style="color:var(--text)">Prompts and model output (optional)</strong> — when you enable input/output capture in the SDK (for example <code style="font-family:var(--font-mono);font-size:0.88em;color:var(--text)">capture_io=True</code>), we store the prompt and response text associated with spans as configured in your integration.</li>
+      </ul>
+      <p>We do not intentionally collect sensitive categories of personal data beyond what you or your application send to the API. You are responsible for not submitting regulated or unnecessary personal data in prompts or logs.</p>
+
+      <h2 id="use">How we use your data</h2>
+      <p>We use the information above to provide and improve the observability service: displaying runs and traces in your dashboard, detecting cost anomalies, supporting authentication and billing, maintaining security, and communicating with you about the product.</p>
+
+      <h2 id="access">Who can see it</h2>
+      <p>Run data and dashboard content are available to the owning account (you and teammates you authorize, if applicable). A limited number of Farol team members may access data when needed for customer support, security, or lawful compliance, under confidentiality and least-privilege practices.</p>
+      <p>We do not sell your personal data. We do not use your agent prompts to train third-party foundation models.</p>
+
+      <h2 id="storage">Data storage and security</h2>
+      <p>We host application data with Supabase and related infrastructure. Data is encrypted in transit (TLS) and encrypted at rest according to our providers’ standards. We implement access controls and monitoring appropriate to the nature of the service.</p>
+
+      <h2 id="retention">Data retention</h2>
+      <p>We retain your data while your account is active and as needed to provide the service, meet legal obligations, and resolve disputes. When you close your account, we delete or anonymize associated data within a reasonable period unless a longer retention is required by law.</p>
+
+      <h2 id="rights">Your rights</h2>
+      <p>Depending on where you live, you may have rights to access, correct, delete, or export personal data, or to object to or restrict certain processing. You may delete your account and associated data at any time through the product or by contacting us; we will respond to verified requests as required by applicable law.</p>
+
+      <h2 id="contact">Contact</h2>
+      <p>For privacy questions or requests, contact <a href="mailto:privacy@usefarol.dev">privacy@usefarol.dev</a>.</p>
+
+      <h2 id="changes">Changes</h2>
+      <p>We may update this policy from time to time. We will post the revised version on this page and update the “Last updated” date.</p>
+
+      <div class="legal-note">
+        This policy is provided for transparency. It is not legal advice. If you need terms that govern use of the product, see our <a href="terms.html">Terms of Service</a>.
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="../landing/index.html">Home</a> · <a href="terms.html">Terms</a> · <a href="https://usefarol.dev">usefarol.dev</a></p>
+    </div>
+  </footer>
+</body>
+</html>

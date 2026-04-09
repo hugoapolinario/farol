@@ -11,6 +11,8 @@
     { "source": "/confirmed.html", "destination": "/frontend/auth/confirmed.html" },
     { "source": "/app.html", "destination": "/frontend/app/app.html" },
     { "source": "/dashboard.html", "destination": "/frontend/app/dashboard.html" },
-    { "source": "/docs.html", "destination": "/frontend/docs/docs.html" }
+    { "source": "/docs.html", "destination": "/frontend/docs/docs.html" },
+    { "source": "/privacy.html", "destination": "/frontend/legal/privacy.html" },
+    { "source": "/terms.html", "destination": "/frontend/legal/terms.html" }
   ]
 }
