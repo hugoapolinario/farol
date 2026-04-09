@@ -17,6 +17,8 @@
       --accent-glow: rgba(249, 115, 22, 0.35);
       --error: #fda4af;
       --error-bg: rgba(244, 63, 94, 0.12);
+      --success: #4ade80;
+      --success-dim: rgba(74, 222, 128, 0.1);
       --radius: 12px;
       --radius-sm: 8px;
     }
@@ -173,6 +175,64 @@
     .auth-link a:hover {
       text-decoration: underline;
     }
+
+    .success-panel[hidden] {
+      display: none !important;
+    }
+
+    .success-card {
+      border: 1px solid rgba(74, 222, 128, 0.42);
+      border-radius: var(--radius-sm);
+      background: linear-gradient(
+        165deg,
+        rgba(74, 222, 128, 0.12) 0%,
+        var(--success-dim) 100%
+      );
+      padding: 1.15rem 1.05rem 1.05rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .success-card-icon {
+      width: 44px;
+      height: 44px;
+      margin-bottom: 0.75rem;
+      border-radius: 50%;
+      background: rgba(74, 222, 128, 0.18);
+      border: 1px solid rgba(74, 222, 128, 0.35);
+      display: grid;
+      place-items: center;
+    }
+
+    .success-card-icon svg {
+      width: 22px;
+      height: 22px;
+      color: var(--success);
+    }
+
+    .success-lead {
+      margin: 0 0 0.75rem;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: var(--text);
+    }
+
+    .success-lead strong {
+      color: #bbf7d0;
+      font-weight: 700;
+    }
+
+    .success-email {
+      font-weight: 600;
+      color: #e8eaef;
+      word-break: break-all;
+    }
+
+    .success-spam-note {
+      margin: 0;
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
   </style>
 </head>
 <body>
@@ -188,27 +248,41 @@
       Farol
     </div>
 
-    <h1 id="signup-title">Create your account</h1>
+    <div id="signup-phase">
+      <h1 id="signup-title">Create your account</h1>
 
-    <form id="signup-form" novalidate>
-      <div>
-        <label for="email">Email</label>
-        <input id="email" name="email" type="email" autocomplete="email" required>
-      </div>
-      <div>
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password" autocomplete="new-password" required>
-      </div>
-      <div>
-        <label for="confirm-password">Confirm password</label>
-        <input id="confirm-password" name="confirm-password" type="password" autocomplete="new-password" required>
-      </div>
+      <form id="signup-form" novalidate>
+        <div>
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required>
+        </div>
+        <div>
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="new-password" required>
+        </div>
+        <div>
+          <label for="confirm-password">Confirm password</label>
+          <input id="confirm-password" name="confirm-password" type="password" autocomplete="new-password" required>
+        </div>
 
-      <button class="btn" type="submit" id="signup-btn">Sign up</button>
-      <p id="error-message" class="error" role="alert" aria-live="polite"></p>
-    </form>
+        <button class="btn" type="submit" id="signup-btn">Sign up</button>
+        <p id="error-message" class="error" role="alert" aria-live="polite"></p>
+      </form>
+    </div>
 
-    <p class="auth-link">Already have an account? <a href="/login.html">Log in</a></p>
+    <div id="success-panel" class="success-panel" hidden aria-live="polite">
+      <div class="success-card">
+        <div class="success-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6L9 17l-5-5"></path>
+          </svg>
+        </div>
+        <p class="success-lead" id="success-lead-text"></p>
+        <p class="success-spam-note">Didn't receive it? Check your spam folder.</p>
+      </div>
+    </div>
+
+    <p class="auth-link" id="signup-auth-link">Already have an account? <a href="/login.html">Log in</a></p>
   </main>
 
   <script src="/config.js"></script>
@@ -217,6 +291,10 @@
     const { createClient } = supabase;
     const client = createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
 
+    const signupPhase = document.getElementById("signup-phase");
+    const successPanel = document.getElementById("success-panel");
+    const successLeadText = document.getElementById("success-lead-text");
+    const signupAuthLink = document.getElementById("signup-auth-link");
     const form = document.getElementById("signup-form");
     const errorMessage = document.getElementById("error-message");
     const submitButton = document.getElementById("signup-btn");
@@ -241,7 +319,10 @@
 
       const { error } = await client.auth.signUp({
         email: email,
-        password: password
+        password: password,
+        options: {
+          emailRedirectTo: "https://usefarol.dev/confirmed.html"
+        }
       });
 
       submitButton.disabled = false;
@@ -252,7 +333,26 @@
         return;
       }
 
-      window.location.href = "/app.html";
+      successLeadText.innerHTML = "";
+      const strong = document.createElement("strong");
+      strong.textContent = "Check your email";
+      successLeadText.appendChild(strong);
+      successLeadText.appendChild(
+        document.createTextNode(
+          " — We've sent a confirmation link to "
+        )
+      );
+      const emailSpan = document.createElement("span");
+      emailSpan.className = "success-email";
+      emailSpan.textContent = email;
+      successLeadText.appendChild(emailSpan);
+      successLeadText.appendChild(
+        document.createTextNode(". Click it to activate your account.")
+      );
+
+      signupPhase.hidden = true;
+      signupAuthLink.hidden = true;
+      successPanel.hidden = false;
     });
   </script>
 </body>

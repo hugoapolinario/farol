@@ -18,6 +18,7 @@ _URL_MAP = {
     "/index.html": os.path.join(_PROJECT_ROOT, "frontend", "landing", "index.html"),
     "/signup.html": os.path.join(_PROJECT_ROOT, "frontend", "auth", "signup.html"),
     "/login.html": os.path.join(_PROJECT_ROOT, "frontend", "auth", "login.html"),
+    "/confirmed.html": os.path.join(_PROJECT_ROOT, "frontend", "auth", "confirmed.html"),
     "/reset.html": os.path.join(_PROJECT_ROOT, "frontend", "auth", "reset.html"),
     "/update-password.html": os.path.join(_PROJECT_ROOT, "frontend", "auth", "update-password.html"),
     "/app.html": os.path.join(_PROJECT_ROOT, "frontend", "app", "app.html"),
