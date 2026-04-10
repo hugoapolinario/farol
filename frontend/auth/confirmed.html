@@ -131,10 +131,14 @@
     .auth-link a:hover {
       text-decoration: underline;
     }
+
+    .error-title {
+      color: #f87171;
+    }
   </style>
 </head>
 <body>
-  <main class="card" aria-labelledby="confirmed-title">
+  <main class="card">
     <div class="logo" aria-label="Farol">
       <span class="logo-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
@@ -146,16 +150,26 @@
       Farol
     </div>
 
-    <div class="success-icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20 6L9 17l-5-5"></path>
-      </svg>
+    <p class="subtext" id="loading-msg">Verifying your email…</p>
+
+    <div class="panel" id="success-panel" hidden aria-labelledby="confirmed-title">
+      <div class="success-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 6L9 17l-5-5"></path>
+        </svg>
+      </div>
+
+      <h1 id="confirmed-title">Email confirmed!</h1>
+      <p class="subtext">Your account is ready. Redirecting to login...</p>
+      <p class="countdown" id="countdown" aria-live="polite">Redirecting in 3...</p>
+      <p class="auth-link"><a href="/login.html">Go to login now</a></p>
     </div>
 
-    <h1 id="confirmed-title">Email confirmed!</h1>
-    <p class="subtext">Your account is ready. Redirecting to login...</p>
-    <p class="countdown" id="countdown" aria-live="polite">Redirecting in 3...</p>
-    <p class="auth-link"><a href="/login.html">Go to login now</a></p>
+    <div class="panel" id="error-panel" hidden>
+      <h1 class="error-title" id="error-title">Invalid or expired confirmation link</h1>
+      <p class="subtext">This link may have expired or was already used. Request a new confirmation email or sign in if you already verified.</p>
+      <p class="auth-link"><a href="/login.html">Go to login</a></p>
+    </div>
   </main>
 
   <script src="/config.js"></script>
@@ -164,18 +178,37 @@
     const { createClient } = supabase;
     const client = createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
 
+    const loadingMsg = document.getElementById("loading-msg");
+    const successPanel = document.getElementById("success-panel");
+    const errorPanel = document.getElementById("error-panel");
     const countdownEl = document.getElementById("countdown");
-    let remaining = 3;
 
-    const timer = setInterval(function () {
-      remaining -= 1;
-      if (remaining <= 0) {
-        clearInterval(timer);
-        window.location.href = "/login.html";
+    (async function () {
+      const { data } = await client.auth.getSession();
+      const session = data && data.session;
+      const user = session && session.user;
+      const confirmed = Boolean(user && user.email_confirmed_at);
+
+      loadingMsg.hidden = true;
+
+      if (!confirmed) {
+        errorPanel.hidden = false;
         return;
       }
-      countdownEl.textContent = "Redirecting in " + remaining + "...";
-    }, 1000);
+
+      successPanel.hidden = false;
+
+      let remaining = 3;
+      const timer = setInterval(function () {
+        remaining -= 1;
+        if (remaining <= 0) {
+          clearInterval(timer);
+          window.location.href = "/login.html";
+          return;
+        }
+        countdownEl.textContent = "Redirecting in " + remaining + "...";
+      }, 1000);
+    })();
   </script>
 </body>
 </html>

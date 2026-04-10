@@ -5,6 +5,28 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const RATE_LIMIT_MAX = 10;
+const RATE_WINDOW_MS = 60 * 60 * 1000;
+
+type RateBucket = { count: number; resetAt: number };
+
+const rateLimitMap = new Map<string, RateBucket>();
+
+function checkRateLimit(userId: string): { ok: true } | { ok: false; retryAfterSec: number } {
+  const now = Date.now();
+  let bucket = rateLimitMap.get(userId);
+  if (!bucket || now >= bucket.resetAt) {
+    bucket = { count: 0, resetAt: now + RATE_WINDOW_MS };
+    rateLimitMap.set(userId, bucket);
+  }
+  if (bucket.count >= RATE_LIMIT_MAX) {
+    const retryAfterSec = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+    return { ok: false, retryAfterSec };
+  }
+  bucket.count += 1;
+  return { ok: true };
+}
+
 function jsonResponse(
   body: Record<string, unknown>,
   status: number,
@@ -81,6 +103,16 @@ Deno.serve(async (req) => {
   }
 
   const userId = authData.user.id;
+
+  const rl = checkRateLimit(userId);
+  if (!rl.ok) {
+    return jsonResponse(
+      { success: false, error: "Rate limit exceeded." },
+      429,
+      { "Retry-After": String(rl.retryAfterSec) },
+    );
+  }
+
   const newKey = generateApiKey();
 
   const { error: deleteError } = await supabase
