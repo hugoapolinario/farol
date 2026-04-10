@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Farol — Sign up</title>
+  <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
   <style>
     :root {
       --bg-deep: #0a0b0d;
@@ -343,6 +344,8 @@
           <input id="confirm-password" name="confirm-password" type="password" autocomplete="new-password" required>
         </div>
 
+        <div class="h-captcha" data-sitekey="8190d258-7764-4c3e-b62e-317a0a64738e" data-theme="dark"></div>
+
         <button class="btn" type="submit" id="signup-btn">Sign up</button>
         <p id="error-message" class="error" role="alert" aria-live="polite"></p>
       </form>
@@ -394,12 +397,21 @@
         return;
       }
 
+      const captchaToken =
+        typeof hcaptcha !== "undefined" ? hcaptcha.getResponse() : "";
+      if (!captchaToken) {
+        errorMessage.textContent = "Please complete the captcha";
+        errorMessage.classList.add("visible");
+        return;
+      }
+
       submitButton.disabled = true;
 
       const { error } = await client.auth.signUp({
         email: email,
         password: password,
         options: {
+          captchaToken: captchaToken,
           emailRedirectTo: "https://usefarol.dev/confirmed.html"
         }
       });
