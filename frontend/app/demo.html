@@ -1,0 +1,2281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Farol — Demo Dashboard</title>
+  <style>
+    :root {
+      --bg-deep: #0a0b0d;
+      --bg-surface: #111318;
+      --bg-elevated: #181b22;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8eaef;
+      --text-muted: #8b919d;
+      --accent: #f97316;
+      --accent-dim: rgba(249, 115, 22, 0.14);
+      --accent-glow: rgba(249, 115, 22, 0.35);
+      --success: #4ade80;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    /* Ensure the HTML hidden attribute always wins over any display rule */
+    [hidden] { display: none !important; }
+
+    html, body { height: 100%; margin: 0; }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249, 115, 22, 0.12), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 40%, rgba(249, 115, 22, 0.06), transparent 50%),
+        var(--bg-deep);
+      color: var(--text);
+      color-scheme: dark;
+    }
+
+    /* ── Demo banner ─────────────────────────────────────────────── */
+    .demo-banner {
+      flex-shrink: 0;
+      z-index: 100;
+      background: linear-gradient(90deg, rgba(249, 115, 22, 0.14) 0%, rgba(249, 115, 22, 0.09) 100%);
+      border-bottom: 1px solid rgba(249, 115, 22, 0.28);
+      padding: 0.55rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      text-align: center;
+    }
+
+    .demo-banner-text { font-size: 0.875rem; color: var(--text); }
+    .demo-banner-text strong { color: var(--accent); }
+
+    .demo-banner-btn {
+      flex-shrink: 0;
+      font-size: 0.82rem;
+      padding: 0.38rem 0.85rem;
+    }
+
+    /* ── App shell ───────────────────────────────────────────────── */
+    .app-shell {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────────────── */
+    .sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      background: rgba(10, 11, 13, 0.97);
+      overflow-y: auto;
+      padding: 1.15rem 0.75rem 1rem;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.55rem;
+      padding: 0 0.2rem 1rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0.65rem;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      font-size: 0.975rem;
+    }
+
+    .logo-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, var(--accent), #ea580c);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 20px var(--accent-glow);
+      flex-shrink: 0;
+    }
+
+    .logo-mark svg { width: 15px; height: 15px; color: #0a0b0d; }
+
+    .demo-badge {
+      display: inline-block;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 0.16rem 0.45rem;
+      border-radius: 999px;
+      background: rgba(249, 115, 22, 0.18);
+      border: 1px solid rgba(249, 115, 22, 0.45);
+      color: var(--accent);
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      width: 100%;
+      padding: 0.58rem 0.7rem;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.13s ease, color 0.13s ease;
+      position: relative;
+    }
+
+    .nav-item svg {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+      opacity: 0.75;
+      transition: opacity 0.13s ease;
+    }
+
+    .nav-item:hover { background: rgba(255, 255, 255, 0.05); color: var(--text); }
+    .nav-item:hover svg { opacity: 1; }
+
+    .nav-item.active {
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .nav-item.active svg { opacity: 1; }
+
+    .nav-count {
+      margin-left: auto;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.1rem 0.38rem;
+      border-radius: 999px;
+      background: rgba(248, 113, 113, 0.22);
+      border: 1px solid rgba(248, 113, 113, 0.38);
+      color: #fca5a5;
+      line-height: 1.4;
+    }
+
+    .sidebar-footer {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.45rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border);
+      margin-top: 0.5rem;
+    }
+
+    .sidebar-login {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      text-align: center;
+      font-weight: 500;
+      padding: 0.35rem;
+    }
+
+    .sidebar-login:hover { color: var(--accent); }
+
+    /* ── Buttons ─────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 0.55rem 0.9rem;
+      text-decoration: none;
+      transition: background-color 0.18s ease, border-color 0.18s ease;
+    }
+
+    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .btn-primary { background: var(--accent); color: #0a0b0d; }
+    .btn-primary:hover { background: #fb923c; }
+
+    /* ── Content area ────────────────────────────────────────────── */
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 1.75rem 2.5rem;
+      min-width: 0;
+    }
+
+    @keyframes section-in {
+      from { opacity: 0; transform: translateY(5px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .content-section { display: none; }
+    .content-section.active {
+      display: block;
+      animation: section-in 0.18s ease forwards;
+    }
+
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 0 0 1.25rem;
+    }
+
+    /* ── KPI grid (Overview) ─────────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    @media (max-width: 900px) {
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    .kpi-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+      padding: 1rem 1.15rem;
+    }
+
+    .kpi-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+      font-weight: 600;
+    }
+
+    .kpi-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    .kpi-value.accent { color: var(--accent); }
+
+    /* ── Charts ──────────────────────────────────────────────────── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+
+    @media (max-width: 900px) {
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+
+    .chart-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-elevated);
+      padding: 0.65rem 0.75rem;
+      min-height: 240px;
+      max-height: 240px;
+    }
+
+    .chart-canvas { width: 100%; height: 100%; max-height: 240px; display: block; }
+
+    /* ── Runs section ────────────────────────────────────────────── */
+    .filter-bar {
+      padding: 0.85rem 1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+    }
+
+    .filter-bar label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .filter-bar select {
+      min-width: 200px;
+      max-width: min(100%, 380px);
+      flex: 1 1 180px;
+      padding: 0.52rem 0.75rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.88rem;
+      cursor: pointer;
+    }
+
+    .filter-bar select:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    .runs-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+      overflow: hidden;
+    }
+
+    .table-wrap-inner { overflow-x: auto; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    thead { background: var(--bg-elevated); }
+    th, td { padding: 0.72rem 0.8rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 600; }
+    tbody tr.clickable { cursor: pointer; }
+    tbody tr.clickable:hover td { background: rgba(255, 255, 255, 0.015); }
+    tbody tr.active td { background: rgba(249, 115, 22, 0.06); }
+
+    .model-pill {
+      display: inline-block;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.12rem 0.45rem;
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    .tokens-cell { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
+
+    .error-cell {
+      font-size: 0.76rem;
+      color: #f87171;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.73rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+
+    .badge.success { color: var(--success); background: rgba(74, 222, 128, 0.09); border-color: rgba(74, 222, 128, 0.25); }
+    .badge.error   { color: #fca5a5; background: rgba(248, 113, 113, 0.12); border-color: rgba(248, 113, 113, 0.28); }
+    .badge.spike   { color: #fecaca; background: rgba(248, 113, 113, 0.2); border-color: rgba(248, 113, 113, 0.45); font-weight: 700; cursor: pointer; transition: box-shadow 0.14s ease, border-color 0.14s ease; }
+    .badge.spike:hover { box-shadow: 0 0 8px rgba(249, 115, 22, 0.45); border-color: rgba(249, 115, 22, 0.65); }
+    .badge.baseline { color: #b4bac7; background: rgba(255, 255, 255, 0.04); border-color: rgba(255, 255, 255, 0.1); }
+
+    .section-note { margin: 0.65rem 0 0; color: var(--text-muted); font-size: 0.79rem; }
+
+    /* ── Empty state ─────────────────────────────────────────────── */
+    .ov-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 180px;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+      margin-bottom: 0.75rem;
+    }
+
+    /* ── Runs count label ────────────────────────────────────────── */
+    .runs-count { margin: 0 0 0.55rem; }
+
+    /* ── SDK snippet ─────────────────────────────────────────────── */
+    .sdk-snippet {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+      margin-top: 1.25rem;
+      overflow: hidden;
+    }
+
+    .sdk-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      width: 100%;
+      padding: 0.82rem 1.1rem;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      letter-spacing: -0.01em;
+      transition: background 0.13s ease;
+    }
+
+    .sdk-toggle:hover { background: rgba(255, 255, 255, 0.03); }
+
+    .sdk-toggle-icon {
+      font-size: 0.55rem;
+      color: var(--accent);
+      display: inline-block;
+      transition: transform 0.18s ease;
+      flex-shrink: 0;
+    }
+
+    .sdk-snippet.open .sdk-toggle-icon { transform: rotate(90deg); }
+
+    .sdk-body {
+      padding: 0 1.1rem 1.1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .sdk-intro {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      margin: 0.7rem 0 0.6rem;
+    }
+
+    .sdk-code {
+      margin: 0 0 0.9rem;
+      padding: 0.9rem 1rem;
+      background: #080a0c;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: var(--radius-sm);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.8rem;
+      color: #c9d1d9;
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .sdk-cta { font-size: 0.85rem; }
+
+    /* ── Agents section ──────────────────────────────────────────── */
+    .agents-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 0.85rem;
+    }
+
+    .agent-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+      padding: 1.1rem 1.2rem;
+    }
+
+    .agent-card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .agent-card-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    .agent-card-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .agent-card-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.8rem 1.2rem;
+    }
+
+    .agent-stat-label {
+      font-size: 0.63rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.18rem;
+      font-weight: 600;
+    }
+
+    .agent-stat-value { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+    .agent-stat-value.good { color: var(--success); }
+    .agent-stat-value.warn { color: var(--accent); }
+    .agent-stat-value.muted { color: var(--text-muted); font-size: 0.8rem; font-weight: 500; }
+
+    .agent-stat-full { grid-column: 1 / -1; }
+
+    /* ── Agents aggregate stats bar ─────────────────────────────── */
+    .agents-stats-bar {
+      display: flex;
+      align-items: center;
+      margin-top: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      padding: 0.65rem 1.25rem;
+      gap: 0;
+    }
+
+    .agents-stats-item {
+      display: flex;
+      align-items: baseline;
+      gap: 0.45rem;
+      flex: 1;
+    }
+
+    .agents-stats-item + .agents-stats-item {
+      border-left: 1px solid var(--border);
+      padding-left: 1.25rem;
+      margin-left: 1.25rem;
+    }
+
+    .agents-stats-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .agents-stats-value {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .agents-stats-value.good { color: var(--success); }
+    .agents-stats-value.warn { color: var(--accent); }
+
+    /* ── Agent add placeholder ───────────────────────────────────── */
+    .agent-add-card {
+      border: 1.5px dashed rgba(249, 115, 22, 0.3);
+      border-radius: var(--radius);
+      background: rgba(249, 115, 22, 0.025);
+      padding: 1.1rem 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .agent-add-card:hover {
+      border-color: rgba(249, 115, 22, 0.55);
+      background: rgba(249, 115, 22, 0.05);
+    }
+
+    .agent-add-title {
+      font-size: 0.93rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .agent-add-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .agent-add-code {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.73rem;
+      color: #c9d1d9;
+      background: #080a0c;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: var(--radius-sm);
+      padding: 0.38rem 0.65rem;
+      overflow: hidden;
+      white-space: pre-wrap;
+      margin: 0.1rem 0 0.25rem;
+    }
+
+    .agent-add-btn {
+      align-self: flex-start;
+      margin-top: 0.1rem;
+      font-size: 0.8rem;
+      padding: 0.35rem 0.85rem;
+    }
+
+    /* ── Alerts section ──────────────────────────────────────────── */
+    .alerts-empty {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .alerts-list { display: flex; flex-direction: column; gap: 0.65rem; }
+
+    .alert-item {
+      border: 1px solid rgba(248, 113, 113, 0.28);
+      border-radius: var(--radius-sm);
+      background: rgba(50, 10, 10, 0.35);
+      padding: 0.9rem 1rem;
+      cursor: pointer;
+      transition: border-color 0.14s ease, background 0.14s ease, opacity 0.14s ease;
+    }
+
+    .alert-item:hover {
+      border-color: rgba(249, 115, 22, 0.5);
+      background: rgba(60, 20, 5, 0.45);
+    }
+
+    .alert-item.read {
+      border-color: var(--border);
+      background: var(--bg-surface);
+      opacity: 0.6;
+    }
+
+    .alert-item.read:hover {
+      border-color: rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.04);
+      opacity: 0.8;
+    }
+
+    .alert-item.read .alert-item-reason { color: var(--text-muted); }
+
+    .alert-item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .alert-item-left { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+
+    .alert-item-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    .alert-item-agent { font-size: 0.88rem; font-weight: 600; color: var(--text); white-space: nowrap; }
+    .alert-item-time  { font-size: 0.74rem; color: var(--text-muted); white-space: nowrap; }
+    .alert-item-topic { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.38rem; }
+    .alert-item-reason { font-size: 0.8rem; color: #fca5a5; }
+
+    .alert-view-trace {
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--accent);
+      white-space: nowrap;
+      opacity: 0.82;
+      transition: opacity 0.13s ease;
+      pointer-events: none;
+    }
+
+    .alert-item:hover .alert-view-trace { opacity: 1; }
+
+    /* ── Modal overlay ───────────────────────────────────────────── */
+    @keyframes modal-backdrop-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes modal-card-in {
+      from { opacity: 0; transform: translateY(12px) scale(0.985); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+    }
+
+    .modal-overlay.visible { display: flex; }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 0;
+      animation: modal-backdrop-in 0.18s ease forwards;
+      cursor: pointer;
+    }
+
+    .modal-card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 860px;
+      max-height: 80vh;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+      padding: 1.25rem;
+      animation: modal-card-in 0.2s ease forwards;
+    }
+
+    body.modal-open { overflow: hidden; }
+
+    body.modal-open .app-shell {
+      filter: blur(2px);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* ── Trace panel (inside modal) ──────────────────────────────── */
+    .trace-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.85rem;
+    }
+
+    .trace-title { font-size: 0.98rem; font-weight: 600; margin-bottom: 0.2rem; }
+    .trace-meta  { font-size: 0.77rem; color: var(--text-muted); }
+
+    .trace-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.6rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .trace-stat {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.55rem 0.65rem;
+    }
+
+    .trace-stat-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.15rem;
+    }
+
+    .trace-stat-value { font-size: 0.95rem; font-weight: 600; }
+
+    .anomaly-warning {
+      display: none;
+      margin-bottom: 0.65rem;
+      border: 1px solid rgba(248, 113, 113, 0.35);
+      background: rgba(127, 29, 29, 0.25);
+      color: #fecaca;
+      border-radius: var(--radius-sm);
+      padding: 0.55rem 0.7rem;
+      font-size: 0.78rem;
+    }
+
+    .anomaly-warning.visible { display: block; }
+
+    .steps-title {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.5rem;
+    }
+
+    .close-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      padding: 0;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-family: inherit;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .close-btn:hover {
+      color: var(--text);
+      border-color: rgba(249, 115, 22, 0.35);
+      background: rgba(249, 115, 22, 0.08);
+    }
+
+    /* ── Waterfall ───────────────────────────────────────────────── */
+    .waterfall { display: flex; flex-direction: column; gap: 0.85rem; }
+    .wf-row { padding-bottom: 0.35rem; border-bottom: 1px solid var(--border); }
+    .wf-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+    .wf-row-grid {
+      display: grid;
+      grid-template-columns: minmax(92px, 10.5rem) 1fr;
+      gap: 0.65rem;
+      align-items: start;
+    }
+
+    @media (max-width: 520px) {
+      .wf-row-grid { grid-template-columns: minmax(72px, 28%) 1fr; gap: 0.45rem; }
+    }
+
+    .wf-row-label { padding-top: 0.35rem; min-width: 0; }
+
+    .wf-label-name {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.25;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .wf-label-type {
+      display: inline-block;
+      margin-top: 0.2rem;
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.12rem 0.38rem;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .wf-track-section { min-width: 0; }
+
+    .wf-track {
+      position: relative;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.075);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-sm);
+      margin-bottom: 0.35rem;
+      overflow: visible;
+    }
+
+    .wf-bar {
+      position: absolute;
+      top: 4px;
+      height: 24px;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0 0.45rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      box-sizing: border-box;
+      line-height: 1.2;
+      white-space: nowrap;
+      min-width: 8%;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .wf-bar-name { overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 auto; text-align: left; font-weight: 600; }
+
+    .wf-bar.span-llm {
+      background: linear-gradient(180deg, rgba(249, 115, 22, 0.45), rgba(234, 88, 12, 0.3));
+      border: 1px solid rgba(249, 115, 22, 0.5);
+      border-left: 3px solid rgba(251, 146, 60, 0.95);
+      color: #ffedd5;
+      box-shadow: 0 0 14px rgba(249, 115, 22, 0.14), inset 1px 0 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .wf-bar.span-tool {
+      background: rgba(180, 198, 222, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-left: 3px solid rgba(125, 165, 220, 0.9);
+      color: #dce3ee;
+      box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .wf-dur-outside {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: #b4bcc8;
+      white-space: nowrap;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .wf-tokens { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.28rem; }
+
+    .wf-span-error { font-size: 0.72rem; color: #f87171; margin-bottom: 0.28rem; word-break: break-word; }
+
+    .wf-meta { display: flex; flex-wrap: wrap; gap: 0.35rem 0.65rem; font-size: 0.68rem; color: var(--text-muted); }
+    .wf-meta-kv { display: inline-flex; align-items: baseline; gap: 0.25rem; max-width: 100%; }
+    .wf-meta-k { color: #6b7280; flex-shrink: 0; }
+    .wf-meta-v { color: #a8b0bd; word-break: break-all; min-width: 0; }
+
+    /* ── Overview filter bar ─────────────────────────────────────── */
+    .ov-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.1rem;
+      padding: 0.7rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+    }
+
+    .ov-filter-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .ov-filter-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .ov-select {
+      padding: 0.4rem 0.6rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .ov-select:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    /* ── Agent card clickable ─────────────────────────────────────── */
+    .agent-card {
+      cursor: pointer;
+      transition: border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+    }
+
+    .agent-card:hover {
+      border-color: rgba(249, 115, 22, 0.42);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+    }
+
+    /* ── Agent detail modal ──────────────────────────────────────── */
+    .agent-modal-card {
+      max-width: min(80vw, 960px);
+      max-height: 85vh;
+      width: 100%;
+    }
+
+    .agent-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .agent-modal-title-row {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    .agent-modal-name {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .agent-modal-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-shrink: 0;
+    }
+
+    .agent-date-select {
+      padding: 0.38rem 0.6rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+
+    .agent-date-select:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .agent-modal-kpis {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.65rem;
+      margin-bottom: 1rem;
+    }
+
+    .agent-kpi-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 0.9rem;
+    }
+
+    .agent-kpi-label {
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+      font-weight: 600;
+    }
+
+    .agent-kpi-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    .agent-kpi-value.good { color: var(--success); }
+    .agent-kpi-value.warn { color: var(--accent); }
+
+    .agent-modal-charts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.65rem;
+      margin-bottom: 1rem;
+    }
+
+    .agent-chart-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.025);
+      padding: 0.55rem 0.65rem;
+      min-height: 190px;
+      max-height: 190px;
+    }
+
+    .agent-chart-canvas { width: 100%; height: 100%; max-height: 190px; display: block; }
+
+    .agent-modal-section-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 0.55rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Demo banner ─────────────────────────────────────────────── -->
+  <div class="demo-banner" role="complementary" aria-label="Demo mode notice">
+    <span class="demo-banner-text">
+      <strong>You are viewing a demo</strong> — Sign up free to monitor your own agents
+    </span>
+    <a class="btn btn-primary demo-banner-btn" href="/auth/signup.html">Get started →</a>
+  </div>
+
+  <!-- ── App shell ───────────────────────────────────────────────── -->
+  <div class="app-shell">
+
+    <!-- ── Sidebar ───────────────────────────────────────────────── -->
+    <nav class="sidebar" aria-label="Main navigation">
+      <div class="sidebar-brand">
+        <a class="logo" href="#" aria-label="Farol demo">
+          <span class="logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+              <path d="M12 3L4 9v12h16V9l-8-6z"></path>
+              <path d="M9 21V12h6v9"></path>
+              <circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none"></circle>
+            </svg>
+          </span>
+          Farol
+        </a>
+        <span class="demo-badge" aria-label="Demo mode">DEMO</span>
+      </div>
+
+      <div class="sidebar-nav" role="list">
+        <button class="nav-item active" data-target="overview" role="listitem" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 3v18h18"/><path d="M7 16l4-6 4 3 5-8"/>
+          </svg>
+          Overview
+        </button>
+        <button class="nav-item" data-target="runs" role="listitem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+          Runs
+        </button>
+        <button class="nav-item" data-target="agents" role="listitem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          Agents
+        </button>
+        <button class="nav-item" data-target="alerts" role="listitem" id="alerts-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          Alerts
+          <span class="nav-count" id="alerts-count" aria-label="unread alerts"></span>
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <a class="btn btn-primary" href="/auth/signup.html">Sign up free</a>
+        <a class="sidebar-login" href="/auth/signup.html">Log in</a>
+      </div>
+    </nav>
+
+    <!-- ── Content area ─────────────────────────────────────────── -->
+    <main class="content-area">
+
+      <!-- Overview ─────────────────────────────────────────────── -->
+      <div id="section-overview" class="content-section active">
+        <h1 class="section-title">Overview</h1>
+        <div class="ov-filter-bar" aria-label="Overview filters">
+          <div class="ov-filter-group">
+            <label class="ov-filter-label" for="ov-date-filter">Period</label>
+            <select class="ov-select" id="ov-date-filter">
+              <option value="7" selected>Last 7 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 90 days</option>
+            </select>
+          </div>
+          <div class="ov-filter-group">
+            <label class="ov-filter-label" for="ov-agent-filter">Agent</label>
+            <select class="ov-select" id="ov-agent-filter">
+              <option value="">All agents</option>
+              <option value="research-agent">research-agent</option>
+              <option value="support-agent">support-agent</option>
+              <option value="data-pipeline">data-pipeline</option>
+              <option value="batch-processor">batch-processor</option>
+            </select>
+          </div>
+        </div>
+        <div class="kpi-grid" id="runs-summary" aria-live="polite">
+          <div class="kpi-card">
+            <div class="kpi-label">Total runs</div>
+            <div class="kpi-value" id="sum-total">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Success rate</div>
+            <div class="kpi-value accent" id="sum-success">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Avg duration</div>
+            <div class="kpi-value" id="sum-duration">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Total cost</div>
+            <div class="kpi-value accent" id="sum-cost">—</div>
+          </div>
+        </div>
+        <div class="ov-empty" id="ov-empty" hidden aria-live="polite">No runs in this period.</div>
+        <div class="charts-grid" id="ov-charts-grid" aria-label="Run analytics charts">
+          <div class="chart-card">
+            <canvas id="cost-chart" class="chart-canvas" aria-label="Cost per run chart"></canvas>
+          </div>
+          <div class="chart-card">
+            <canvas id="success-chart" class="chart-canvas" aria-label="Success rate by agent chart"></canvas>
+          </div>
+          <div class="chart-card">
+            <canvas id="duration-chart" class="chart-canvas" aria-label="Duration per run chart"></canvas>
+          </div>
+          <div class="chart-card">
+            <canvas id="tokens-chart" class="chart-canvas" aria-label="Tokens per run chart"></canvas>
+          </div>
+        </div>
+        <div class="sdk-snippet" id="sdk-snippet">
+          <button class="sdk-toggle" id="sdk-toggle" aria-expanded="false" aria-controls="sdk-body">
+            <span class="sdk-toggle-icon" aria-hidden="true">&#x25B6;</span>
+            Get started in 2 minutes
+          </button>
+          <div class="sdk-body" id="sdk-body" hidden>
+            <p class="sdk-intro">Add Farol to your agent with one decorator</p>
+            <pre class="sdk-code">from farol import trace
+
+@trace(agent_name="my-agent", farol_key="frl_...")
+def my_agent(task, run=None):
+    with run.span("llm_call", type="llm") as span:
+        response = llm.call(task)
+        span.output_tokens = response.usage.output_tokens</pre>
+            <a class="btn btn-primary sdk-cta" href="/auth/signup.html">Sign up free →</a>
+          </div>
+        </div>
+        <p class="section-note">Demo data · 4 agents · 41 runs total</p>
+      </div>
+
+      <!-- Runs ─────────────────────────────────────────────────── -->
+      <div id="section-runs" class="content-section">
+        <h1 class="section-title">Runs</h1>
+        <div class="filter-bar" aria-label="Filter runs by agent">
+          <label for="agent-filter">Agent</label>
+          <select id="agent-filter">
+            <option value="">All agents</option>
+          </select>
+        </div>
+        <p id="runs-count-label" class="section-note runs-count">Showing — runs</p>
+        <div class="runs-card" aria-labelledby="runs-heading">
+          <div class="table-wrap-inner">
+            <table>
+              <thead>
+                <tr id="runs-heading">
+                  <th>Agent</th>
+                  <th>Topic</th>
+                  <th>Model</th>
+                  <th>Status</th>
+                  <th>Anomaly</th>
+                  <th>Steps</th>
+                  <th>Duration</th>
+                  <th>Tokens</th>
+                  <th>Cost</th>
+                  <th>Error</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="runs-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <p class="section-note">Click any row to view its trace timeline.</p>
+      </div>
+
+      <!-- Agents ───────────────────────────────────────────────── -->
+      <div id="section-agents" class="content-section">
+        <h1 class="section-title">Agents</h1>
+        <div id="agents-grid" class="agents-grid"></div>
+        <div id="agents-stats-bar" class="agents-stats-bar" hidden></div>
+      </div>
+
+      <!-- Alerts ───────────────────────────────────────────────── -->
+      <div id="section-alerts" class="content-section">
+        <h1 class="section-title">Alerts</h1>
+        <div class="filter-bar" id="alerts-filter-bar" aria-label="Filter alerts by agent" hidden>
+          <label for="alerts-agent-filter">Agent</label>
+          <select id="alerts-agent-filter">
+            <option value="">All agents</option>
+          </select>
+        </div>
+        <div id="alerts-list"></div>
+      </div>
+
+    </main>
+  </div><!-- /.app-shell -->
+
+  <!-- ── Agent detail modal ────────────────────────────────────────── -->
+  <div class="modal-overlay" id="agent-overlay" role="dialog" aria-modal="true" aria-labelledby="agent-modal-name">
+    <div class="modal-backdrop" id="agent-backdrop"></div>
+    <div class="modal-card agent-modal-card" id="agent-panel">
+      <div class="agent-modal-header">
+        <div class="agent-modal-title-row">
+          <span class="agent-card-dot"></span>
+          <h2 class="agent-modal-name" id="agent-modal-name">—</h2>
+        </div>
+        <div class="agent-modal-controls">
+          <select class="agent-date-select" id="agent-modal-date">
+            <option value="7" selected>Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+          <button class="close-btn" type="button" id="agent-modal-close-btn" aria-label="Close agent detail">&#x2715;</button>
+        </div>
+      </div>
+      <div class="agent-modal-kpis">
+        <div class="agent-kpi-card">
+          <div class="agent-kpi-label">Total Runs</div>
+          <div class="agent-kpi-value" id="agent-kpi-total">—</div>
+        </div>
+        <div class="agent-kpi-card">
+          <div class="agent-kpi-label">Success Rate</div>
+          <div class="agent-kpi-value" id="agent-kpi-success">—</div>
+        </div>
+        <div class="agent-kpi-card">
+          <div class="agent-kpi-label">Avg Cost</div>
+          <div class="agent-kpi-value" id="agent-kpi-cost">—</div>
+        </div>
+      </div>
+      <div class="ov-empty" id="agent-modal-empty" hidden aria-live="polite">No runs in this period.</div>
+      <div class="agent-modal-charts" id="agent-modal-charts-grid">
+        <div class="agent-chart-card">
+          <canvas id="agent-cost-chart" class="agent-chart-canvas" aria-label="Agent cost per run"></canvas>
+        </div>
+        <div class="agent-chart-card">
+          <canvas id="agent-dur-chart" class="agent-chart-canvas" aria-label="Agent duration per run"></canvas>
+        </div>
+      </div>
+      <div id="agent-modal-table-section">
+        <div class="agent-modal-section-label">Runs</div>
+        <div class="runs-card">
+          <div class="table-wrap-inner">
+            <table>
+              <thead>
+                <tr>
+                  <th>Topic</th>
+                  <th>Model</th>
+                  <th>Status</th>
+                  <th>Anomaly</th>
+                  <th>Duration</th>
+                  <th>Tokens</th>
+                  <th>Cost</th>
+                  <th>Error</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="agent-runs-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Trace modal ─────────────────────────────────────────────── -->
+  <div class="modal-overlay" id="trace-overlay" role="dialog" aria-modal="true" aria-labelledby="trace-title">
+    <div class="modal-backdrop" id="trace-backdrop"></div>
+    <div class="modal-card" id="trace-panel">
+      <div class="trace-header">
+        <div>
+          <div class="trace-title" id="trace-title">—</div>
+          <div class="trace-meta" id="trace-meta">—</div>
+        </div>
+        <button class="close-btn" type="button" onclick="closeTrace()" aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="trace-stats">
+        <div class="trace-stat">
+          <div class="trace-stat-label">Duration</div>
+          <div class="trace-stat-value" id="trace-duration">—</div>
+        </div>
+        <div class="trace-stat">
+          <div class="trace-stat-label">Cost</div>
+          <div class="trace-stat-value" id="trace-cost">—</div>
+        </div>
+        <div class="trace-stat">
+          <div class="trace-stat-label">Tokens used</div>
+          <div class="trace-stat-value" id="trace-tokens">—</div>
+        </div>
+      </div>
+      <div class="anomaly-warning" id="trace-anomaly-warning"></div>
+      <div class="steps-title" id="trace-detail-title">Trace timeline</div>
+      <div id="trace-steps"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script>
+    /* ─── Fake data ──────────────────────────────────────────────── */
+    const NOW = Date.now();
+    const H = 3600000;
+    const D = 86400000;
+
+    function ts(offsetMs) { return NOW - offsetMs; }
+
+    function researchSpans(durationMs) {
+      const llm = Math.round(durationMs * 0.57);
+      const s1  = Math.round(durationMs * 0.2);
+      const s2  = Math.round(durationMs * 0.13);
+      return [
+        { name: "web_search",  type: "tool", duration_ms: s1, input_tokens: 0, output_tokens: 0, metadata: { query: "recent publications", source: "arxiv.org", results: 18 }, error: null },
+        { name: "web_search",  type: "tool", duration_ms: s2, input_tokens: 0, output_tokens: 0, metadata: { query: "citation analysis 2025", source: "semantic_scholar", results: 24 }, error: null },
+        { name: "llm_call",    type: "llm",  duration_ms: llm, input_tokens: 1840, output_tokens: 612, metadata: { model: "claude-sonnet-4-5", temperature: 0.3, top_p: 0.9 }, error: null }
+      ];
+    }
+
+    function supportSpans(durationMs, hasError) {
+      const llm = Math.round(durationMs * 0.65);
+      const s1  = Math.round(durationMs * 0.16);
+      const s2  = Math.round(durationMs * 0.12);
+      const s3  = Math.round(durationMs * 0.06);
+      return [
+        { name: "fetch_customer_record", type: "tool", duration_ms: s1, input_tokens: 0, output_tokens: 0, metadata: { customer_id: "C-8821", source: "crm", plan: "pro" }, error: null },
+        { name: "lookup_ticket_history", type: "tool", duration_ms: s2, input_tokens: 0, output_tokens: 0, metadata: { tickets_found: 3, lookback_days: 90 }, error: null },
+        { name: "llm_call",              type: "llm",  duration_ms: llm, input_tokens: 820, output_tokens: 284, metadata: { model: "claude-haiku-4-5", temperature: 0.2 }, error: null },
+        { name: "send_reply",            type: "tool", duration_ms: s3, input_tokens: 0, output_tokens: 0, metadata: { channel: "email", ticket_id: "TKT-29341" }, error: hasError ? "CRM API rate limit exceeded — retry after 60s" : null }
+      ];
+    }
+
+    function pipelineSpans(durationMs, hasError) {
+      const llm = Math.round(durationMs * 0.47);
+      const s1  = Math.round(durationMs * 0.2);
+      const s2  = Math.round(durationMs * 0.13);
+      const s3  = Math.round(durationMs * 0.11);
+      return [
+        { name: "fetch_s3_batch",   type: "tool", duration_ms: s1, input_tokens: 0, output_tokens: 0, metadata: { bucket: "farol-events", size_mb: 12.4, format: "jsonl" }, error: null },
+        { name: "validate_schema",  type: "tool", duration_ms: s2, input_tokens: 0, output_tokens: 0, metadata: { records: 4821, schema_version: "v3.2", invalid: hasError ? 47 : 0 }, error: hasError ? "Schema validation failed: unexpected field 'user_segment' in 47 records" : null },
+        { name: "classify_and_tag", type: "llm",  duration_ms: llm, input_tokens: 3240, output_tokens: 890, metadata: { model: "claude-haiku-4-5", batches: 5, records_tagged: hasError ? 0 : 4821 }, error: null },
+        { name: "write_postgres",   type: "tool", duration_ms: s3, input_tokens: 0, output_tokens: 0, metadata: { table: "events_clean", rows_written: hasError ? 0 : 4821, db: "prod-pg-01" }, error: hasError ? "Write aborted: upstream schema validation failed" : null }
+      ];
+    }
+
+    function batchSpans(durationMs, hasError) {
+      const llm = Math.round(durationMs * 0.44);
+      const s1  = Math.round(durationMs * 0.18);
+      const s2  = Math.round(durationMs * 0.14);
+      const s3  = Math.round(durationMs * 0.12);
+      return [
+        { name: "read_queue",       type: "tool", duration_ms: s1, input_tokens: 0, output_tokens: 0, metadata: { queue: "jobs.batch", messages_read: hasError ? 0 : 620, backend: "sqs" }, error: hasError ? "Job queue connection refused after 3 retries" : null },
+        { name: "validate_records", type: "tool", duration_ms: s2, input_tokens: 0, output_tokens: 0, metadata: { records: hasError ? 0 : 620, invalid: 0, schema: "batch-job-v2" }, error: null },
+        { name: "llm_call",         type: "llm",  duration_ms: llm, input_tokens: 2980, output_tokens: 810, metadata: { model: "claude-haiku-4-5", batches: 4, jobs_processed: hasError ? 0 : 620 }, error: null },
+        { name: "write_output",     type: "tool", duration_ms: s3, input_tokens: 0, output_tokens: 0, metadata: { destination: "s3://farol-output/batch", files_written: hasError ? 0 : 5, format: "parquet" }, error: hasError ? "Write skipped: upstream queue read failed" : null }
+      ];
+    }
+
+    const allRuns = [
+      { id:"run_r01", agent:"research-agent", topic:"Impact of GPT-4 on scientific research",        model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4200, cost_usd:0.000210, input_tokens:1840, output_tokens:612, error:null, steps:[], timestamp:ts(6.8*D), spans:researchSpans(4200) },
+      { id:"run_r02", agent:"research-agent", topic:"Climate change mitigation strategies 2025",      model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:3800, cost_usd:0.000195, input_tokens:1680, output_tokens:574, error:null, steps:[], timestamp:ts(6.3*D), spans:researchSpans(3800) },
+      { id:"run_r03", agent:"research-agent", topic:"Quantum computing breakthroughs 2025",           model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:5100, cost_usd:0.000228, input_tokens:2010, output_tokens:648, error:null, steps:[], timestamp:ts(5.5*D), spans:researchSpans(5100) },
+      { id:"run_r04", agent:"research-agent", topic:"Renewable energy investment trends Q1 2026",     model:"claude-sonnet-4-5", status:"success", anomaly:true,  anomaly_reason:"Cost 3.2× above median baseline (median: $0.000078, actual: $0.000248)",       duration_ms:8500, cost_usd:0.000248, input_tokens:2280, output_tokens:741, error:null, steps:[], timestamp:ts(4.4*D), spans:researchSpans(8500) },
+      { id:"run_r05", agent:"research-agent", topic:"LLM fine-tuning techniques comparison",          model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4600, cost_usd:0.000218, input_tokens:1920, output_tokens:630, error:null, steps:[], timestamp:ts(3.5*D), spans:researchSpans(4600) },
+      { id:"run_r06", agent:"research-agent", topic:"Agentic AI frameworks landscape Q1 2026",        model:"claude-sonnet-4-5", status:"success", anomaly:true,  anomaly_reason:"Cost 3.1× above median baseline (median: $0.000079, actual: $0.000244)",       duration_ms:7800, cost_usd:0.000244, input_tokens:2180, output_tokens:712, error:null, steps:[], timestamp:ts(2.1*D), spans:researchSpans(7800) },
+      { id:"run_r07", agent:"research-agent", topic:"Multi-agent coordination protocols",             model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:3900, cost_usd:0.000199, input_tokens:1760, output_tokens:589, error:null, steps:[], timestamp:ts(23*H),  spans:researchSpans(3900) },
+      { id:"run_r08", agent:"research-agent", topic:"Vector database performance benchmarks",         model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4800, cost_usd:0.000223, input_tokens:1980, output_tokens:644, error:null, steps:[], timestamp:ts(12*H),  spans:researchSpans(4800) },
+
+      { id:"run_s01", agent:"support-agent",  topic:"Customer refund request for order #44291",       model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:2100, cost_usd:0.000088, input_tokens:820,  output_tokens:284, error:null, steps:[], timestamp:ts(6.5*D), spans:supportSpans(2100,false) },
+      { id:"run_s02", agent:"support-agent",  topic:"Billing inquiry account #88234",                 model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:1800, cost_usd:0.000083, input_tokens:780,  output_tokens:261, error:null, steps:[], timestamp:ts(5.2*D), spans:supportSpans(1800,false) },
+      { id:"run_s03", agent:"support-agent",  topic:"Password reset failure — user jsmith@corp.com",  model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:1600, cost_usd:0.000082, input_tokens:760,  output_tokens:255, error:null, steps:[], timestamp:ts(4.1*D), spans:supportSpans(1600,false) },
+      { id:"run_s04", agent:"support-agent",  topic:"Shipping delay complaint ORD-58821",             model:"claude-haiku-4-5",  status:"error",   anomaly:false, anomaly_reason:null,                                                                           duration_ms:1400, cost_usd:0.000080, input_tokens:740,  output_tokens:0,   error:"CRM API rate limit exceeded — retry after 60s", steps:[], timestamp:ts(3.2*D), spans:supportSpans(1400,true) },
+      { id:"run_s05", agent:"support-agent",  topic:"Feature request: dark mode for mobile app",      model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:1950, cost_usd:0.000085, input_tokens:800,  output_tokens:271, error:null, steps:[], timestamp:ts(2.6*D), spans:supportSpans(1950,false) },
+      { id:"run_s06", agent:"support-agent",  topic:"Account upgrade inquiry enterprise plan",        model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:2300, cost_usd:0.000090, input_tokens:840,  output_tokens:296, error:null, steps:[], timestamp:ts(1.6*D), spans:supportSpans(2300,false) },
+      { id:"run_s07", agent:"support-agent",  topic:"Two-factor authentication setup help",           model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:1700, cost_usd:0.000084, input_tokens:775,  output_tokens:259, error:null, steps:[], timestamp:ts(18*H),  spans:supportSpans(1700,false) },
+
+      { id:"run_d01", agent:"data-pipeline",  topic:"Daily event batch 2026-04-03",                   model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:6800, cost_usd:0.000142, input_tokens:3240, output_tokens:890, error:null, steps:[], timestamp:ts(6.6*D), spans:pipelineSpans(6800,false) },
+      { id:"run_d02", agent:"data-pipeline",  topic:"Weekly aggregation pipeline",                    model:"claude-haiku-4-5",  status:"error",   anomaly:false, anomaly_reason:null,                                                                           duration_ms:2200, cost_usd:0.000091, input_tokens:1100, output_tokens:0,   error:"PostgreSQL connection timeout after 30s", steps:[], timestamp:ts(5.1*D), spans:pipelineSpans(2200,true) },
+      { id:"run_d03", agent:"data-pipeline",  topic:"Daily event batch 2026-04-05",                   model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:7200, cost_usd:0.000149, input_tokens:3380, output_tokens:912, error:null, steps:[], timestamp:ts(4.3*D), spans:pipelineSpans(7200,false) },
+      { id:"run_d04", agent:"data-pipeline",  topic:"Daily event batch 2026-04-06",                   model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:6500, cost_usd:0.000138, input_tokens:3160, output_tokens:868, error:null, steps:[], timestamp:ts(3.3*D), spans:pipelineSpans(6500,false) },
+      { id:"run_d05", agent:"data-pipeline",  topic:"Daily event batch 2026-04-07",                   model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:7100, cost_usd:0.000145, input_tokens:3310, output_tokens:901, error:null, steps:[], timestamp:ts(2.3*D), spans:pipelineSpans(7100,false) },
+      { id:"run_d06", agent:"data-pipeline",  topic:"Daily event batch 2026-04-08",                   model:"claude-haiku-4-5",  status:"error",   anomaly:false, anomaly_reason:null,                                                                           duration_ms:3100, cost_usd:0.000095, input_tokens:1480, output_tokens:0,   error:"Schema validation failed: unexpected field 'user_segment' in 47 records", steps:[], timestamp:ts(1.1*D), spans:pipelineSpans(3100,true) },
+      { id:"run_d07", agent:"data-pipeline",  topic:"Daily event batch 2026-04-09",                   model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:6900, cost_usd:0.000143, input_tokens:3270, output_tokens:894, error:null, steps:[], timestamp:ts(6*H),   spans:pipelineSpans(6900,false) },
+
+      /* ── 15–30 days ago (Mar 11 – Mar 26, 2026) ─────────────────── */
+      { id:"run_r12", agent:"research-agent", topic:"Large language model scaling laws review",        model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4400, cost_usd:0.000215, input_tokens:1890, output_tokens:620, error:null, steps:[], timestamp:ts(27*D),  spans:researchSpans(4400) },
+      { id:"run_s10", agent:"support-agent",  topic:"API key rotation request — enterprise plan",      model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:2050, cost_usd:0.000087, input_tokens:810,  output_tokens:278, error:null, steps:[], timestamp:ts(25*D),  spans:supportSpans(2050,false) },
+      { id:"run_d11", agent:"data-pipeline",  topic:"Daily event batch 2026-03-18",                   model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:7050, cost_usd:0.000144, input_tokens:3300, output_tokens:895, error:null, steps:[], timestamp:ts(23*D),  spans:pipelineSpans(7050,false) },
+      { id:"run_r13", agent:"research-agent", topic:"Neuromorphic computing applications 2026",        model:"claude-sonnet-4-5", status:"error",   anomaly:false, anomaly_reason:null,                                                                           duration_ms:1600, cost_usd:0.000082, input_tokens:740,  output_tokens:0,   error:"Web search API timeout — no results returned after 45s", steps:[], timestamp:ts(21*D),  spans:researchSpans(1600) },
+      { id:"run_s11", agent:"support-agent",  topic:"Bulk seat licence renewal for account #57200",    model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:1900, cost_usd:0.000086, input_tokens:805,  output_tokens:274, error:null, steps:[], timestamp:ts(19*D),  spans:supportSpans(1900,false) },
+      { id:"run_d12", agent:"data-pipeline",  topic:"Daily event batch 2026-03-24",                   model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:6750, cost_usd:0.000141, input_tokens:3220, output_tokens:882, error:null, steps:[], timestamp:ts(17*D),  spans:pipelineSpans(6750,false) },
+      { id:"run_r14", agent:"research-agent", topic:"Self-supervised learning in vision models",       model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4700, cost_usd:0.000221, input_tokens:1950, output_tokens:636, error:null, steps:[], timestamp:ts(15.5*D), spans:researchSpans(4700) },
+      { id:"run_s12", agent:"support-agent",  topic:"Webhook configuration troubleshooting",           model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:2200, cost_usd:0.000089, input_tokens:830,  output_tokens:288, error:null, steps:[], timestamp:ts(15*D),  spans:supportSpans(2200,false) },
+
+      /* ── 60–90 days ago (Jan 10 – Feb 10, 2026) ─────────────────── */
+      { id:"run_r09", agent:"research-agent",  topic:"Transformer architecture efficiency study",       model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4100, cost_usd:0.000208, input_tokens:1820, output_tokens:608, error:null, steps:[], timestamp:ts(87*D),  spans:researchSpans(4100) },
+      { id:"run_s08", agent:"support-agent",   topic:"Login issue — OAuth provider error",              model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:1850, cost_usd:0.000084, input_tokens:790,  output_tokens:267, error:null, steps:[], timestamp:ts(83*D),  spans:supportSpans(1850,false) },
+      { id:"run_b01", agent:"batch-processor", topic:"Nightly export job 2026-01-20",                   model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:6400, cost_usd:0.000140, input_tokens:2980, output_tokens:810, error:null, steps:[], timestamp:ts(85*D),  spans:batchSpans(6400,false) },
+      { id:"run_d08", agent:"data-pipeline",   topic:"Daily event batch 2026-01-21",                   model:"claude-haiku-4-5",  status:"error",   anomaly:false, anomaly_reason:null,                                                                           duration_ms:2400, cost_usd:0.000093, input_tokens:1180, output_tokens:0,   error:"PostgreSQL connection timeout after 30s", steps:[], timestamp:ts(80*D),  spans:pipelineSpans(2400,true) },
+      { id:"run_r10", agent:"research-agent",  topic:"Retrieval-augmented generation benchmarks 2025", model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:5300, cost_usd:0.000231, input_tokens:2060, output_tokens:661, error:null, steps:[], timestamp:ts(76*D),  spans:researchSpans(5300) },
+      { id:"run_s09", agent:"support-agent",   topic:"Export invoice for account #31090",               model:"claude-haiku-4-5",  status:"error",   anomaly:false, anomaly_reason:null,                                                                           duration_ms:1200, cost_usd:0.000079, input_tokens:730,  output_tokens:0,   error:"CRM API rate limit exceeded — retry after 60s", steps:[], timestamp:ts(72*D),  spans:supportSpans(1200,true) },
+      { id:"run_b02", agent:"batch-processor", topic:"Weekly report aggregation Jan 2026",              model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:7100, cost_usd:0.000148, input_tokens:3100, output_tokens:835, error:null, steps:[], timestamp:ts(70*D),  spans:batchSpans(7100,false) },
+      { id:"run_d09", agent:"data-pipeline",   topic:"Daily event batch 2026-01-13",                   model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:7000, cost_usd:0.000146, input_tokens:3290, output_tokens:898, error:null, steps:[], timestamp:ts(68*D),  spans:pipelineSpans(7000,false) },
+      { id:"run_r11", agent:"research-agent",  topic:"AI safety alignment techniques survey",           model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:3700, cost_usd:0.000192, input_tokens:1650, output_tokens:562, error:null, steps:[], timestamp:ts(64*D),  spans:researchSpans(3700) },
+      { id:"run_b03", agent:"batch-processor", topic:"Nightly export job 2026-01-16",                   model:"claude-haiku-4-5",  status:"error",   anomaly:false, anomaly_reason:null,                                                                           duration_ms:2100, cost_usd:0.000094, input_tokens:1060, output_tokens:0,   error:"Job queue connection refused after 3 retries", steps:[], timestamp:ts(62*D),  spans:batchSpans(2100,true) },
+      { id:"run_d10", agent:"data-pipeline",   topic:"Weekly aggregation pipeline Jan 2026",            model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:6600, cost_usd:0.000139, input_tokens:3180, output_tokens:872, error:null, steps:[], timestamp:ts(61*D),  spans:pipelineSpans(6600,false) }
+    ];
+
+    /* ─── State ──────────────────────────────────────────────────── */
+    const AGENT_NONE_VALUE = "__FAROL_NO_AGENT__";
+    let displayedRuns = allRuns.slice();
+    let activeRow     = null;
+    let costChart = null, successChart = null, durationChart = null, tokensChart = null;
+
+    /* Overview filter state */
+    let ovDays  = 7;
+    let ovAgent = "";
+
+    /* Alerts filter state */
+    let alertsAgentFilter = "";
+
+    /* Seen alerts (unread badge) */
+    const seenAlerts = new Set();
+
+    /* Agent modal state */
+    let agentModalName     = null;
+    let agentModalDays     = 7;
+    let agentDisplayedRuns = [];
+    let agentCostChart     = null;
+    let agentDurChart      = null;
+
+    const runsBody      = document.getElementById("runs-body");
+    const agentFilterEl = document.getElementById("agent-filter");
+    const ovDateEl      = document.getElementById("ov-date-filter");
+    const ovAgentEl     = document.getElementById("ov-agent-filter");
+
+    /* ─── Helpers ────────────────────────────────────────────────── */
+    function escapeHtml(s) {
+      if (s == null) return "";
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    function formatMetaValue(v) {
+      if (v == null) return "";
+      if (typeof v === "object") { try { return JSON.stringify(v); } catch (_e) { return String(v); } }
+      return String(v);
+    }
+
+    function agentGroupKey(r) { return (r.agent != null && r.agent !== "") ? r.agent : AGENT_NONE_VALUE; }
+    function agentOptionLabel(k) { return k === AGENT_NONE_VALUE ? "—" : k; }
+
+    function getFilteredRuns() {
+      const v = agentFilterEl.value;
+      if (v === "") return allRuns.slice();
+      if (v === AGENT_NONE_VALUE) return allRuns.filter(function(r) { return r.agent == null || r.agent === ""; });
+      return allRuns.filter(function(r) { return r.agent === v; });
+    }
+
+    function getOverviewRuns() {
+      const cutoff = NOW - ovDays * D;
+      return allRuns.filter(function(r) {
+        return (Number(r.timestamp) || 0) >= cutoff && (ovAgent === "" || r.agent === ovAgent);
+      });
+    }
+
+    function refreshOverview() {
+      const runs = getOverviewRuns();
+      renderSummary(runs);
+      renderCharts(runs);
+    }
+
+    /* ─── Navigation ─────────────────────────────────────────────── */
+    function navigateTo(target) {
+      document.querySelectorAll(".nav-item").forEach(function(btn) {
+        const isActive = btn.dataset.target === target;
+        btn.classList.toggle("active", isActive);
+        btn.setAttribute("aria-current", isActive ? "page" : "false");
+      });
+      document.querySelectorAll(".content-section").forEach(function(sec) {
+        sec.classList.toggle("active", sec.id === "section-" + target);
+      });
+      if (target === "overview") refreshOverview();
+      if (target === "agents")   renderAgentCards();
+      if (target === "alerts")   renderAlerts();
+    }
+
+    document.querySelectorAll(".nav-item").forEach(function(btn) {
+      btn.addEventListener("click", function() { navigateTo(btn.dataset.target); });
+    });
+
+    /* ─── Agent filter ───────────────────────────────────────────── */
+    function populateAgentFilter() {
+      const prev = agentFilterEl.value;
+      agentFilterEl.innerHTML = "";
+      const allOpt = document.createElement("option");
+      allOpt.value = ""; allOpt.textContent = "All agents";
+      agentFilterEl.appendChild(allOpt);
+
+      const counts = new Map();
+      allRuns.forEach(function(r) {
+        const k = agentGroupKey(r);
+        counts.set(k, (counts.get(k) || 0) + 1);
+      });
+      Array.from(counts.keys()).sort(function(a,b) {
+        return agentOptionLabel(a).localeCompare(agentOptionLabel(b), undefined, { sensitivity: "base" });
+      }).forEach(function(key) {
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = agentOptionLabel(key) + " (" + counts.get(key) + ")";
+        agentFilterEl.appendChild(opt);
+      });
+
+      if (prev && Array.from(agentFilterEl.options).some(function(o) { return o.value === prev; })) {
+        agentFilterEl.value = prev;
+      } else {
+        agentFilterEl.value = "";
+      }
+    }
+
+    /* ─── Summary KPIs ───────────────────────────────────────────── */
+    function renderSummary(runs) {
+      const n = runs.length;
+      if (!n) {
+        document.getElementById("sum-total").textContent    = "—";
+        document.getElementById("sum-success").textContent  = "—";
+        document.getElementById("sum-duration").textContent = "—";
+        document.getElementById("sum-cost").textContent     = "—";
+        return;
+      }
+      document.getElementById("sum-total").textContent = String(n);
+      const succ = runs.filter(function(r) { return r.status === "success"; }).length;
+      document.getElementById("sum-success").textContent = Math.round((succ / n) * 100) + "%";
+      const avgMs = runs.reduce(function(a,r) { return a + (Number(r.duration_ms) || 0); }, 0) / n;
+      document.getElementById("sum-duration").textContent = (avgMs / 1000).toFixed(1) + "s";
+      const totalCost = runs.reduce(function(a,r) { return a + (Number(r.cost_usd) || 0); }, 0);
+      document.getElementById("sum-cost").textContent = "$" + totalCost.toFixed(5);
+    }
+
+    /* ─── Charts ─────────────────────────────────────────────────── */
+    function tooltipPlugin(formatFn) {
+      return {
+        backgroundColor: "#111318",
+        titleColor: "#8b919d",
+        bodyColor: "#e8eaef",
+        borderColor: "rgba(249, 115, 22, 0.45)",
+        borderWidth: 1,
+        padding: 9,
+        displayColors: false,
+        callbacks: {
+          label: function(ctx) { return " " + formatFn(ctx.parsed.y); }
+        }
+      };
+    }
+
+    function buildCostSeries(runs) {
+      const sorted = runs.slice().sort(function(a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+      return {
+        labels: sorted.map(function(r) { return r.timestamp ? new Date(r.timestamp).toLocaleDateString([], { month:"short", day:"numeric" }) : "—"; }),
+        values: sorted.map(function(r) { return Number(r.cost_usd) || 0; })
+      };
+    }
+
+    function buildSuccessByAgent(runs) {
+      const grouped = new Map();
+      runs.forEach(function(r) {
+        const key = (r.agent != null && r.agent !== "") ? r.agent : "—";
+        if (!grouped.has(key)) grouped.set(key, { total:0, success:0 });
+        const s = grouped.get(key); s.total += 1;
+        if (r.status === "success") s.success += 1;
+      });
+      const labels = Array.from(grouped.keys()).sort(function(a,b) { return a.localeCompare(b, undefined, { sensitivity:"base" }); });
+      const values = labels.map(function(l) { const s = grouped.get(l); return (!s || s.total===0) ? 0 : (s.success/s.total)*100; });
+      const colors = values.map(function(v) { return v >= 100 ? "#4ade80" : "#f97316"; });
+      return { labels, values, colors };
+    }
+
+    function renderCharts(runs) {
+      const chartsGrid = document.getElementById("ov-charts-grid");
+      const emptyEl    = document.getElementById("ov-empty");
+
+      /* Always destroy stale instances before deciding what to render */
+      if (costChart)     { costChart.destroy();     costChart     = null; }
+      if (successChart)  { successChart.destroy();  successChart  = null; }
+      if (durationChart) { durationChart.destroy(); durationChart = null; }
+      if (tokensChart)   { tokensChart.destroy();   tokensChart   = null; }
+
+      if (!runs.length) {
+        if (chartsGrid) chartsGrid.hidden = true;
+        if (emptyEl)    emptyEl.hidden    = false;
+        return;
+      }
+      if (chartsGrid) chartsGrid.hidden = false;
+      if (emptyEl)    emptyEl.hidden    = true;
+
+      if (typeof Chart === "undefined") return;
+      const costCanvas     = document.getElementById("cost-chart");
+      const successCanvas  = document.getElementById("success-chart");
+      const durationCanvas = document.getElementById("duration-chart");
+      const tokensCanvas   = document.getElementById("tokens-chart");
+      if (!costCanvas || !successCanvas || !durationCanvas || !tokensCanvas) return;
+
+      const gridColor = "rgba(255,255,255,0.045)", tickColor = "#8b919d", titleColor = "#e8eaef";
+
+      const cs = buildCostSeries(runs);
+      costChart = new Chart(costCanvas, { type:"line", data:{ labels:cs.labels, datasets:[{ data:cs.values, borderColor:"#f97316", backgroundColor:"transparent", pointBackgroundColor:"#f97316", pointBorderColor:"#f97316", pointRadius:2, pointHoverRadius:3, borderWidth:2, fill:false, tension:0.2 }] }, options:{ responsive:true, maintainAspectRatio:false, animation:false, plugins:{ legend:{display:false}, title:{display:true,text:"Cost per run",color:titleColor}, tooltip:tooltipPlugin(function(v){return "$"+Number(v).toFixed(6);}) }, scales:{ x:{ticks:{color:tickColor,maxRotation:45,minRotation:45,autoSkip:true,font:{size:10}},grid:{color:gridColor}}, y:{ticks:{color:tickColor,font:{size:10},callback:function(v){return "$"+Number(v).toFixed(6);}},grid:{color:gridColor}} }, layout:{padding:{left:14}} } });
+
+      const ss = buildSuccessByAgent(runs);
+      const sMin = Math.max(0, Math.min.apply(null, ss.values) - 10);
+      successChart = new Chart(successCanvas, { type:"bar", data:{ labels:ss.labels, datasets:[{ data:ss.values, backgroundColor:ss.colors, borderColor:ss.colors, borderWidth:1, borderRadius:4, maxBarThickness:44 }] }, options:{ responsive:true, maintainAspectRatio:false, animation:false, plugins:{ legend:{display:false}, title:{display:true,text:"Success rate by agent",color:titleColor}, tooltip:tooltipPlugin(function(v){return Number(v).toFixed(0)+"%";}) }, scales:{ x:{ticks:{color:tickColor,font:{size:10}},grid:{color:gridColor}}, y:{min:sMin,max:100,ticks:{color:tickColor,font:{size:10},callback:function(v){return Number(v).toFixed(0)+"%";}},grid:{color:gridColor}} } } });
+
+      const chronological = runs.slice().sort(function(a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+      const tl = chronological.map(function(r) { return r.timestamp ? new Date(r.timestamp).toLocaleDateString([], {month:"short",day:"numeric"}) : "—"; });
+
+      if (durationChart) durationChart.destroy();
+      durationChart = new Chart(durationCanvas, { type:"line", data:{ labels:tl, datasets:[{ data:chronological.map(function(r){return (Number(r.duration_ms)||0)/1000;}), borderColor:"#60a5fa", backgroundColor:"transparent", pointBackgroundColor:"#60a5fa", pointBorderColor:"#60a5fa", pointRadius:2, pointHoverRadius:3, borderWidth:2, fill:false, tension:0.2 }] }, options:{ responsive:true, maintainAspectRatio:false, animation:false, plugins:{ legend:{display:false}, title:{display:true,text:"Duration per run",color:titleColor}, tooltip:tooltipPlugin(function(v){return Number(v).toFixed(2)+"s";}) }, scales:{ x:{ticks:{color:tickColor,maxRotation:45,minRotation:45,autoSkip:true,font:{size:10}},grid:{color:gridColor}}, y:{ticks:{color:tickColor,font:{size:10},callback:function(v){return Number(v).toFixed(1)+"s";}},grid:{color:gridColor}} } } });
+
+      if (tokensChart) tokensChart.destroy();
+      tokensChart = new Chart(tokensCanvas, { type:"line", data:{ labels:tl, datasets:[{ data:chronological.map(function(r){return (Number(r.input_tokens)||0)+(Number(r.output_tokens)||0);}), borderColor:"#a78bfa", backgroundColor:"transparent", pointBackgroundColor:"#a78bfa", pointBorderColor:"#a78bfa", pointRadius:2, pointHoverRadius:3, borderWidth:2, fill:false, tension:0.2 }] }, options:{ responsive:true, maintainAspectRatio:false, animation:false, plugins:{ legend:{display:false}, title:{display:true,text:"Tokens per run",color:titleColor}, tooltip:tooltipPlugin(function(v){return Math.round(v).toLocaleString()+" tok";}) }, scales:{ x:{ticks:{color:tickColor,maxRotation:45,minRotation:45,autoSkip:true,font:{size:10}},grid:{color:gridColor}}, y:{ticks:{color:tickColor,font:{size:10}},grid:{color:gridColor}} } } });
+    }
+
+    /* ─── Runs table ─────────────────────────────────────────────── */
+    function renderRuns(runs) {
+      const countEl = document.getElementById("runs-count-label");
+      if (countEl) countEl.textContent = "Showing " + runs.length + " run" + (runs.length !== 1 ? "s" : "");
+      runsBody.innerHTML = "";
+      if (!runs.length) {
+        runsBody.innerHTML = '<tr><td colspan="11" style="color:#8b919d;padding:1.5rem 0.8rem">No runs match this filter.</td></tr>';
+        return;
+      }
+      runs.forEach(function(r, i) {
+        const row = document.createElement("tr");
+        row.className = "clickable";
+        const isBaseline = !r.anomaly && typeof r.anomaly_reason === "string" && r.anomaly_reason.includes("Building baseline");
+        const anomalyCell = r.anomaly ? '<span class="badge spike">! spike</span>' : (isBaseline ? '<span class="badge baseline">baseline</span>' : "");
+        const stepCount = Array.isArray(r.steps) ? r.steps.length : 0;
+        const inTok = Number(r.input_tokens) || 0, outTok = Number(r.output_tokens) || 0;
+        const modelName = r.model ? escapeHtml(r.model) : "";
+        const modelCell = r.model ? '<span class="model-pill" title="' + modelName + '">' + modelName + "</span>" : "—";
+        let errorCell = "";
+        if (r.status === "error" && r.error != null && String(r.error).length > 0) {
+          const full = String(r.error), truncated = full.length > 60 ? full.slice(0,60) + "…" : full;
+          errorCell = '<span class="error-cell" title="' + escapeHtml(full) + '">' + escapeHtml(truncated) + "</span>";
+        }
+        row.innerHTML =
+          "<td>" + (r.agent || "—") + "</td>" +
+          "<td>" + escapeHtml(r.topic || "—") + "</td>" +
+          "<td>" + modelCell + "</td>" +
+          '<td><span class="badge ' + (r.status === "success" ? "success" : "error") + '">' + escapeHtml(r.status) + "</span></td>" +
+          "<td>" + anomalyCell + "</td>" +
+          "<td>" + stepCount + "</td>" +
+          "<td>" + (r.duration_ms != null ? (Number(r.duration_ms)/1000).toFixed(2) + "s" : "—") + "</td>" +
+          '<td class="tokens-cell">' + inTok + "in / " + outTok + "out</td>" +
+          "<td>" + (r.cost_usd != null ? "$" + Number(r.cost_usd).toFixed(6) : "—") + "</td>" +
+          "<td>" + errorCell + "</td>" +
+          "<td>" + (r.timestamp ? new Date(r.timestamp).toLocaleString() : "—") + "</td>";
+        /* Badge click: navigate to Alerts filtered by this agent */
+        if (r.anomaly) {
+          const badgeEl = row.querySelector(".badge.spike");
+          if (badgeEl) {
+            badgeEl.addEventListener("click", function(e) {
+              e.stopPropagation();
+              alertsAgentFilter = r.agent || "";
+              navigateTo("alerts");
+            });
+          }
+        }
+
+        row.addEventListener("click", function() { openTrace(i, row); });
+        runsBody.appendChild(row);
+      });
+    }
+
+    /* ─── Agent cards ────────────────────────────────────────────── */
+    function renderAgentCards() {
+      const el = document.getElementById("agents-grid");
+      const agentMap = new Map();
+      allRuns.forEach(function(r) {
+        const key = r.agent || "—";
+        if (!agentMap.has(key)) agentMap.set(key, []);
+        agentMap.get(key).push(r);
+      });
+
+      const html = [];
+      agentMap.forEach(function(runs, name) {
+        const n = runs.length;
+        const succ = runs.filter(function(r) { return r.status === "success"; }).length;
+        const rate = n > 0 ? Math.round((succ / n) * 100) : 0;
+        const avgCost = n > 0 ? runs.reduce(function(a,r) { return a+(Number(r.cost_usd)||0); }, 0) / n : 0;
+        const avgDur  = n > 0 ? runs.reduce(function(a,r) { return a+(Number(r.duration_ms)||0); }, 0) / n : 0;
+        const sorted  = runs.slice().sort(function(a,b) { return new Date(b.timestamp) - new Date(a.timestamp); });
+        const lastRun = sorted[0];
+        const rateClass = rate === 100 ? "good" : rate >= 85 ? "" : "warn";
+
+        html.push(
+          '<div class="agent-card" data-agent="' + escapeHtml(name) + '" title="Click to view details">' +
+          '<div class="agent-card-header"><span class="agent-card-dot"></span><span class="agent-card-name">' + escapeHtml(name) + "</span></div>" +
+          '<div class="agent-card-stats">' +
+          '<div><div class="agent-stat-label">Total runs</div><div class="agent-stat-value">' + n + "</div></div>" +
+          '<div><div class="agent-stat-label">Success rate</div><div class="agent-stat-value ' + rateClass + '">' + rate + "%</div></div>" +
+          '<div><div class="agent-stat-label">Avg cost</div><div class="agent-stat-value">$' + avgCost.toFixed(6) + "</div></div>" +
+          '<div><div class="agent-stat-label">Avg duration</div><div class="agent-stat-value">' + (avgDur/1000).toFixed(2) + "s</div></div>" +
+          '<div class="agent-stat-full"><div class="agent-stat-label">Last run</div><div class="agent-stat-value muted">' + (lastRun ? new Date(lastRun.timestamp).toLocaleString() : "—") + "</div></div>" +
+          "</div></div>"
+        );
+      });
+
+      /* ── "Connect another agent" placeholder card ── */
+      html.push(
+        '<div class="agent-add-card">' +
+        '<div class="agent-add-title">🔌 Connect another agent</div>' +
+        '<div class="agent-add-subtitle">Instrument any Python agent with one decorator</div>' +
+        '<pre class="agent-add-code">@trace(agent_name="my-agent",\n       farol_key="frl_...")</pre>' +
+        '<a class="btn btn-primary agent-add-btn" href="/auth/signup.html">Sign up free →</a>' +
+        '</div>'
+      );
+
+      el.innerHTML = html.join("");
+
+      el.querySelectorAll(".agent-card").forEach(function(card) {
+        card.addEventListener("click", function() { openAgentModal(card.dataset.agent); });
+      });
+
+      /* ── Aggregate stats bar ── */
+      const statsBar  = document.getElementById("agents-stats-bar");
+      const allAgentRuns = Array.from(agentMap.values()).reduce(function(acc, r) { return acc.concat(r); }, []);
+      if (allAgentRuns.length && statsBar) {
+        const totalRuns  = allAgentRuns.length;
+        const totalSucc  = allAgentRuns.filter(function(r) { return r.status === "success"; }).length;
+        const overallRate = Math.round((totalSucc / totalRuns) * 100);
+        const totalCost  = allAgentRuns.reduce(function(a, r) { return a + (Number(r.cost_usd) || 0); }, 0);
+        const rateClass  = overallRate === 100 ? "good" : overallRate >= 85 ? "" : "warn";
+
+        statsBar.hidden = false;
+        statsBar.innerHTML =
+          '<div class="agents-stats-item">' +
+            '<span class="agents-stats-label">Total runs</span>' +
+            '<span class="agents-stats-value">' + totalRuns + '</span>' +
+          '</div>' +
+          '<div class="agents-stats-item">' +
+            '<span class="agents-stats-label">Success rate</span>' +
+            '<span class="agents-stats-value ' + rateClass + '">' + overallRate + '%</span>' +
+          '</div>' +
+          '<div class="agents-stats-item">' +
+            '<span class="agents-stats-label">Total cost</span>' +
+            '<span class="agents-stats-value">$' + totalCost.toFixed(4) + '</span>' +
+          '</div>';
+      }
+    }
+
+    /* ─── Alerts badge ───────────────────────────────────────────── */
+    function updateAlertsBadge() {
+      const anomalous = allRuns.filter(function(r) { return r.anomaly; });
+      const unread    = anomalous.filter(function(r) { return !seenAlerts.has(r.id); }).length;
+      const el        = document.getElementById("alerts-count");
+      if (unread > 0) {
+        el.textContent  = String(unread);
+        el.hidden       = false;
+        el.setAttribute("aria-label", unread + " unread alert" + (unread !== 1 ? "s" : ""));
+      } else {
+        el.hidden = true;
+      }
+    }
+
+    /* ─── Alerts ─────────────────────────────────────────────────── */
+    function renderAlerts() {
+      const el        = document.getElementById("alerts-list");
+      const filterBar = document.getElementById("alerts-filter-bar");
+      const filterSel = document.getElementById("alerts-agent-filter");
+      const anomalous = allRuns.filter(function(r) { return r.anomaly; });
+
+      if (!anomalous.length) {
+        filterBar.hidden = true;
+        el.innerHTML = '<div class="alerts-empty">No anomalies detected in this period.</div>';
+        return;
+      }
+
+      /* Build + populate agent dropdown */
+      filterBar.hidden = false;
+      const agentSet = new Set(anomalous.map(function(r) { return r.agent || "—"; }));
+      const prevSel = alertsAgentFilter;
+      filterSel.innerHTML = '<option value="">All agents</option>';
+      Array.from(agentSet).sort().forEach(function(a) {
+        const opt = document.createElement("option");
+        opt.value = a; opt.textContent = a;
+        filterSel.appendChild(opt);
+      });
+      filterSel.value = (agentSet.has(prevSel) || prevSel === "") ? prevSel : "";
+      alertsAgentFilter = filterSel.value;
+
+      const visible = alertsAgentFilter
+        ? anomalous.filter(function(r) { return (r.agent || "—") === alertsAgentFilter; })
+        : anomalous;
+
+      if (!visible.length) {
+        el.innerHTML = '<div class="alerts-empty">No alerts for this agent.</div>';
+        return;
+      }
+
+      /* Helper: mark one alert as read, update badge, flip card style */
+      function markAlertRead(runId, cardEl) {
+        if (seenAlerts.has(runId)) return;
+        seenAlerts.add(runId);
+        updateAlertsBadge();
+        if (cardEl) cardEl.classList.add("read");
+      }
+
+      el.innerHTML = '<div class="alerts-list">' + visible.map(function(r) {
+        const isRead = seenAlerts.has(r.id);
+        return (
+          '<div class="alert-item' + (isRead ? " read" : "") + '" data-run-id="' + escapeHtml(r.id) + '">' +
+          '<div class="alert-item-header">' +
+            '<div class="alert-item-left"><span class="alert-item-agent">' + escapeHtml(r.agent || "—") + "</span></div>" +
+            '<div class="alert-item-right"><span class="alert-item-time">' + (r.timestamp ? new Date(r.timestamp).toLocaleString() : "—") + '</span><span class="alert-view-trace" data-run-id="' + escapeHtml(r.id) + '">View trace →</span></div>' +
+          "</div>" +
+          '<div class="alert-item-topic">' + escapeHtml(r.topic || "—") + "</div>" +
+          '<div class="alert-item-reason">⚠ ' + escapeHtml(r.anomaly_reason || "Cost anomaly detected") + "</div>" +
+          "</div>"
+        );
+      }).join("") + "</div>";
+
+      el.querySelectorAll(".alert-item").forEach(function(item) {
+        const runId = item.dataset.runId;
+
+        /* "View trace →" link — mark read then open trace */
+        const traceLink = item.querySelector(".alert-view-trace");
+        if (traceLink) {
+          traceLink.addEventListener("click", function(e) {
+            e.stopPropagation();
+            markAlertRead(runId, item);
+            const run = allRuns.find(function(r) { return r.id === runId; });
+            if (!run) return;
+            navigateTo("runs");
+            agentFilterEl.value = "";
+            displayedRuns = allRuns.slice();
+            renderRuns(displayedRuns);
+            openTraceRun(run, null);
+          });
+        }
+
+        /* Card click — mark read then open trace */
+        item.addEventListener("click", function() {
+          markAlertRead(runId, item);
+          const run = allRuns.find(function(r) { return r.id === runId; });
+          if (!run) return;
+          navigateTo("runs");
+          agentFilterEl.value = "";
+          displayedRuns = allRuns.slice();
+          renderRuns(displayedRuns);
+          openTraceRun(run, null);
+        });
+      });
+    }
+
+    /* ─── Waterfall renderer ─────────────────────────────────────── */
+    function renderWaterfall(run, spans, stepsEl) {
+      let maxSpanDur = 0;
+      spans.forEach(function(s) { const d = Math.max(0, Number(s.duration_ms)||0); if (d>maxSpanDur) maxSpanDur=d; });
+      const maxDuration = Math.max(1, maxSpanDur, Number(run.duration_ms)||0);
+      const logDenom = Math.log10(maxDuration + 1);
+
+      const parts = ['<div class="waterfall">'];
+      spans.forEach(function(span) {
+        const typ = (span.type != null ? String(span.type) : "tool").toLowerCase();
+        const barClass = typ === "llm" ? "span-llm" : "span-tool";
+        const name = span.name != null ? String(span.name) : "span";
+        const dur = Number(span.duration_ms);
+        const durLabel = Number.isFinite(dur) ? (dur%1===0 ? String(Math.round(dur))+"ms" : dur+"ms") : "—";
+        const durMs = Math.max(0, Number(span.duration_ms)||0);
+        let widthPct = (Math.log10(durMs+1)/logDenom)*100;
+        widthPct = Math.max(8, Math.min(88, widthPct));
+        const nameInsideBar = widthPct >= 34;
+
+        const inTok = Number(span.input_tokens)||0, outTok = Number(span.output_tokens)||0;
+        let tokensHtml = "";
+        if (inTok>0||outTok>0) { const tp=[]; if(inTok>0) tp.push(inTok+" in"); if(outTok>0) tp.push(outTok+" out"); tokensHtml='<div class="wf-tokens">'+tp.join(" · ")+"</div>"; }
+
+        let errHtml = "", metaHtml = "";
+        if (span.error != null && String(span.error).length>0) errHtml='<div class="wf-span-error">'+escapeHtml(String(span.error))+"</div>";
+
+        const meta = span.metadata;
+        if (meta && typeof meta==="object" && !Array.isArray(meta)) {
+          const keys = Object.keys(meta);
+          if (keys.length) {
+            metaHtml='<div class="wf-meta">'+keys.map(function(k){ return '<span class="wf-meta-kv"><span class="wf-meta-k">'+escapeHtml(k)+'</span> <span class="wf-meta-v">'+escapeHtml(formatMetaValue(meta[k]))+"</span></span>"; }).join("")+"</div>";
+          }
+        }
+
+        parts.push(
+          '<div class="wf-row"><div class="wf-row-grid">' +
+          '<div class="wf-row-label"><div class="wf-label-name" title="'+escapeHtml(name)+'">'+escapeHtml(name)+'</div><span class="wf-label-type">'+escapeHtml(typ)+"</span></div>" +
+          '<div class="wf-track-section"><div class="wf-track">' +
+          '<div class="wf-bar '+barClass+'" style="left:0;width:'+widthPct.toFixed(2)+'%;">'+(nameInsideBar?'<span class="wf-bar-name">'+escapeHtml(name)+"</span>":"")+"</div>" +
+          '<span class="wf-dur-outside" style="left:calc('+widthPct.toFixed(2)+'% + 10px)">'+escapeHtml(durLabel)+"</span>" +
+          "</div>"+tokensHtml+errHtml+metaHtml+"</div></div></div>"
+        );
+      });
+      parts.push("</div>");
+      stepsEl.innerHTML = parts.join("");
+    }
+
+    /* ─── Trace modal ────────────────────────────────────────────── */
+    function openTraceRun(r, row) {
+      if (!r) return;
+      if (activeRow) activeRow.classList.remove("active");
+      activeRow = row;
+      if (row) row.classList.add("active");
+
+      document.getElementById("trace-overlay").classList.add("visible");
+      document.body.classList.add("modal-open");
+      document.getElementById("trace-panel").scrollTop = 0;
+
+      document.getElementById("trace-title").textContent = (r.agent || "—") + " — " + (r.topic || r.id || "—");
+      document.getElementById("trace-meta").textContent  = (r.timestamp ? new Date(r.timestamp).toLocaleString() : "—") + " · " + (r.status || "unknown");
+      document.getElementById("trace-duration").textContent = r.duration_ms != null ? (Number(r.duration_ms)/1000).toFixed(2) + "s" : "—";
+      document.getElementById("trace-cost").textContent     = r.cost_usd    != null ? "$" + Number(r.cost_usd).toFixed(6) : "—";
+      document.getElementById("trace-tokens").textContent   = ((Number(r.input_tokens)||0) + (Number(r.output_tokens)||0)).toLocaleString();
+
+      const aw = document.getElementById("trace-anomaly-warning");
+      if (r.anomaly) { aw.textContent = r.anomaly_reason || "Cost anomaly detected."; aw.classList.add("visible"); }
+      else           { aw.textContent = ""; aw.classList.remove("visible"); }
+
+      const stepsEl = document.getElementById("trace-steps");
+      const titleEl = document.getElementById("trace-detail-title");
+      const spans   = r.spans || [];
+
+      if (spans.length > 0) { titleEl.textContent = "Trace timeline"; renderWaterfall(r, spans, stepsEl); }
+      else                   { titleEl.textContent = "Execution steps"; stepsEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">No steps recorded</div>'; }
+    }
+
+    function openTrace(index, row) {
+      openTraceRun(displayedRuns[index], row);
+    }
+
+    function closeTrace() {
+      document.getElementById("trace-overlay").classList.remove("visible");
+      /* Only remove modal-open if agent modal is also closed */
+      if (!document.getElementById("agent-overlay").classList.contains("visible")) {
+        document.body.classList.remove("modal-open");
+      }
+      if (activeRow) activeRow.classList.remove("active");
+      activeRow = null;
+    }
+
+    /* ─── Agent detail modal ─────────────────────────────────────── */
+    function getAgentModalRuns() {
+      const cutoff = NOW - agentModalDays * D;
+      return allRuns.filter(function(r) {
+        return r.agent === agentModalName && (Number(r.timestamp) || 0) >= cutoff;
+      });
+    }
+
+    function renderAgentModalKpis(runs) {
+      const n = runs.length;
+      const totalEl   = document.getElementById("agent-kpi-total");
+      const successEl = document.getElementById("agent-kpi-success");
+      const costEl    = document.getElementById("agent-kpi-cost");
+      if (!n) {
+        totalEl.textContent   = "—";
+        successEl.textContent = "—"; successEl.className = "agent-kpi-value";
+        costEl.textContent    = "—";
+        return;
+      }
+      totalEl.textContent = String(n);
+      const succ = runs.filter(function(r) { return r.status === "success"; }).length;
+      const rate = Math.round((succ / n) * 100);
+      successEl.textContent = rate + "%";
+      successEl.className = "agent-kpi-value " + (rate === 100 ? "good" : rate >= 85 ? "" : "warn");
+      const avgCost = runs.reduce(function(a,r) { return a+(Number(r.cost_usd)||0); }, 0) / n;
+      costEl.textContent = "$" + avgCost.toFixed(6);
+    }
+
+    function renderAgentModalCharts(runs) {
+      if (typeof Chart === "undefined") return;
+      const costCanvas = document.getElementById("agent-cost-chart");
+      const durCanvas  = document.getElementById("agent-dur-chart");
+      if (!costCanvas || !durCanvas) return;
+
+      const gridColor = "rgba(255,255,255,0.045)", tickColor = "#8b919d", titleColor = "#e8eaef";
+      const sorted = runs.slice().sort(function(a,b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+      const labels = sorted.map(function(r) {
+        return r.timestamp ? new Date(r.timestamp).toLocaleDateString([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}) : "—";
+      });
+
+      if (agentCostChart) agentCostChart.destroy();
+      agentCostChart = new Chart(costCanvas, {
+        type: "line",
+        data: { labels: labels, datasets: [{ data: sorted.map(function(r){ return Number(r.cost_usd)||0; }), borderColor:"#f97316", backgroundColor:"transparent", pointBackgroundColor:"#f97316", pointBorderColor:"#f97316", pointRadius:3, pointHoverRadius:4, borderWidth:2, fill:false, tension:0.2 }] },
+        options: { responsive:true, maintainAspectRatio:false, animation:false, plugins:{ legend:{display:false}, title:{display:true,text:"Cost per run",color:titleColor}, tooltip:tooltipPlugin(function(v){return "$"+Number(v).toFixed(6);}) }, scales:{ x:{ticks:{color:tickColor,maxRotation:45,minRotation:45,autoSkip:true,font:{size:10}},grid:{color:gridColor}}, y:{ticks:{color:tickColor,font:{size:10},callback:function(v){return "$"+Number(v).toFixed(6);}},grid:{color:gridColor}} }, layout:{padding:{left:14}} }
+      });
+
+      if (agentDurChart) agentDurChart.destroy();
+      agentDurChart = new Chart(durCanvas, {
+        type: "line",
+        data: { labels: labels, datasets: [{ data: sorted.map(function(r){ return (Number(r.duration_ms)||0)/1000; }), borderColor:"#60a5fa", backgroundColor:"transparent", pointBackgroundColor:"#60a5fa", pointBorderColor:"#60a5fa", pointRadius:3, pointHoverRadius:4, borderWidth:2, fill:false, tension:0.2 }] },
+        options: { responsive:true, maintainAspectRatio:false, animation:false, plugins:{ legend:{display:false}, title:{display:true,text:"Duration per run",color:titleColor}, tooltip:tooltipPlugin(function(v){return Number(v).toFixed(2)+"s";}) }, scales:{ x:{ticks:{color:tickColor,maxRotation:45,minRotation:45,autoSkip:true,font:{size:10}},grid:{color:gridColor}}, y:{ticks:{color:tickColor,font:{size:10},callback:function(v){return Number(v).toFixed(1)+"s";}},grid:{color:gridColor}} } }
+      });
+    }
+
+    function renderAgentModalTable(runs) {
+      agentDisplayedRuns = runs;
+      const tbody = document.getElementById("agent-runs-body");
+      if (!runs.length) {
+        tbody.innerHTML = '<tr><td colspan="9" style="color:#8b919d;padding:1.5rem 0.8rem">No runs in this period.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = "";
+      runs.forEach(function(r) {
+        const row = document.createElement("tr");
+        row.className = "clickable";
+        const isBaseline = !r.anomaly && typeof r.anomaly_reason === "string" && r.anomaly_reason.includes("Building baseline");
+        const anomalyCell = r.anomaly ? '<span class="badge spike">! spike</span>' : (isBaseline ? '<span class="badge baseline">baseline</span>' : "");
+        const inTok = Number(r.input_tokens)||0, outTok = Number(r.output_tokens)||0;
+        const modelName = r.model ? escapeHtml(r.model) : "";
+        const modelCell = r.model ? '<span class="model-pill" title="'+modelName+'">'+modelName+"</span>" : "—";
+        let errorCell = "";
+        if (r.status === "error" && r.error != null && String(r.error).length > 0) {
+          const full = String(r.error), trunc = full.length > 55 ? full.slice(0,55)+"…" : full;
+          errorCell = '<span class="error-cell" title="'+escapeHtml(full)+'">'+escapeHtml(trunc)+"</span>";
+        }
+        row.innerHTML =
+          "<td>" + escapeHtml(r.topic || "—") + "</td>" +
+          "<td>" + modelCell + "</td>" +
+          '<td><span class="badge '+(r.status==="success"?"success":"error")+'">'+escapeHtml(r.status)+"</span></td>" +
+          "<td>" + anomalyCell + "</td>" +
+          "<td>" + (r.duration_ms!=null ? (Number(r.duration_ms)/1000).toFixed(2)+"s" : "—") + "</td>" +
+          '<td class="tokens-cell">'+inTok+"in / "+outTok+"out</td>" +
+          "<td>" + (r.cost_usd!=null ? "$"+Number(r.cost_usd).toFixed(6) : "—") + "</td>" +
+          "<td>" + errorCell + "</td>" +
+          "<td>" + (r.timestamp ? new Date(r.timestamp).toLocaleString() : "—") + "</td>";
+        if (r.anomaly) {
+          const badgeEl = row.querySelector(".badge.spike");
+          if (badgeEl) {
+            badgeEl.addEventListener("click", function(e) {
+              e.stopPropagation();
+              closeAgentModal();
+              alertsAgentFilter = r.agent || "";
+              navigateTo("alerts");
+            });
+          }
+        }
+
+        row.addEventListener("click", function() { openTraceRun(r, row); });
+        tbody.appendChild(row);
+      });
+    }
+
+    function refreshAgentModal() {
+      const runs     = getAgentModalRuns();
+      const emptyEl  = document.getElementById("agent-modal-empty");
+      const chartsEl = document.getElementById("agent-modal-charts-grid");
+      const tableEl  = document.getElementById("agent-modal-table-section");
+
+      renderAgentModalKpis(runs);
+
+      if (!runs.length) {
+        if (agentCostChart) { agentCostChart.destroy(); agentCostChart = null; }
+        if (agentDurChart)  { agentDurChart.destroy();  agentDurChart  = null; }
+        if (emptyEl)  emptyEl.hidden  = false;
+        if (chartsEl) chartsEl.hidden = true;
+        if (tableEl)  tableEl.hidden  = true;
+        return;
+      }
+      if (emptyEl)  emptyEl.hidden  = true;
+      if (chartsEl) chartsEl.hidden = false;
+      if (tableEl)  tableEl.hidden  = false;
+      renderAgentModalCharts(runs);
+      renderAgentModalTable(runs);
+    }
+
+    function openAgentModal(agentName) {
+      agentModalName = agentName;
+      agentModalDays = 7;
+      document.getElementById("agent-modal-date").value = "7";
+      document.getElementById("agent-modal-name").textContent = agentName;
+      document.getElementById("agent-panel").scrollTop = 0;
+      document.getElementById("agent-overlay").classList.add("visible");
+      document.body.classList.add("modal-open");
+      refreshAgentModal();
+    }
+
+    function closeAgentModal() {
+      document.getElementById("agent-overlay").classList.remove("visible");
+      document.body.classList.remove("modal-open");
+      if (agentCostChart) { agentCostChart.destroy(); agentCostChart = null; }
+      if (agentDurChart)  { agentDurChart.destroy();  agentDurChart  = null; }
+      if (activeRow) { activeRow.classList.remove("active"); activeRow = null; }
+    }
+
+    document.getElementById("agent-modal-close-btn").addEventListener("click", closeAgentModal);
+    document.getElementById("agent-backdrop").addEventListener("click", closeAgentModal);
+    document.getElementById("agent-modal-date").addEventListener("change", function() {
+      agentModalDays = Number(this.value);
+      refreshAgentModal();
+    });
+
+    /* ─── Filter + render ────────────────────────────────────────── */
+    function applyFilterAndRender() {
+      displayedRuns = getFilteredRuns();
+      renderRuns(displayedRuns);
+    }
+
+    agentFilterEl.addEventListener("change", function() { closeTrace(); applyFilterAndRender(); });
+
+    ovDateEl.addEventListener("change", function() { ovDays = Number(this.value); refreshOverview(); });
+    ovAgentEl.addEventListener("change", function() { ovAgent = this.value; refreshOverview(); });
+
+    document.getElementById("alerts-agent-filter").addEventListener("change", function() {
+      alertsAgentFilter = this.value;
+      renderAlerts();
+    });
+
+    document.getElementById("sdk-toggle").addEventListener("click", function() {
+      const snippet = document.getElementById("sdk-snippet");
+      const body    = document.getElementById("sdk-body");
+      const isOpen  = snippet.classList.contains("open");
+      snippet.classList.toggle("open", !isOpen);
+      body.hidden = isOpen;
+      this.setAttribute("aria-expanded", String(!isOpen));
+    });
+
+    document.getElementById("trace-backdrop").addEventListener("click", closeTrace);
+    document.addEventListener("keydown", function(e) {
+      if (e.key !== "Escape") return;
+      if (document.getElementById("trace-overlay").classList.contains("visible")) { closeTrace(); }
+      else if (document.getElementById("agent-overlay").classList.contains("visible")) { closeAgentModal(); }
+    });
+
+    /* ─── Boot ───────────────────────────────────────────────────── */
+    populateAgentFilter();
+    refreshOverview();
+    renderRuns(allRuns);
+    renderAgentCards();
+    updateAlertsBadge();
+    renderAlerts();
+  </script>
+</body>
+</html>
