@@ -46,7 +46,20 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const body = await req.json() as Record<string, unknown>;
+    const rawBody = await req.text();
+    if (rawBody.length > 1_048_576) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Payload too large. Maximum size is 1MB.",
+        }),
+        {
+          status: 413,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    const body = JSON.parse(rawBody) as Record<string, unknown>;
     const rl = checkRateLimit(rateLimitKey(body, req));
     if (!rl.ok) {
       return new Response(
@@ -109,23 +122,70 @@ Deno.serve(async (req) => {
     }
 
     if (spans.length > 0 && run.id != null) {
-      const spansToInsert = (spans as Record<string, unknown>[]).map((s) => ({
-        id: crypto.randomUUID(),
-        name: s.name,
-        type: s.type ?? "tool",
-        started_at: s.started_at,
-        ended_at: s.ended_at,
-        duration_ms: s.duration_ms,
-        input_tokens: s.input_tokens ?? null,
-        output_tokens: s.output_tokens ?? null,
-        cost_usd: s.cost_usd ?? null,
-        metadata: s.metadata ?? {},
-        error: s.error ?? null,
-        input: s.input ?? null,
-        output: s.output ?? null,
-        run_id: run.id,
-        user_id: keyData.user_id,
-      }));
+      const spansToInsert = (spans as Record<string, unknown>[]).map((s) => {
+        let metadata: unknown = s.metadata ?? {};
+        if (metadata != null && typeof metadata === "object") {
+          try {
+            if (JSON.stringify(metadata).length > 10000) {
+              metadata = { truncated: true, reason: "metadata too large" };
+            }
+          } catch {
+            metadata = { truncated: true, reason: "metadata too large" };
+          }
+        }
+
+        let inputVal: unknown = s.input ?? null;
+        if (inputVal != null) {
+          const str =
+            typeof inputVal === "string"
+              ? inputVal
+              : (() => {
+                  try {
+                    return JSON.stringify(inputVal);
+                  } catch {
+                    return String(inputVal);
+                  }
+                })();
+          if (str.length > 50000) {
+            inputVal = str.slice(0, 50000) + "... [truncated]";
+          }
+        }
+
+        let outputVal: unknown = s.output ?? null;
+        if (outputVal != null) {
+          const str =
+            typeof outputVal === "string"
+              ? outputVal
+              : (() => {
+                  try {
+                    return JSON.stringify(outputVal);
+                  } catch {
+                    return String(outputVal);
+                  }
+                })();
+          if (str.length > 50000) {
+            outputVal = str.slice(0, 50000) + "... [truncated]";
+          }
+        }
+
+        return {
+          id: crypto.randomUUID(),
+          name: s.name,
+          type: s.type ?? "tool",
+          started_at: s.started_at,
+          ended_at: s.ended_at,
+          duration_ms: s.duration_ms,
+          input_tokens: s.input_tokens ?? null,
+          output_tokens: s.output_tokens ?? null,
+          cost_usd: s.cost_usd ?? null,
+          metadata,
+          error: s.error ?? null,
+          input: inputVal,
+          output: outputVal,
+          run_id: run.id,
+          user_id: keyData.user_id,
+        };
+      });
 
       const { error: spansBulkError } = await supabase
         .from("spans")

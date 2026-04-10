@@ -951,6 +951,11 @@
         .replace(/"/g, "&quot;");
     }
 
+    function sanitizeCssClassSegment(value) {
+      const s = String(value == null ? "" : value).replace(/[^a-zA-Z0-9_-]/g, "_");
+      return s.length > 0 ? s : "step";
+    }
+
     function formatMetaValue(v) {
       if (v == null) return "";
       if (typeof v === "object") {
@@ -972,7 +977,7 @@
             <div class="step">
               <div class="step-num">${si + 1}</div>
               <div>
-                <span class="step-type ${s.step}">${escapeHtml(s.step)}</span>
+                <span class="step-type ${sanitizeCssClassSegment(s.step)}">${escapeHtml(s.step)}</span>
                 <div class="step-detail">${escapeHtml(detail)}</div>
               </div>
             </div>`;
