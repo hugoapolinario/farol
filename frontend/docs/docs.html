@@ -397,6 +397,10 @@
 
       <section id="quick-start" class="doc-section" aria-labelledby="quick-start-heading">
         <h2 id="quick-start-heading">Quick start</h2>
+        <p>
+          <code style="font-family:var(--font-mono);font-size:0.88em;color:var(--text)">pip install farol-sdk</code>
+          · <a class="inline" href="https://pypi.org/project/farol-sdk/">PyPI</a>
+        </p>
         <ol class="steps">
           <li><strong style="color:var(--text)">Install.</strong> <code style="font-family:var(--font-mono);font-size:0.85em;color:var(--text)">pip install farol-sdk</code></li>
           <li><strong style="color:var(--text)">Get an API key</strong> from <a class="inline" href="https://usefarol.dev/app.html">usefarol.dev/app.html</a> after you sign in.</li>
@@ -407,11 +411,18 @@
           <div class="code-header">agent.py</div>
           <pre class="code-body"><code><span style="color:#c084fc">from</span> farol <span style="color:#c084fc">import</span> trace
 
-<span style="color:#c084fc">@</span>trace(<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key"</span>)
-<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">run</span>(task, *, run):
-    run[<span style="color:#86efac">"input_tokens"</span>] = <span style="color:#fdba74">120</span>
-    run[<span style="color:#86efac">"output_tokens"</span>] = <span style="color:#fdba74">80</span>
-    <span style="color:#c084fc">return</span> <span style="color:#86efac">"ok"</span></code></pre>
+<span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+    run[<span style="color:#86efac">"topic"</span>] = task
+
+    <span style="color:#6b7280"># record your steps</span>
+    run[<span style="color:#86efac">"steps"</span>].append({<span style="color:#86efac">"step"</span>: <span style="color:#86efac">"web_search"</span>, <span style="color:#86efac">"url"</span>: <span style="color:#86efac">"..."</span>})
+
+    <span style="color:#6b7280"># record token usage</span>
+    run[<span style="color:#86efac">"input_tokens"</span>] = <span style="color:#fdba74">229</span>
+    run[<span style="color:#86efac">"output_tokens"</span>] = <span style="color:#fdba74">197</span>
+
+    <span style="color:#c084fc">return</span> result</code></pre>
         </div>
       </section>
 

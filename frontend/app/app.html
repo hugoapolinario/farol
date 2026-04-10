@@ -745,6 +745,85 @@
       overflow-x: auto;
     }
 
+    .runs-empty-state {
+      padding: 2.5rem 1.5rem 2.75rem;
+      text-align: center;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .runs-empty-state[hidden] {
+      display: none !important;
+    }
+
+    .runs-table-block[hidden] {
+      display: none !important;
+    }
+
+    .runs-empty-icon {
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 1.1rem;
+      border-radius: 12px;
+      background: rgba(249, 115, 22, 0.08);
+      border: 1px solid rgba(249, 115, 22, 0.22);
+      display: grid;
+      place-items: center;
+      color: var(--accent);
+    }
+
+    .runs-empty-icon svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    .runs-empty-title {
+      margin: 0 0 0.45rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    .runs-empty-sub {
+      margin: 0 0 1.25rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .runs-empty-code {
+      text-align: left;
+      margin: 0 0 1.25rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.35);
+      overflow-x: auto;
+    }
+
+    .runs-empty-code pre {
+      margin: 0;
+      padding: 0.9rem 1rem;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.72rem;
+      line-height: 1.55;
+      color: #c4c9d4;
+    }
+
+    .runs-empty-docs {
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .runs-empty-docs a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .runs-empty-docs a:hover {
+      text-decoration: underline;
+    }
+
     .charts-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -863,24 +942,45 @@
 
     <section class="card runs-card table-wrap" aria-labelledby="runs-heading">
       <div class="table-wrap-inner">
-        <table>
-          <thead>
-            <tr id="runs-heading">
-              <th>Agent</th>
-              <th>Topic</th>
-              <th>Model</th>
-              <th>Status</th>
-              <th>Anomaly</th>
-              <th>Steps</th>
-              <th>Duration</th>
-              <th>Tokens</th>
-              <th>Cost</th>
-              <th>Error</th>
-              <th>Timestamp</th>
-            </tr>
-          </thead>
-          <tbody id="runs-body"></tbody>
-        </table>
+        <div id="runs-empty-state" class="runs-empty-state" hidden>
+          <div class="runs-empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18"></path>
+              <path d="M7 16l4-6 4 3 5-8"></path>
+            </svg>
+          </div>
+          <h2 class="runs-empty-title" id="runs-empty-title">No runs yet</h2>
+          <p class="runs-empty-sub">Connect your first agent to start monitoring</p>
+          <div class="runs-empty-code" translate="no">
+            <pre><code>from farol import trace
+
+@trace(agent_name="my-agent", farol_key="YOUR_KEY")
+def my_agent(task, run=None):
+    # your agent code here
+    pass</code></pre>
+          </div>
+          <p class="runs-empty-docs"><a href="/docs.html">View full docs →</a></p>
+        </div>
+        <div id="runs-table-block" class="runs-table-block">
+          <table>
+            <thead>
+              <tr id="runs-heading">
+                <th>Agent</th>
+                <th>Topic</th>
+                <th>Model</th>
+                <th>Status</th>
+                <th>Anomaly</th>
+                <th>Steps</th>
+                <th>Duration</th>
+                <th>Tokens</th>
+                <th>Cost</th>
+                <th>Error</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="runs-body"></tbody>
+          </table>
+        </div>
       </div>
     </section>
     <p class="last-updated" id="last-updated">Last updated: —</p>
@@ -923,6 +1023,8 @@
 
     const userEmailEl = document.getElementById("user-email");
     const runsBody = document.getElementById("runs-body");
+    const runsEmptyStateEl = document.getElementById("runs-empty-state");
+    const runsTableBlockEl = document.getElementById("runs-table-block");
     const statusMessage = document.getElementById("status-message");
     const logoutBtn = document.getElementById("logout-btn");
     const lastUpdatedEl = document.getElementById("last-updated");
@@ -1492,12 +1594,20 @@
       runsBody.innerHTML = "";
 
       if (!runs.length) {
-        const msg = allRuns.length
-          ? "No runs match this filter."
-          : "No runs yet.";
-        runsBody.innerHTML = '<tr><td colspan="11" style="color:#8b919d;">' + msg + "</td></tr>";
+        if (!allRuns.length) {
+          runsEmptyStateEl.hidden = false;
+          runsTableBlockEl.hidden = true;
+          return;
+        }
+        runsEmptyStateEl.hidden = true;
+        runsTableBlockEl.hidden = false;
+        runsBody.innerHTML =
+          '<tr><td colspan="11" style="color:#8b919d;">No runs match this filter.</td></tr>';
         return;
       }
+
+      runsEmptyStateEl.hidden = true;
+      runsTableBlockEl.hidden = false;
 
       runs.forEach((r, i) => {
         const row = document.createElement("tr");

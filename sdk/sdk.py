@@ -363,10 +363,7 @@ def _save_run(
             try:
                 resend.Emails.send({**email_payload, "from": "Farol <alerts@usefarol.dev>"})
             except Exception:
-                try:
-                    resend.Emails.send({**email_payload, "from": "Farol <onboarding@resend.dev>"})
-                except Exception:
-                    pass
+                pass
         _send_slack_cost_anomaly_alert(run)
 
 

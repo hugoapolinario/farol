@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "Farol <onboarding@resend.dev>",
+          from: "Farol <noreply@usefarol.dev>",
           to: [email],
           subject: "Your Farol account has been deleted",
           text: "Your Farol account has been deleted",
