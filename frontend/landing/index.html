@@ -315,63 +315,12 @@
       }
     }
 
-    .waitlist-form {
+    .hero-cta {
       display: flex;
-      flex-wrap: wrap;
-      gap: 0.65rem;
-      justify-content: center;
-      align-items: stretch;
-      max-width: 420px;
-      margin: 0 auto;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
       animation: fade-up 0.7s ease 0.24s both;
-    }
-
-    .waitlist-form label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
-
-    .waitlist-form input[type="email"] {
-      flex: 1 1 200px;
-      min-width: 0;
-      padding: 0.75rem 1rem;
-      font-family: var(--font-sans);
-      font-size: 1rem;
-      color: var(--text);
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .waitlist-form input[type="email"]::placeholder {
-      color: var(--text-muted);
-    }
-
-    .waitlist-form input[type="email"]:focus-visible {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-dim);
-    }
-
-    .waitlist-form .btn-primary {
-      flex: 0 0 auto;
-      white-space: nowrap;
-    }
-
-    .form-hint {
-      width: 100%;
-      text-align: center;
-      font-size: 0.8125rem;
-      color: var(--text-muted);
-      margin-top: 0.75rem;
     }
 
     /* Sections */
@@ -828,22 +777,8 @@
       <p class="hero-badge"><span translate="no">v0</span> · Agent observability</p>
       <h1 id="hero-heading">AI agents fail silently and bill <em>loudly</em>.</h1>
       <p class="hero-sub">Most developers find out their agent broke from an angry user. Farol tells you first.</p>
-      <form class="waitlist-form" id="waitlist-nav" action="#" method="get" aria-describedby="hero-form-hint">
-        <label for="email-hero">Email for waitlist</label>
-        <input
-          id="email-hero"
-          name="email"
-          type="email"
-          autocomplete="email"
-          inputmode="email"
-          spellcheck="false"
-          placeholder="you@startup.com…"
-          required
-        />
-        <button type="submit" class="btn btn-primary">Join waitlist</button>
-        <p id="hero-form-hint" class="form-hint">No spam. We’ll only email you about early access.</p>
-      </form>
-      <div class="hero-demo-link">
+      <div class="hero-cta">
+        <a href="/signup" class="btn btn-primary" style="font-size:1.05rem;padding:0.75rem 1.75rem;">Sign up free →</a>
         <a href="/demo" class="btn btn-ghost">View demo →</a>
       </div>
     </section>
@@ -1011,21 +946,7 @@
       <div class="cta-band">
         <h2 id="cta-heading">Be the first to know when something breaks</h2>
         <p>Join the waitlist for early access, pricing for small teams, and the public beta timeline.</p>
-        <form class="waitlist-form" action="#" method="get" aria-describedby="cta-form-hint">
-          <label for="email-cta">Email for waitlist</label>
-          <input
-            id="email-cta"
-            name="email"
-            type="email"
-            autocomplete="email"
-            inputmode="email"
-            spellcheck="false"
-            placeholder="you@startup.com…"
-            required
-          />
-          <button type="submit" class="btn btn-primary">Join waitlist</button>
-          <p id="cta-form-hint" class="form-hint">We respect your inbox. Unsubscribe any time.</p>
-        </form>
+        <a href="/signup" class="btn btn-primary" style="font-size:1rem;padding:0.72rem 1.5rem;">Sign up free →</a>
       </div>
     </section>
   </main>
@@ -1040,59 +961,5 @@
       </p>
     </div>
   </footer>
-  <script>
-    (function () {
-      const endpoint = "https://app.loops.so/api/newsletter-form/cmnou2v7p005o0iz03tfgexwj";
-      const errorMessage = "Something went wrong, please try again.";
-
-      document.querySelectorAll(".waitlist-form").forEach(function (form) {
-        form.addEventListener("submit", async function (event) {
-          event.preventDefault();
-
-          const emailInput = form.querySelector('input[name="email"]');
-          const hint = form.querySelector(".form-hint");
-          const submitButton = form.querySelector('button[type="submit"]');
-
-          if (!emailInput || !hint) return;
-
-          if (submitButton) submitButton.disabled = true;
-
-          try {
-            const body = new URLSearchParams({ email: emailInput.value.trim() }).toString();
-            const response = await fetch(endpoint, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-              },
-              body: body
-            });
-
-            let data = null;
-            try {
-              data = await response.clone().json();
-            } catch (_err) {
-              data = null;
-            }
-
-            if (!response.ok) {
-              throw new Error("Request failed");
-            }
-
-            const successMessage =
-              (data && typeof data.message === "string" && data.message.trim()) ||
-              (data && typeof data.success === "string" && data.success.trim()) ||
-              "Success!";
-
-            hint.textContent = successMessage;
-            form.reset();
-          } catch (_error) {
-            hint.textContent = errorMessage;
-          } finally {
-            if (submitButton) submitButton.disabled = false;
-          }
-        });
-      });
-    })();
-  </script>
 </body>
 </html>
