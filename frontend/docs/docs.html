@@ -415,14 +415,15 @@
 <span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
     run[<span style="color:#86efac">"topic"</span>] = task
 
-    <span style="color:#6b7280"># record your steps</span>
-    run[<span style="color:#86efac">"steps"</span>].append({<span style="color:#86efac">"step"</span>: <span style="color:#86efac">"web_search"</span>, <span style="color:#86efac">"url"</span>: <span style="color:#86efac">"..."</span>})
+    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"web_search"</span>, type=<span style="color:#86efac">"tool"</span>) <span style="color:#c084fc">as</span> span:
+        result = search(task)
 
-    <span style="color:#6b7280"># record token usage</span>
-    run[<span style="color:#86efac">"input_tokens"</span>] = <span style="color:#fdba74">229</span>
-    run[<span style="color:#86efac">"output_tokens"</span>] = <span style="color:#fdba74">197</span>
+    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
+        response = llm.call(task)
+        span.input_tokens = response.usage.input_tokens
+        span.output_tokens = response.usage.output_tokens
 
-    <span style="color:#c084fc">return</span> result</code></pre>
+    <span style="color:#c084fc">return</span> response.text</code></pre>
         </div>
       </section>
 
