@@ -307,12 +307,25 @@
       color: var(--text-muted);
       line-height: 1.45;
     }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      margin-bottom: 1rem;
+      transition: color 0.15s ease;
+    }
+
+    .back-link:hover { color: var(--text); }
   </style>
 </head>
 <body>
   <header class="navbar">
     <div class="wrap nav-inner">
-      <a class="logo" href="/index.html" aria-label="Farol home">
+      <a class="logo" href="/" aria-label="Farol home">
         <span class="logo-mark" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
             <path d="M12 3L4 9v12h16V9l-8-6z"></path>
@@ -337,6 +350,8 @@
       </span>
       Farol
     </div>
+
+    <a class="back-link" href="/">← Back to home</a>
 
     <div id="signup-phase">
       <h1 id="signup-title">Create your account</h1>
