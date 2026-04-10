@@ -1147,7 +1147,7 @@
     <span class="demo-banner-text">
       <strong>You are viewing a demo</strong> — Sign up free to monitor your own agents
     </span>
-    <a class="btn btn-primary demo-banner-btn" href="/signup.html">Get started →</a>
+        <a class="btn btn-primary demo-banner-btn" href="/signup">Get started →</a>
   </div>
 
   <!-- ── App shell ───────────────────────────────────────────────── -->
@@ -1202,8 +1202,8 @@
       </div>
 
       <div class="sidebar-footer">
-        <a class="btn btn-primary" href="/signup.html">Sign up free</a>
-        <a class="sidebar-login" href="/login.html">Log in</a>
+        <a class="btn btn-primary" href="/signup">Sign up free</a>
+        <a class="sidebar-login" href="/login">Log in</a>
       </div>
     </nav>
 
@@ -1280,7 +1280,7 @@ def my_agent(task, run=None):
     with run.span("llm_call", type="llm") as span:
         response = llm.call(task)
         span.output_tokens = response.usage.output_tokens</pre>
-            <a class="btn btn-primary sdk-cta" href="/auth/signup.html">Sign up free →</a>
+            <a class="btn btn-primary sdk-cta" href="/signup">Sign up free →</a>
           </div>
         </div>
         <p class="section-note">Demo data · 4 agents · 41 runs total</p>
@@ -1854,7 +1854,7 @@ def my_agent(task, run=None):
         '<div class="agent-add-title">🔌 Connect another agent</div>' +
         '<div class="agent-add-subtitle">Instrument any Python agent with one decorator</div>' +
         '<pre class="agent-add-code">@trace(agent_name="my-agent",\n       farol_key="frl_...")</pre>' +
-        '<a class="btn btn-primary agent-add-btn" href="/auth/signup.html">Sign up free →</a>' +
+        '<a class="btn btn-primary agent-add-btn" href="/signup">Sign up free →</a>' +
         '</div>'
       );
 

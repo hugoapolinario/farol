@@ -15,6 +15,17 @@
     { "source": "/docs.html", "destination": "/frontend/docs/docs.html" },
     { "source": "/demo.html", "destination": "/frontend/app/demo.html" },
     { "source": "/privacy.html", "destination": "/frontend/legal/privacy.html" },
-    { "source": "/terms.html", "destination": "/frontend/legal/terms.html" }
+    { "source": "/terms.html", "destination": "/frontend/legal/terms.html" },
+    { "source": "/signup", "destination": "/frontend/auth/signup.html" },
+    { "source": "/login", "destination": "/frontend/auth/login.html" },
+    { "source": "/reset", "destination": "/frontend/auth/reset.html" },
+    { "source": "/app", "destination": "/frontend/app/app.html" },
+    { "source": "/settings", "destination": "/frontend/app/settings.html" },
+    { "source": "/docs", "destination": "/frontend/docs/docs.html" },
+    { "source": "/demo", "destination": "/frontend/app/demo.html" },
+    { "source": "/privacy", "destination": "/frontend/legal/privacy.html" },
+    { "source": "/terms", "destination": "/frontend/legal/terms.html" },
+    { "source": "/update-password", "destination": "/frontend/auth/update-password.html" },
+    { "source": "/confirmed", "destination": "/frontend/auth/confirmed.html" }
   ]
 }

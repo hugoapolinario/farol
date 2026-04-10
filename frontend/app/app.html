@@ -1422,7 +1422,7 @@
           Alerts
           <span class="nav-count" id="alerts-count" hidden aria-label="unread alerts"></span>
         </button>
-        <a class="nav-item" href="/settings.html" aria-current="false">
+        <a class="nav-item" href="/settings" aria-current="false">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
@@ -1530,7 +1530,7 @@ def my_agent(task, run=None):
     # your agent code here
     pass</code></pre>
               </div>
-              <p class="runs-empty-docs"><a href="/docs.html">View full docs →</a></p>
+              <p class="runs-empty-docs"><a href="/docs">View full docs →</a></p>
             </div>
             <div id="runs-table-block" class="runs-table-block">
               <table>
@@ -2494,7 +2494,7 @@ def my_agent(task, run=None):
         '<div class="agent-add-title">🔌 Connect another agent</div>' +
         '<div class="agent-add-subtitle">Instrument any Python agent with one decorator</div>' +
         '<pre class="agent-add-code">@trace(agent_name="my-agent",\n       farol_key="frl_...")</pre>' +
-        '<a class="btn btn-primary agent-add-btn" href="/docs.html">View docs →</a>' +
+        '<a class="btn btn-primary agent-add-btn" href="/docs">View docs →</a>' +
         '</div>'
       );
 
@@ -2928,7 +2928,7 @@ def my_agent(task, run=None):
       const { data, error } = await client.auth.getUser();
 
       if (error || !data || !data.user) {
-        window.location.href = "/login.html";
+        window.location.href = "/login";
         return;
       }
 
@@ -2950,7 +2950,7 @@ def my_agent(task, run=None):
 
     logoutBtn.addEventListener("click", async function () {
       await client.auth.signOut();
-      window.location.href = "/login.html";
+      window.location.href = "/login";
     });
 
     ovDateEl.addEventListener("change", function () {

@@ -371,7 +371,7 @@
   <header class="navbar">
     <div class="wrap nav-inner">
       <div class="nav-left">
-        <a class="logo" href="/app.html" aria-label="Farol app">
+        <a class="logo" href="/app" aria-label="Farol app">
           <span class="logo-mark" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
               <path d="M12 3L4 9v12h16V9l-8-6z"></path>
@@ -381,7 +381,7 @@
           </span>
           Farol
         </a>
-        <a class="nav-link nav-back" href="/app.html">← Dashboard</a>
+        <a class="nav-link nav-back" href="/app">← Dashboard</a>
       </div>
       <div class="nav-right">
         <span class="email" id="user-email">—</span>
@@ -608,7 +608,7 @@
       const { data, error } = await client.auth.getUser();
 
       if (error || !data || !data.user) {
-        window.location.href = "/login.html";
+        window.location.href = "/login";
         return;
       }
 
@@ -656,7 +656,7 @@
 
     logoutBtn.addEventListener("click", async function () {
       await client.auth.signOut();
-      window.location.href = "/login.html";
+      window.location.href = "/login";
     });
 
     regenerateKeyBtn.addEventListener("click", function () {
@@ -677,7 +677,7 @@
       try {
         const token = await getAccessToken();
         if (!token) {
-          window.location.href = "/login.html";
+          window.location.href = "/login";
           return;
         }
         const res = await fetch(ROTATE_KEY_URL, {
@@ -729,7 +729,7 @@
       try {
         const token = await getAccessToken();
         if (!token) {
-          window.location.href = "/login.html";
+          window.location.href = "/login";
           return;
         }
         const res = await fetch(DELETE_ACCOUNT_URL, {
