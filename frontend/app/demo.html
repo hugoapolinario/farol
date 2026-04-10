@@ -91,6 +91,7 @@
       padding: 0 0.2rem 1rem;
       border-bottom: 1px solid var(--border);
       margin-bottom: 0.65rem;
+      position: relative;
     }
 
     .logo {
@@ -301,6 +302,166 @@
     @media (max-width: 900px) {
       .charts-grid { grid-template-columns: 1fr; }
     }
+
+    /* ── Mobile top bar ─────────────────────────────────────────── */
+    .mobile-topbar {
+      display: none;
+      flex-shrink: 0;
+      height: 52px;
+      padding: 0 1rem;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10, 11, 13, 0.97);
+      z-index: 90;
+    }
+
+    .mobile-hamburger {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 1.35rem;
+      line-height: 1;
+      padding: 0.25rem 0.35rem;
+      border-radius: var(--radius-sm);
+      transition: background 0.13s ease;
+    }
+
+    .mobile-hamburger:hover { background: rgba(255, 255, 255, 0.07); }
+
+    /* ── Sidebar mobile overlay ─────────────────────────────────── */
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 299;
+    }
+
+    .sidebar-backdrop.open { display: block; }
+
+    .sidebar-close-btn {
+      display: none;
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      line-height: 1;
+      padding: 0.2rem 0.35rem;
+      border-radius: var(--radius-sm);
+      transition: color 0.13s ease, background 0.13s ease;
+    }
+
+    .sidebar-close-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.07); }
+
+    /* ── Responsive breakpoints ─────────────────────────────────── */
+    @media (max-width: 768px) {
+
+      /* Show mobile top bar, hide desktop sidebar by default */
+      .mobile-topbar { display: flex; }
+      .sidebar { display: none; }
+      .sidebar-close-btn { display: block; }
+
+      /* Sidebar as overlay when open */
+      .sidebar.open {
+        display: flex;
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        z-index: 300;
+        overflow-y: auto;
+        border-right: none;
+      }
+
+      /* Content takes full width */
+      .content-area {
+        padding: 1rem 1rem 2rem;
+        min-width: 0;
+        width: 100%;
+      }
+
+      /* Demo banner stacks vertically */
+      .demo-banner {
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0.65rem 1rem;
+      }
+
+      /* KPI grid: 2×2 */
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      /* Charts: single column */
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+
+      /* Agent cards: single column */
+      .agents-grid {
+        grid-template-columns: 1fr;
+      }
+
+      /* Agent stats bar: wrap */
+      .agents-stats-bar {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .agents-stats-item + .agents-stats-item {
+        border-left: none;
+        padding-left: 0;
+        margin-left: 0;
+        border-top: 1px solid var(--border);
+        padding-top: 0.5rem;
+        margin-top: 0;
+        width: 100%;
+      }
+
+      /* Agent modal KPIs: single column */
+      .agent-modal-kpis {
+        grid-template-columns: 1fr;
+      }
+
+      /* Agent modal charts: single column */
+      .agent-modal-charts {
+        grid-template-columns: 1fr;
+      }
+
+      /* Modals: full width */
+      .modal-overlay { padding: 0.5rem; }
+
+      .modal-card {
+        max-width: 95vw;
+        max-height: 90vh;
+      }
+
+      .agent-modal-card {
+        max-width: 95vw;
+        max-height: 90vh;
+      }
+
+      /* Runs table: allow horizontal scroll */
+      .table-wrap { overflow-x: auto; }
+
+      /* Overview filter bar: wrap */
+      .ov-filter-bar { flex-wrap: wrap; gap: 0.65rem; }
+
+      /* Section title spacing */
+      .section-title { font-size: 1.05rem; margin-bottom: 1rem; }
+
+      /* Blur target should include mobile topbar area */
+      body.modal-open .mobile-topbar {
+        filter: blur(2px);
+        pointer-events: none;
+      }
+    }
+    
 
     .chart-card {
       border: 1px solid var(--border);
@@ -1150,6 +1311,24 @@
         <a class="btn btn-primary demo-banner-btn" href="/signup">Get started →</a>
   </div>
 
+  <!-- ── Mobile top bar ──────────────────────────────────────────── -->
+  <div class="mobile-topbar" aria-label="Mobile navigation bar">
+    <a class="logo" href="/" aria-label="Farol home">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M12 3L4 9v12h16V9l-8-6z"></path>
+          <path d="M9 21V12h6v9"></path>
+          <circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none"></circle>
+        </svg>
+      </span>
+      Farol
+    </a>
+    <button class="mobile-hamburger" id="mobile-hamburger-btn" aria-label="Open navigation" aria-expanded="false">☰</button>
+  </div>
+
+  <!-- ── Sidebar backdrop (mobile overlay) ────────────────────────── -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
+
   <!-- ── App shell ───────────────────────────────────────────────── -->
   <div class="app-shell">
 
@@ -1167,6 +1346,7 @@
           Farol
         </a>
         <span class="demo-badge" aria-label="Demo mode">DEMO</span>
+        <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Close navigation">&#x2715;</button>
       </div>
 
       <div class="sidebar-nav" role="list">
@@ -1629,8 +1809,37 @@ def my_agent(task, run=None):
     }
 
     document.querySelectorAll(".nav-item").forEach(function(btn) {
-      btn.addEventListener("click", function() { navigateTo(btn.dataset.target); });
+      btn.addEventListener("click", function() {
+        closeMobileNav();
+        navigateTo(btn.dataset.target);
+      });
     });
+
+    /* ── Mobile sidebar toggle ─────────────────────────────────── */
+    const sidebar        = document.querySelector(".sidebar");
+    const sidebarBackdrop = document.getElementById("sidebar-backdrop");
+    const hamburgerBtn   = document.getElementById("mobile-hamburger-btn");
+    const sidebarCloseBtn = document.getElementById("sidebar-close-btn");
+
+    function openMobileNav() {
+      sidebar.classList.add("open");
+      sidebarBackdrop.classList.add("open");
+      sidebarBackdrop.setAttribute("aria-hidden", "false");
+      hamburgerBtn.setAttribute("aria-expanded", "true");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeMobileNav() {
+      sidebar.classList.remove("open");
+      sidebarBackdrop.classList.remove("open");
+      sidebarBackdrop.setAttribute("aria-hidden", "true");
+      hamburgerBtn.setAttribute("aria-expanded", "false");
+      document.body.style.overflow = "";
+    }
+
+    hamburgerBtn.addEventListener("click", openMobileNav);
+    sidebarCloseBtn.addEventListener("click", closeMobileNav);
+    sidebarBackdrop.addEventListener("click", closeMobileNav);
 
     /* ─── Agent filter ───────────────────────────────────────────── */
     function populateAgentFilter() {
