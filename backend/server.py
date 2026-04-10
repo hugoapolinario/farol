@@ -24,6 +24,7 @@ _URL_MAP = {
     "/app.html": os.path.join(_PROJECT_ROOT, "frontend", "app", "app.html"),
     "/dashboard.html": os.path.join(_PROJECT_ROOT, "frontend", "app", "dashboard.html"),
     "/docs.html": os.path.join(_PROJECT_ROOT, "frontend", "docs", "docs.html"),
+    "/demo.html": os.path.join(_PROJECT_ROOT, "frontend", "app", "demo.html"),
 }
 
 supabase = create_client(_SUPABASE_URL, _SUPABASE_KEY)

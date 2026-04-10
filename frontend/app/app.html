@@ -280,17 +280,63 @@
       font-size: 0.79rem;
     }
 
-    .trace-panel {
-      margin-top: 1rem;
+    /* ── Modal overlay ── */
+    @keyframes modal-backdrop-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes modal-card-in {
+      from { opacity: 0; transform: translateY(12px) scale(0.985); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+    }
+
+    .modal-overlay.visible {
+      display: flex;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 0;
+      animation: modal-backdrop-in 0.18s ease forwards;
+      cursor: pointer;
+    }
+
+    .modal-card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 860px;
+      max-height: 80vh;
+      overflow-y: auto;
       border: 1px solid var(--border);
       border-radius: var(--radius);
       background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
-      padding: 1rem;
-      display: none;
+      padding: 1.25rem;
+      animation: modal-card-in 0.2s ease forwards;
     }
 
-    .trace-panel.visible {
-      display: block;
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    body.modal-open .navbar,
+    body.modal-open main {
+      filter: blur(2px);
+      pointer-events: none;
+      user-select: none;
     }
 
     .trace-header {
@@ -646,19 +692,27 @@
     }
 
     .close-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      padding: 0;
       background: var(--bg-elevated);
       border: 1px solid var(--border);
       color: var(--text-muted);
-      padding: 0.25rem 0.6rem;
       border-radius: 6px;
       cursor: pointer;
-      font-size: 0.76rem;
+      font-size: 1rem;
       font-family: inherit;
+      flex-shrink: 0;
+      line-height: 1;
     }
 
     .close-btn:hover {
       color: var(--text);
       border-color: rgba(249, 115, 22, 0.35);
+      background: rgba(249, 115, 22, 0.08);
     }
 
     .filter-bar {
@@ -985,13 +1039,18 @@ def my_agent(task, run=None):
     </section>
     <p class="last-updated" id="last-updated">Last updated: —</p>
 
-    <div class="trace-panel" id="trace-panel">
+    <p class="status" id="status-message"></p>
+  </main>
+
+  <div class="modal-overlay" id="trace-overlay" role="dialog" aria-modal="true" aria-labelledby="trace-title">
+    <div class="modal-backdrop" id="trace-backdrop"></div>
+    <div class="modal-card" id="trace-panel">
       <div class="trace-header">
         <div>
           <div class="trace-title" id="trace-title">—</div>
           <div class="trace-meta" id="trace-meta">—</div>
         </div>
-        <button class="close-btn" type="button" onclick="closeTrace()">close</button>
+        <button class="close-btn" type="button" onclick="closeTrace()" aria-label="Close">&#x2715;</button>
       </div>
       <div class="trace-stats">
         <div class="trace-stat">
@@ -1011,8 +1070,7 @@ def my_agent(task, run=None):
       <div class="steps-title" id="trace-detail-title">Execution steps</div>
       <div id="trace-steps"></div>
     </div>
-    <p class="status" id="status-message"></p>
-  </main>
+  </div>
 
   <script src="/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1675,8 +1733,10 @@ def my_agent(task, run=None):
       const r = displayedRuns[index];
       if (!r) return;
 
-      const panel = document.getElementById("trace-panel");
-      panel.classList.add("visible");
+      const overlay = document.getElementById("trace-overlay");
+      overlay.classList.add("visible");
+      document.body.classList.add("modal-open");
+      document.getElementById("trace-panel").scrollTop = 0;
 
       document.getElementById("trace-title").textContent = (r.agent || "—") + " — " + (r.topic || r.id || "—");
       document.getElementById("trace-meta").textContent =
@@ -1725,11 +1785,11 @@ def my_agent(task, run=None):
         renderTraceStepsFallback(r, stepsEl);
       }
 
-      panel.scrollIntoView({ behavior: "smooth" });
     }
 
     function closeTrace() {
-      document.getElementById("trace-panel").classList.remove("visible");
+      document.getElementById("trace-overlay").classList.remove("visible");
+      document.body.classList.remove("modal-open");
       if (activeRow) activeRow.classList.remove("active");
       activeRow = null;
     }
@@ -1800,6 +1860,11 @@ def my_agent(task, run=None):
     agentFilterEl.addEventListener("change", function () {
       closeTrace();
       applyFilterAndRender();
+    });
+
+    document.getElementById("trace-backdrop").addEventListener("click", closeTrace);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeTrace();
     });
 
     init();

@@ -236,6 +236,22 @@
       background: var(--accent-dim);
     }
 
+    .nav-link {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--text);
+    }
+
+    .hero-demo-link {
+      margin-top: 1rem;
+      animation: fade-up 0.7s ease 0.32s both;
+    }
+
     /* Hero */
     .hero {
       padding: clamp(3rem, 8vw, 5.5rem) 0 clamp(4rem, 10vw, 6rem);
@@ -613,11 +629,17 @@
 
     .pricing-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 1.25rem;
     }
 
-    @media (max-width: 980px) {
+    @media (max-width: 1080px) {
+      .pricing-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 580px) {
       .pricing-grid {
         grid-template-columns: 1fr;
       }
@@ -793,7 +815,8 @@
         Farol
       </a>
       <div style="display:flex;align-items:center;gap:1.5rem;">
-        <a href="/docs.html" style="font-size:0.875rem;color:#e0e0e0;text-decoration:none;">Docs</a>
+        <a href="/docs.html" class="nav-link">Docs</a>
+        <a href="/app/demo.html" class="nav-link">View demo</a>
         <a href="/signup.html" class="nav-cta">Get started</a>
       </div>
     </div>
@@ -819,6 +842,9 @@
         <button type="submit" class="btn btn-primary">Join waitlist</button>
         <p id="hero-form-hint" class="form-hint">No spam. We’ll only email you about early access.</p>
       </form>
+      <div class="hero-demo-link">
+        <a href="/app/demo.html" class="btn btn-ghost">View demo →</a>
+      </div>
     </section>
 
     <section class="wrap" aria-labelledby="problem-heading">
@@ -834,19 +860,21 @@
           <p class="stat-desc">cost spikes go undetected</p>
         </article>
         <article class="stat-card">
-          <p class="stat-value">3</p>
-          <p class="stat-desc">lines of code to get started</p>
+          <p class="stat-value">1</p>
+          <p class="stat-desc">decorator to get started</p>
         </article>
       </div>
 
       <div class="code-panel" translate="no">
         <div class="code-header">
           <span class="code-dots" aria-hidden="true"><span></span><span></span><span></span></span>
-          <span>sdk.ts</span>
+          <span>sdk.py</span>
         </div>
-        <pre class="code-body"><code><span class="tok-kw">import</span> { farol } <span class="tok-kw">from</span> <span class="tok-str">'@farol/sdk'</span>
+        <pre class="code-body"><code><span class="tok-kw">from</span> farol <span class="tok-kw">import</span> <span class="tok-fn">trace</span>
 
-farol.<span class="tok-fn">init</span>({ <span class="tok-str">apiKey</span>: process.env.<span class="tok-str">FAROL_KEY</span> }) <span class="tok-cmt">// that’s it</span></code></pre>
+<span class="tok-cmt">@trace</span>(<span class="tok-str">agent_name</span>=<span class="tok-str">"my-agent"</span>, <span class="tok-str">farol_key</span>=<span class="tok-str">"frl_..."</span>)
+<span class="tok-kw">def</span> <span class="tok-fn">my_agent</span>(task, run=<span class="tok-kw">None</span>):
+    run[<span class="tok-str">"topic"</span>] = task  <span class="tok-cmt"># that’s it</span></code></pre>
       </div>
     </section>
 
@@ -933,6 +961,17 @@ farol.<span class="tok-fn">init</span>({ <span class="tok-str">apiKey</span>: pr
       <p class="pricing-kicker">Simple pricing. No sales call.</p>
       <div class="pricing-grid">
         <article class="pricing-card">
+          <h3 class="pricing-tier">Free</h3>
+          <p class="pricing-price">€0<span>/mo</span></p>
+          <ul class="pricing-list">
+            <li>1 agent</li>
+            <li>10k events/month</li>
+            <li>Email alerts</li>
+          </ul>
+          <a href="/signup.html" class="btn btn-ghost" style="margin-top:auto;width:100%;justify-content:center;">Get started free</a>
+        </article>
+
+        <article class="pricing-card">
           <h3 class="pricing-tier">Starter</h3>
           <p class="pricing-price">€29<span>/month</span></p>
           <ul class="pricing-list">
@@ -940,7 +979,6 @@ farol.<span class="tok-fn">init</span>({ <span class="tok-str">apiKey</span>: pr
             <li>100k events/month</li>
             <li>Email alerts</li>
           </ul>
-          <p class="pricing-trial">14-day free trial</p>
         </article>
 
         <article class="pricing-card popular">
@@ -953,7 +991,6 @@ farol.<span class="tok-fn">init</span>({ <span class="tok-str">apiKey</span>: pr
             <li>Cost anomaly detection</li>
             <li>Slack alerts</li>
           </ul>
-          <p class="pricing-trial">14-day free trial</p>
         </article>
 
         <article class="pricing-card">
@@ -965,7 +1002,6 @@ farol.<span class="tok-fn">init</span>({ <span class="tok-str">apiKey</span>: pr
             <li>Priority support</li>
             <li>Early access to new features</li>
           </ul>
-          <p class="pricing-trial">14-day free trial</p>
         </article>
       </div>
     </section>
