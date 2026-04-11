@@ -2040,27 +2040,37 @@ def my_agent(task, run=None):
 
     /* ─── Agent cards ────────────────────────────────────────────── */
     /* ─── Agent health ───────────────────────────────────────────── */
-    function computeAgentHealth(runs) {
-      if (!runs.length) return "healthy";
+    /* Returns full stats object for one agent's runs; the health field is the
+       authoritative verdict used by both the banner text and the card dot. */
+    function agentHealthStats(runs) {
+      var WEEK = 7 * 24 * 60 * 60 * 1000;
+      if (!runs.length) return { health: "healthy", recentCount: 0, rate: 100, errors: 0, anomalyCount: 0 };
       var mostRecent = Math.max.apply(null, runs.map(function(r) { return r.timestamp || 0; }));
-      var cutoff = mostRecent - 7 * 24 * 60 * 60 * 1000;
+      var cutoff = mostRecent - WEEK;
       var recent = runs.filter(function(r) { return (r.timestamp || 0) >= cutoff; });
-      if (!recent.length) return "healthy";
+      if (!recent.length) return { health: "healthy", recentCount: 0, rate: 100, errors: 0, anomalyCount: 0 };
       var n = recent.length;
       var succ = recent.filter(function(r) { return r.status === "success"; }).length;
       var rate = Math.round((succ / n) * 100);
+      var errors = recent.filter(function(r) { return r.status === "error"; }).length;
       var anomalyCount = recent.filter(function(r) { return r.anomaly; }).length;
       var sorted = recent.slice().sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
       var lastRunIsError = sorted[0] && sorted[0].status === "error";
-      if (rate < 60 || anomalyCount >= 2 || lastRunIsError) return "critical";
-      if (rate < 80 || anomalyCount === 1) return "warning";
-      return "healthy";
+      var health;
+      if (rate < 60 || anomalyCount >= 2 || lastRunIsError) health = "critical";
+      else if (rate < 80 || anomalyCount === 1) health = "warning";
+      else health = "healthy";
+      return { health: health, recentCount: n, rate: rate, errors: errors, anomalyCount: anomalyCount };
+    }
+
+    /* Thin wrapper kept for any code that only needs the string result. */
+    function computeAgentHealth(runs) {
+      return agentHealthStats(runs).health;
     }
 
     function renderHealthBanner() {
       var banner = document.getElementById("health-banner");
       if (!banner) return;
-      var WEEK = 7 * 24 * 60 * 60 * 1000;
       var agentMap = new Map();
       allRuns.forEach(function(r) {
         var key = r.agent || "—";
@@ -2069,9 +2079,14 @@ def my_agent(task, run=None):
       });
       var criticals = [], warnings = [];
       agentMap.forEach(function(runs, name) {
-        var h = computeAgentHealth(runs);
-        if (h === "critical") criticals.push({ name: name, runs: runs });
-        else if (h === "warning") warnings.push({ name: name, runs: runs });
+        var s = agentHealthStats(runs);
+        console.log("[Farol health]", name, "→", s.health,
+          "| recent:", s.recentCount, "runs",
+          "| rate:", s.rate + "%",
+          "| errors:", s.errors,
+          "| anomalies:", s.anomalyCount);
+        if (s.health === "critical") criticals.push({ name: name, stats: s });
+        else if (s.health === "warning") warnings.push({ name: name, stats: s });
       });
       if (!criticals.length && !warnings.length) {
         banner.className = "";
@@ -2081,28 +2096,21 @@ def my_agent(task, run=None):
       banner.hidden = false;
       if (criticals.length) {
         var item = criticals[0];
-        var mostRecent = Math.max.apply(null, item.runs.map(function(r) { return r.timestamp || 0; }));
-        var recent = item.runs.filter(function(r) { return (r.timestamp || 0) >= mostRecent - WEEK; });
-        var n = recent.length;
-        var succ = recent.filter(function(r) { return r.status === "success"; }).length;
-        var rate = n > 0 ? Math.round((succ / n) * 100) : 0;
-        var errors = recent.filter(function(r) { return r.status === "error"; }).length;
+        var s = item.stats;
         var extra = criticals.length - 1;
         var hint = extra > 0 ? ' <span class="health-banner-more">+' + extra + ' more</span>' : "";
         banner.className = "critical";
         banner.innerHTML =
-          '<span>🔴 <strong>' + escapeHtml(item.name) + '</strong> has a <strong>' + rate + '%</strong> success rate this week — ' + errors + ' error' + (errors !== 1 ? 's' : '') + ' detected.' + hint + '</span>' +
+          '<span>🔴 <strong>' + escapeHtml(item.name) + '</strong> has a <strong>' + s.rate + '%</strong> success rate this week — ' + s.errors + ' error' + (s.errors !== 1 ? 's' : '') + ' detected.' + hint + '</span>' +
           '<button class="health-banner-link" data-action="runs" data-agent="' + escapeHtml(item.name) + '">View runs →</button>';
       } else {
         var item = warnings[0];
-        var mostRecent = Math.max.apply(null, item.runs.map(function(r) { return r.timestamp || 0; }));
-        var recent = item.runs.filter(function(r) { return (r.timestamp || 0) >= mostRecent - WEEK; });
-        var anomalyCount = recent.filter(function(r) { return r.anomaly; }).length;
+        var s = item.stats;
         var extra = warnings.length - 1;
         var hint = extra > 0 ? ' <span class="health-banner-more">+' + extra + ' more</span>' : "";
         banner.className = "warning";
         banner.innerHTML =
-          '<span>⚠️ <strong>' + escapeHtml(item.name) + '</strong> had ' + anomalyCount + ' cost anomal' + (anomalyCount !== 1 ? 'ies' : 'y') + ' this week.' + hint + '</span>' +
+          '<span>⚠️ <strong>' + escapeHtml(item.name) + '</strong> had ' + s.anomalyCount + ' cost anomal' + (s.anomalyCount !== 1 ? 'ies' : 'y') + ' this week.' + hint + '</span>' +
           '<button class="health-banner-link" data-action="alerts">View alerts →</button>';
       }
       var link = banner.querySelector(".health-banner-link");
@@ -2142,8 +2150,13 @@ def my_agent(task, run=None):
         const sorted  = runs.slice().sort(function(a,b) { return new Date(b.timestamp) - new Date(a.timestamp); });
         const lastRun = sorted[0];
         const rateClass = rate === 100 ? "good" : rate >= 85 ? "" : "warn";
-        const health    = computeAgentHealth(runs);
-        const dotClass  = "agent-card-dot " + health;
+        const hs        = agentHealthStats(runs);
+        console.log("[Farol health] card:", name, "→", hs.health,
+          "| recent:", hs.recentCount, "runs",
+          "| rate:", hs.rate + "%",
+          "| errors:", hs.errors,
+          "| anomalies:", hs.anomalyCount);
+        const dotClass  = "agent-card-dot " + hs.health;
 
         html.push(
           '<div class="agent-card" data-agent="' + escapeHtml(name) + '" title="Click to view details">' +
