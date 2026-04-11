@@ -362,6 +362,62 @@
 
     .site-footer a { color: var(--accent); text-decoration: none; }
     .site-footer a:hover { text-decoration: underline; }
+
+    .code-tabs {
+      margin-top: 0.75rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      overflow: hidden;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+    }
+
+    .code-tabs-header {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-elevated);
+    }
+
+    .code-tab-btn {
+      padding: 0.5rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+      letter-spacing: 0.01em;
+      margin-bottom: -1px;
+    }
+
+    .code-tab-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .code-tab-btn[aria-selected="true"] {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: rgba(249, 115, 22, 0.08);
+    }
+
+    .code-tab-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+
+    .code-tab-panel {
+      display: none;
+    }
+
+    .code-tab-panel[aria-hidden="false"] {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -407,23 +463,120 @@
           <li><strong style="color:var(--text)">Wrap your agent</strong> — pass token usage on the <code style="font-family:var(--font-mono);font-size:0.85em">run</code> dict; Farol records cost and syncs the run.</li>
           <li><strong style="color:var(--text)">Run your agent</strong> and open the dashboard to see live runs, cost, and anomalies.</li>
         </ol>
-        <div class="code-panel" translate="no">
-          <div class="code-header">agent.py</div>
-          <pre class="code-body"><code><span style="color:#c084fc">from</span> farol <span style="color:#c084fc">import</span> trace
+        <div class="code-tabs" translate="no" role="tablist" aria-label="Code examples">
+          <div class="code-tabs-header">
+            <button
+              class="code-tab-btn"
+              id="tab-anthropic"
+              role="tab"
+              aria-selected="true"
+              aria-controls="panel-anthropic"
+            >Anthropic SDK</button>
+            <button
+              class="code-tab-btn"
+              id="tab-httpx"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-httpx"
+            >Direct httpx</button>
+            <button
+              class="code-tab-btn"
+              id="tab-openai"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-openai"
+            >OpenAI SDK</button>
+          </div>
+
+          <div
+            class="code-tab-panel"
+            id="panel-anthropic"
+            role="tabpanel"
+            aria-labelledby="tab-anthropic"
+            aria-hidden="false"
+          >
+            <pre class="code-body"><code><span style="color:#c084fc">from</span> farol <span style="color:#c084fc">import</span> trace
+<span style="color:#c084fc">from</span> anthropic <span style="color:#c084fc">import</span> Anthropic
+
+client = Anthropic()
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
 <span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
     run[<span style="color:#86efac">"topic"</span>] = task
 
-    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"web_search"</span>, type=<span style="color:#86efac">"tool"</span>) <span style="color:#c084fc">as</span> span:
-        result = search(task)
-
     <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
-        response = llm.call(task)
+        response = client.messages.create(
+            model=<span style="color:#86efac">"claude-haiku-4-5"</span>,
+            max_tokens=<span style="color:#fbbf24">1024</span>,
+            messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
+        )
         span.input_tokens = response.usage.input_tokens
         span.output_tokens = response.usage.output_tokens
 
-    <span style="color:#c084fc">return</span> response.text</code></pre>
+    <span style="color:#c084fc">return</span> response.content[<span style="color:#fbbf24">0</span>].text</code></pre>
+          </div>
+
+          <div
+            class="code-tab-panel"
+            id="panel-httpx"
+            role="tabpanel"
+            aria-labelledby="tab-httpx"
+            aria-hidden="true"
+          >
+            <pre class="code-body"><code><span style="color:#c084fc">from</span> farol <span style="color:#c084fc">import</span> trace
+<span style="color:#c084fc">import</span> httpx
+
+<span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+    run[<span style="color:#86efac">"topic"</span>] = task
+
+    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
+        response = httpx.post(
+            <span style="color:#86efac">"https://api.anthropic.com/v1/messages"</span>,
+            headers={
+                <span style="color:#86efac">"x-api-key"</span>: <span style="color:#86efac">"your-anthropic-key"</span>,
+                <span style="color:#86efac">"anthropic-version"</span>: <span style="color:#86efac">"2023-06-01"</span>
+            },
+            json={
+                <span style="color:#86efac">"model"</span>: <span style="color:#86efac">"claude-haiku-4-5"</span>,
+                <span style="color:#86efac">"max_tokens"</span>: <span style="color:#fbbf24">1024</span>,
+                <span style="color:#86efac">"messages"</span>: [{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
+            }
+        ).json()
+        span.input_tokens = response[<span style="color:#86efac">"usage"</span>][<span style="color:#86efac">"input_tokens"</span>]
+        span.output_tokens = response[<span style="color:#86efac">"usage"</span>][<span style="color:#86efac">"output_tokens"</span>]
+
+    <span style="color:#c084fc">return</span> response[<span style="color:#86efac">"content"</span>][<span style="color:#fbbf24">0</span>][<span style="color:#86efac">"text"</span>]</code></pre>
+          </div>
+
+          <div
+            class="code-tab-panel"
+            id="panel-openai"
+            role="tabpanel"
+            aria-labelledby="tab-openai"
+            aria-hidden="true"
+          >
+            <pre class="code-body"><code><span style="color:#c084fc">from</span> farol <span style="color:#c084fc">import</span> trace
+<span style="color:#c084fc">from</span> openai <span style="color:#c084fc">import</span> OpenAI
+
+client = OpenAI(
+    api_key=<span style="color:#86efac">"your-openai-key"</span>
+)
+
+<span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+    run[<span style="color:#86efac">"topic"</span>] = task
+
+    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
+        response = client.chat.completions.create(
+            model=<span style="color:#86efac">"gpt-4o-mini"</span>,
+            messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
+        )
+        span.input_tokens = response.usage.prompt_tokens
+        span.output_tokens = response.usage.completion_tokens
+
+    <span style="color:#c084fc">return</span> response.choices[<span style="color:#fbbf24">0</span>].message.content</code></pre>
+          </div>
         </div>
       </section>
 
@@ -491,6 +644,34 @@
       </section>
     </div>
   </main>
+
+  <script>
+    document.querySelectorAll('.code-tabs').forEach(function(tabs) {
+      var buttons = tabs.querySelectorAll('.code-tab-btn');
+      buttons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var targetId = btn.getAttribute('aria-controls');
+          buttons.forEach(function(b) {
+            b.setAttribute('aria-selected', 'false');
+          });
+          tabs.querySelectorAll('.code-tab-panel').forEach(function(panel) {
+            panel.setAttribute('aria-hidden', 'true');
+          });
+          btn.setAttribute('aria-selected', 'true');
+          tabs.querySelector('#' + targetId).setAttribute('aria-hidden', 'false');
+        });
+
+        btn.addEventListener('keydown', function(e) {
+          var idx = Array.from(buttons).indexOf(btn);
+          if (e.key === 'ArrowRight') {
+            buttons[(idx + 1) % buttons.length].focus();
+          } else if (e.key === 'ArrowLeft') {
+            buttons[(idx - 1 + buttons.length) % buttons.length].focus();
+          }
+        });
+      });
+    });
+  </script>
 
   <footer class="site-footer">
     <div class="wrap">
