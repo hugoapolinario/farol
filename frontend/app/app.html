@@ -828,6 +828,11 @@
       box-shadow: 0 0 0 3px var(--accent-dim);
     }
 
+    .runs-search-wrap { display: flex; align-items: center; }
+    .runs-search-input { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.45rem 0.75rem; color: var(--text); font-size: 0.85rem; width: 220px; outline: none; transition: border-color 0.15s; font-family: inherit; }
+    .runs-search-input:focus { border-color: var(--accent); }
+    .runs-search-input::placeholder { color: var(--text-muted); }
+
     .runs-card {
       padding: 0;
       overflow: hidden;
@@ -1781,6 +1786,9 @@
           <select id="agent-filter">
             <option value="">All agents</option>
           </select>
+          <div class="runs-search-wrap">
+            <input type="text" id="runs-search" placeholder="Search by topic…" class="runs-search-input" />
+          </div>
         </section>
         <p id="runs-count-label" style="margin:0.5rem 0 0.4rem;font-size:0.8rem;color:var(--text-muted);"></p>
         <section class="card runs-card table-wrap" aria-labelledby="runs-heading">
@@ -1962,6 +1970,7 @@ def my_agent(task, run=None):
     const logoutBtn = document.getElementById("logout-btn");
     const lastUpdatedEl = document.getElementById("last-updated");
     const agentFilterEl = document.getElementById("agent-filter");
+    let runsSearchQuery = "";
 
     const AGENT_NONE_VALUE = "__FAROL_NO_AGENT__";
 
@@ -2300,15 +2309,13 @@ def my_agent(task, run=None):
 
     function getFilteredRuns() {
       const v = agentFilterEl.value;
-      if (v === "") return allRuns.slice();
-      if (v === AGENT_NONE_VALUE) {
-        return allRuns.filter(function (r) {
-          return r.agent == null || r.agent === "";
-        });
-      }
-      return allRuns.filter(function (r) {
-        return r.agent === v;
-      });
+      const q = runsSearchQuery.toLowerCase();
+      let runs;
+      if (v === "") runs = allRuns.slice();
+      else if (v === AGENT_NONE_VALUE) runs = allRuns.filter(function (r) { return r.agent == null || r.agent === ""; });
+      else runs = allRuns.filter(function (r) { return r.agent === v; });
+      if (q) runs = runs.filter(function (r) { return (r.topic ?? "").toLowerCase().includes(q); });
+      return runs;
     }
 
     function populateAgentFilter() {
@@ -3418,6 +3425,12 @@ def my_agent(task, run=None):
     });
 
     agentFilterEl.addEventListener("change", function () {
+      closeTrace();
+      applyFilterAndRender();
+    });
+
+    document.getElementById("runs-search").addEventListener("input", function () {
+      runsSearchQuery = this.value.trim();
       closeTrace();
       applyFilterAndRender();
     });
