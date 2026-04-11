@@ -871,11 +871,25 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
               <td>Optional. Model label for display. Default <code style="font-family:var(--font-mono);font-size:0.9em">"unknown"</code>.</td>
             </tr>
             <tr>
-              <th scope="row">cost_per_1k_tokens</th>
-              <td>Optional. USD per 1k tokens (input + output) for cost. Default <code style="font-family:var(--font-mono);font-size:0.9em">0.00025</code>.</td>
+              <th scope="row">cost_per_1k_input_tokens</th>
+              <td>Optional. USD per 1k input (prompt) tokens. Default <code style="font-family:var(--font-mono);font-size:0.9em">0.00025</code> (Claude Haiku).</td>
+            </tr>
+            <tr>
+              <th scope="row">cost_per_1k_output_tokens</th>
+              <td>Optional. USD per 1k output (completion) tokens. Default <code style="font-family:var(--font-mono);font-size:0.9em">0.00125</code> (Claude Haiku).</td>
             </tr>
           </tbody>
         </table>
+        <div class="code-panel" translate="no" style="margin-top:1rem">
+          <div class="code-header">example — custom pricing</div>
+          <pre class="code-body"><code><span style="color:#8b919d"># Prices vary by model — check your provider's pricing page</span>
+<span style="color:#c084fc">@</span>trace(
+    agent_name=<span style="color:#86efac">"my-agent"</span>,
+    farol_key=<span style="color:#86efac">"frl_your_key_here"</span>,
+    cost_per_1k_input_tokens=<span style="color:#fbbf24">0.00025</span>,   <span style="color:#8b919d"># Claude Haiku input price</span>
+    cost_per_1k_output_tokens=<span style="color:#fbbf24">0.00125</span>,  <span style="color:#8b919d"># Claude Haiku output price</span>
+)</code></pre>
+        </div>
       </section>
 
       <section id="dashboard" class="doc-section" aria-labelledby="dashboard-heading">
@@ -889,7 +903,7 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
           <li><strong style="color:var(--text)">Steps</strong> — number of recorded steps in the trace.</li>
           <li><strong style="color:var(--text)">Duration</strong> — wall-clock time for the run.</li>
           <li><strong style="color:var(--text)">Tokens</strong> — input and output token counts.</li>
-          <li><strong style="color:var(--text)">Cost</strong> — estimated USD from tokens and <code style="font-family:var(--font-mono);font-size:0.88em">cost_per_1k_tokens</code>.</li>
+          <li><strong style="color:var(--text)">Cost</strong> — estimated USD calculated separately from input and output tokens using <code style="font-family:var(--font-mono);font-size:0.88em">cost_per_1k_input_tokens</code> and <code style="font-family:var(--font-mono);font-size:0.88em">cost_per_1k_output_tokens</code>.</li>
         </ul>
       </section>
 

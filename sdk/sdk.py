@@ -379,7 +379,8 @@ def save_run(
 def trace(
     agent_name: str,
     model: str = "claude-haiku-4-5-20251001",
-    cost_per_1k_tokens: float = 0.00025,
+    cost_per_1k_input_tokens: float = 0.00025,
+    cost_per_1k_output_tokens: float = 0.00125,
     farol_key: Optional[str] = None,
     farol_endpoint: str = "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/ingest",
     capture_io: bool = False,
@@ -427,7 +428,8 @@ def trace(
             finally:
                 run["duration_ms"] = round((time.time() - start) * 1000)
                 run["cost_usd"] = round(
-                    (run["input_tokens"] + run["output_tokens"]) / 1000 * cost_per_1k_tokens,
+                    (run["input_tokens"] / 1000 * cost_per_1k_input_tokens) +
+                    (run["output_tokens"] / 1000 * cost_per_1k_output_tokens),
                     6,
                 )
                 _save_run(run, farol_key, farol_endpoint, capture_io)

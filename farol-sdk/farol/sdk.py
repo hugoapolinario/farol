@@ -220,7 +220,8 @@ def trace(
     agent_name: str,
     farol_key: Optional[str] = None,
     model: str = "claude-haiku-4-5-20251001",
-    cost_per_1k_tokens: float = 0.00025,
+    cost_per_1k_input_tokens: float = 0.00025,
+    cost_per_1k_output_tokens: float = 0.00125,
 ) -> Callable[[F], F]:
     def decorator(func: F) -> F:
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -255,7 +256,8 @@ def trace(
             finally:
                 run["duration_ms"] = round((time.time() - start) * 1000)
                 run["cost_usd"] = round(
-                    (run["input_tokens"] + run["output_tokens"]) / 1000 * cost_per_1k_tokens,
+                    (run["input_tokens"] / 1000 * cost_per_1k_input_tokens) +
+                    (run["output_tokens"] / 1000 * cost_per_1k_output_tokens),
                     6,
                 )
                 save_run(run)
