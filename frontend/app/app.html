@@ -1451,6 +1451,16 @@
       align-self: flex-start;
     }
 
+    /* ── Usage bar ──────────────────────────────────────────────── */
+    .usage-block { padding: 0.6rem 0.75rem; border-top: 1px solid var(--border); }
+    .usage-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
+    .usage-label { font-size: 0.72rem; color: var(--text-muted); }
+    .usage-value { font-size: 0.72rem; color: var(--text-muted); }
+    .usage-bar-wrap { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .usage-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+    .usage-bar-fill.warning  { background: #f97316; }
+    .usage-bar-fill.critical { background: #ef4444; }
+
     /* ── Upgrade banner ─────────────────────────────────────────── */
     .upgrade-banner {
       display: flex;
@@ -1653,6 +1663,22 @@
       <div class="sidebar-footer">
         <span class="sidebar-email" id="user-email">—</span>
         <span class="plan-badge" id="plan-badge" hidden>FREE</span>
+        <div class="usage-block" id="usage-block" hidden>
+          <div class="usage-row">
+            <span class="usage-label">Events</span>
+            <span class="usage-value" id="usage-events-text">0 / 50k</span>
+          </div>
+          <div class="usage-bar-wrap">
+            <div class="usage-bar-fill" id="usage-events-bar" style="width: 0%"></div>
+          </div>
+          <div class="usage-row" style="margin-top: 0.4rem">
+            <span class="usage-label">Agents</span>
+            <span class="usage-value" id="usage-agents-text">0 / 1</span>
+          </div>
+          <div class="usage-bar-wrap">
+            <div class="usage-bar-fill" id="usage-agents-bar" style="width: 0%"></div>
+          </div>
+        </div>
         <button class="btn btn-ghost" id="logout-btn" type="button" style="font-size:0.82rem;padding:0.42rem 0.75rem;">Log out</button>
       </div>
     </aside>
@@ -1927,6 +1953,47 @@ def my_agent(task, run=None):
 
     let currentUserId = null;
     let userPlan = "free";
+    let eventCount = 0;
+    let agentCount = 0;
+
+    const PLAN_LIMITS = {
+      free:    { agents: 1,        events: 50000 },
+      starter: { agents: 3,        events: 300000 },
+      builder: { agents: Infinity, events: 1000000 },
+      studio:  { agents: Infinity, events: 1000000 },
+    };
+
+    function updateUsageBar() {
+      const limits = PLAN_LIMITS[userPlan] ?? PLAN_LIMITS.free;
+      const usageBlock = document.getElementById("usage-block");
+
+      if (limits.events === Infinity && limits.agents === Infinity) {
+        usageBlock.hidden = true;
+        return;
+      }
+      usageBlock.hidden = false;
+
+      const eventPct = limits.events === Infinity ? 0 : Math.min(100, (eventCount / limits.events) * 100);
+      const agentPct = limits.agents === Infinity ? 0 : Math.min(100, (agentCount / limits.agents) * 100);
+
+      const eventsLabel = limits.events === Infinity
+        ? `${eventCount.toLocaleString()} / ∞`
+        : `${eventCount.toLocaleString()} / ${(limits.events / 1000).toFixed(0)}k`;
+      const agentsLabel = limits.agents === Infinity
+        ? `${agentCount} / ∞`
+        : `${agentCount} / ${limits.agents}`;
+
+      document.getElementById("usage-events-text").textContent = eventsLabel;
+      document.getElementById("usage-agents-text").textContent = agentsLabel;
+
+      const eventsBar = document.getElementById("usage-events-bar");
+      eventsBar.style.width = eventPct + "%";
+      eventsBar.className = "usage-bar-fill" + (eventPct >= 100 ? " critical" : eventPct >= 80 ? " warning" : "");
+
+      const agentsBar = document.getElementById("usage-agents-bar");
+      agentsBar.style.width = agentPct + "%";
+      agentsBar.className = "usage-bar-fill" + (agentPct >= 100 ? " critical" : agentPct >= 80 ? " warning" : "");
+    }
 
     const STARTER_CHECKOUT = "https://obsfarol.lemonsqueezy.com/checkout/buy/d4c5f967-e228-459c-8619-438e314b786b";
     let lastRefreshAt = null;
@@ -3253,17 +3320,21 @@ def my_agent(task, run=None):
       currentUserId = user.id;
       userEmailEl.textContent = user.email || "Signed in";
 
-      // Fetch subscription plan
+      // Fetch subscription plan and usage
       const { data: sub } = await client
         .from("subscriptions")
-        .select("plan, status")
+        .select("plan, status, event_count, agent_names")
         .eq("user_id", user.id)
         .single();
       userPlan = sub?.plan ?? "free";
+      eventCount = sub?.event_count ?? 0;
+      agentCount = (sub?.agent_names ?? []).length;
 
       const planBadgeEl = document.getElementById("plan-badge");
       planBadgeEl.textContent = userPlan.toUpperCase();
       planBadgeEl.hidden = false;
+
+      updateUsageBar();
 
       const upgradeBannerEl = document.getElementById("upgrade-banner");
       const upgradeLinkEl = document.getElementById("upgrade-link");
