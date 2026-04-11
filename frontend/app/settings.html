@@ -365,6 +365,27 @@
     .status-msg.muted {
       color: var(--text-muted);
     }
+
+    .plan-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .plan-name {
+      margin: 0 0 0.25rem;
+      font-size: 1rem;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    .plan-hint {
+      margin: 0;
+      font-size: 0.83rem;
+      color: var(--text-muted);
+    }
   </style>
 </head>
 <body>
@@ -457,6 +478,17 @@
       <p class="status-msg muted" id="regenerate-status" role="status"></p>
     </section>
 
+    <section class="card" aria-labelledby="plan-heading">
+      <p class="section-label" id="plan-heading">Plan</p>
+      <div class="plan-row">
+        <div>
+          <p class="plan-name" id="plan-name">Loading…</p>
+          <p class="plan-hint" id="plan-hint"></p>
+        </div>
+        <a class="btn btn-primary" id="upgrade-btn" href="#" hidden>Upgrade</a>
+      </div>
+    </section>
+
     <section class="card danger-card" aria-labelledby="danger-heading">
       <p class="section-label" id="danger-heading">Danger zone</p>
       <p>Deleting your account removes all runs, traces, and API keys. This cannot be undone.</p>
@@ -486,6 +518,19 @@
 
     const ROTATE_KEY_URL = "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/rotate-key";
     const DELETE_ACCOUNT_URL = "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/delete-account";
+
+    const CHECKOUT_URLS = {
+      starter: "https://obsfarol.lemonsqueezy.com/checkout/buy/d4c5f967-e228-459c-8619-438e314b786b",
+      builder: "https://obsfarol.lemonsqueezy.com/checkout/buy/f65e187a-8079-458b-b8c0-56f81d93a656",
+      studio:  "https://obsfarol.lemonsqueezy.com/checkout/buy/aaccc073-c9a4-44c4-b753-833f449c0d62",
+    };
+    const PLAN_HINTS = {
+      free:    "1 agent · 10k events/month · Email alerts",
+      starter: "3 agents · 100k events/month · Email alerts",
+      builder: "Unlimited agents · 1M events/month · Slack alerts",
+      studio:  "Everything in Builder · 5 seats · Priority support",
+    };
+    const UPGRADE_NEXT = { free: "starter", starter: "builder", builder: "studio" };
 
     const userEmailEl = document.getElementById("user-email");
     const apiKeyValueEl = document.getElementById("api-key-value");
@@ -614,6 +659,35 @@
 
       const user = data.user;
       userEmailEl.textContent = user.email || "Signed in";
+
+      // Populate Plan section
+      try {
+        const { data: sub } = await client
+          .from("subscriptions")
+          .select("plan, status")
+          .eq("user_id", user.id)
+          .single();
+
+        const plan = sub?.plan ?? "free";
+        const planNameEl = document.getElementById("plan-name");
+        const planHintEl = document.getElementById("plan-hint");
+        const upgradeBtn = document.getElementById("upgrade-btn");
+
+        planNameEl.textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
+        planHintEl.textContent = PLAN_HINTS[plan] ?? "";
+
+        const nextPlan = UPGRADE_NEXT[plan];
+        if (nextPlan && CHECKOUT_URLS[nextPlan]) {
+          const upgradeUrl = CHECKOUT_URLS[nextPlan] +
+            "?checkout%5Bcustom%5D%5Buser_id%5D=" + encodeURIComponent(user.id);
+          upgradeBtn.href = upgradeUrl;
+          upgradeBtn.textContent = "Upgrade to " + nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1);
+          upgradeBtn.hidden = false;
+        }
+      } catch (_e) {
+        document.getElementById("plan-name").textContent = "Free";
+        document.getElementById("plan-hint").textContent = PLAN_HINTS.free;
+      }
 
       try {
         currentApiKey = await getOrCreateApiKey(user.id);

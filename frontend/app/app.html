@@ -1433,6 +1433,46 @@
 
     .sidebar-close-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.07); }
 
+    /* ── Plan badge ─────────────────────────────────────────────── */
+    .plan-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.18rem 0.52rem;
+      border-radius: 999px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      margin-top: 0.15rem;
+      align-self: flex-start;
+    }
+
+    /* ── Upgrade banner ─────────────────────────────────────────── */
+    .upgrade-banner {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      padding: 0.7rem 1rem;
+      margin-bottom: 1.2rem;
+      border-radius: var(--radius-sm);
+      background: rgba(249, 115, 22, 0.07);
+      border: 1px solid rgba(249, 115, 22, 0.25);
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .upgrade-banner a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .upgrade-banner a:hover { text-decoration: underline; }
+
     @media (max-width: 768px) {
 
       /* Show mobile top bar, hide desktop sidebar by default */
@@ -1602,12 +1642,19 @@
 
       <div class="sidebar-footer">
         <span class="sidebar-email" id="user-email">—</span>
+        <span class="plan-badge" id="plan-badge" hidden>FREE</span>
         <button class="btn btn-ghost" id="logout-btn" type="button" style="font-size:0.82rem;padding:0.42rem 0.75rem;">Log out</button>
       </div>
     </aside>
 
     <!-- ── Content area ─────────────────────────────────────────── -->
     <div class="content-area">
+
+      <!-- Upgrade banner (free plan only) ─────────────────────── -->
+      <div class="upgrade-banner" id="upgrade-banner" hidden>
+        You're on the free plan — 1 agent, 10k events.
+        <a href="#" id="upgrade-link">Upgrade to Starter →</a>
+      </div>
 
       <!-- Overview ───────────────────────────────────────────── -->
       <div id="section-overview" class="content-section active">
@@ -1867,6 +1914,9 @@ def my_agent(task, run=None):
     const ovAgentEl = document.getElementById("ov-agent-filter");
 
     let currentUserId = null;
+    let userPlan = "free";
+
+    const STARTER_CHECKOUT = "https://obsfarol.lemonsqueezy.com/checkout/buy/d4c5f967-e228-459c-8619-438e314b786b";
     let lastRefreshAt = null;
     let refreshIntervalId = null;
     let secondsTickerId = null;
@@ -3108,6 +3158,26 @@ def my_agent(task, run=None):
       const user = data.user;
       currentUserId = user.id;
       userEmailEl.textContent = user.email || "Signed in";
+
+      // Fetch subscription plan
+      const { data: sub } = await client
+        .from("subscriptions")
+        .select("plan, status")
+        .eq("user_id", user.id)
+        .single();
+      userPlan = sub?.plan ?? "free";
+
+      const planBadgeEl = document.getElementById("plan-badge");
+      planBadgeEl.textContent = userPlan.toUpperCase();
+      planBadgeEl.hidden = false;
+
+      const upgradeBannerEl = document.getElementById("upgrade-banner");
+      const upgradeLinkEl = document.getElementById("upgrade-link");
+      if (userPlan === "free") {
+        const upgradeUrl = STARTER_CHECKOUT + "?checkout%5Bcustom%5D%5Buser_id%5D=" + encodeURIComponent(user.id);
+        upgradeLinkEl.href = upgradeUrl;
+        upgradeBannerEl.hidden = false;
+      }
 
       try {
         setStatus("Loading runs...");
