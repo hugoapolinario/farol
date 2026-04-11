@@ -2100,7 +2100,7 @@ def my_agent(task, run=None):
         var hint  = extra > 0 ? ' <span class="health-banner-more">+' + extra + ' more</span>' : "";
         banner.className = "critical";
         banner.innerHTML =
-          '<span>🔴 <strong>' + escapeHtml(item.agent) + '</strong> has a <strong>' + item.rate + '%</strong> success rate this week — ' + item.errors + ' error' + (item.errors !== 1 ? 's' : '') + ' detected.' + hint + '</span>' +
+          '<span>🔴 <strong>' + escapeHtml(item.agent) + '</strong> has a <strong>' + item.rate + '%</strong> success rate last active week — ' + item.errors + ' error' + (item.errors !== 1 ? 's' : '') + ' detected.' + hint + '</span>' +
           '<button class="health-banner-link" data-action="runs" data-agent="' + escapeHtml(item.agent) + '">View runs →</button>';
       } else {
         var item  = warnings[0];
@@ -2108,7 +2108,7 @@ def my_agent(task, run=None):
         var hint  = extra > 0 ? ' <span class="health-banner-more">+' + extra + ' more</span>' : "";
         banner.className = "warning";
         banner.innerHTML =
-          '<span>⚠️ <strong>' + escapeHtml(item.agent) + '</strong> had ' + item.anomalyCount + ' cost anomal' + (item.anomalyCount !== 1 ? 'ies' : 'y') + ' this week.' + hint + '</span>' +
+          '<span>⚠️ <strong>' + escapeHtml(item.agent) + '</strong> had ' + item.anomalyCount + ' cost anomal' + (item.anomalyCount !== 1 ? 'ies' : 'y') + ' last active week.' + hint + '</span>' +
           '<button class="health-banner-link" data-action="alerts">View alerts →</button>';
       }
 
