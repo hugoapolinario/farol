@@ -352,6 +352,113 @@
       color: var(--text-muted);
     }
 
+    .qs-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .qs-step {
+      display: grid;
+      grid-template-columns: 2rem 1fr;
+      gap: 0 1rem;
+    }
+
+    .qs-step-num {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 8px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(249, 115, 22, 0.35);
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    .qs-step-content {
+      min-width: 0;
+    }
+
+    .qs-step-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0 0 0.5rem;
+      line-height: 2rem;
+    }
+
+    .qs-step-body {
+      color: var(--text-muted);
+      font-size: 0.9375rem;
+      margin: 0 0 0.75rem;
+    }
+
+    .qs-step-body:last-child { margin-bottom: 0; }
+
+    .qs-callout {
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(249, 115, 22, 0.25);
+      background: var(--accent-dim);
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      line-height: 1.6;
+      margin-bottom: 0.75rem;
+    }
+
+    .qs-note {
+      margin-top: 0.65rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.4rem;
+    }
+
+    .qs-note::before {
+      content: "✓";
+      color: var(--accent);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 0.05rem;
+    }
+
+    .btn-sm {
+      padding: 0.45rem 0.9rem;
+      font-size: 0.875rem;
+    }
+
+    .qs-tip {
+      margin-top: 0.65rem;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      font-size: 0.875rem;
+    }
+
+    .qs-tip-label {
+      color: var(--text);
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .qs-tip pre.code-body {
+      margin: 0;
+      padding: 0.6rem 0.85rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      font-size: 0.8rem;
+      line-height: 1.7;
+    }
+
     .site-footer {
       padding: 2rem 0;
       border-top: 1px solid var(--border);
@@ -453,17 +560,48 @@
 
       <section id="quick-start" class="doc-section" aria-labelledby="quick-start-heading">
         <h2 id="quick-start-heading">Quick start</h2>
-        <p>
-          <code style="font-family:var(--font-mono);font-size:0.88em;color:var(--text)">pip install farol-sdk</code>
-          · <a class="inline" href="https://pypi.org/project/farol-sdk/">PyPI</a>
-        </p>
-        <ol class="steps">
-          <li><strong style="color:var(--text)">Install.</strong> <code style="font-family:var(--font-mono);font-size:0.85em;color:var(--text)">pip install farol-sdk</code></li>
-          <li><strong style="color:var(--text)">Get an API key</strong> from <a class="inline" href="https://usefarol.dev/app.html">usefarol.dev/app.html</a> after you sign in.</li>
-          <li><strong style="color:var(--text)">Wrap your agent</strong> — pass token usage on the <code style="font-family:var(--font-mono);font-size:0.85em">run</code> dict; Farol records cost and syncs the run.</li>
-          <li><strong style="color:var(--text)">Run your agent</strong> and open the dashboard to see live runs, cost, and anomalies.</li>
-        </ol>
-        <div class="code-tabs" translate="no" role="tablist" aria-label="Code examples">
+
+        <div class="qs-steps">
+
+          <!-- Step 1 -->
+          <div class="qs-step">
+            <div class="qs-step-num" aria-hidden="true">1</div>
+            <div class="qs-step-content">
+              <p class="qs-step-title">Install</p>
+              <div class="code-panel" translate="no" style="margin-top:0">
+                <div class="code-header">terminal</div>
+                <pre class="code-body" style="padding:0.65rem 1.1rem"><code>pip install farol-sdk</code></pre>
+              </div>
+              <p class="qs-step-body" style="margin-top:0.65rem;margin-bottom:0">Run this in your terminal in the same environment where your agent runs. If you're using a virtual environment, make sure it's activated first.</p>
+              <div class="qs-tip" translate="no">
+                <p class="qs-tip-label">💡 Using a venv?</p>
+                <pre class="code-body"><code>python -m venv venv
+source venv/bin/activate  <span style="color:#8b919d"># Mac/Linux</span>
+venv\Scripts\activate     <span style="color:#8b919d"># Windows</span>
+pip install farol-sdk</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="qs-step">
+            <div class="qs-step-num" aria-hidden="true">2</div>
+            <div class="qs-step-content">
+              <p class="qs-step-title">Get your API key</p>
+              <p class="qs-step-body">Sign up at <a class="inline" href="https://usefarol.dev">usefarol.dev</a> and copy your API key from the dashboard.</p>
+              <a class="btn btn-primary btn-sm" href="/app">Get your API key →</a>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="qs-step">
+            <div class="qs-step-num" aria-hidden="true">3</div>
+            <div class="qs-step-content">
+              <p class="qs-step-title">Wrap your agent</p>
+              <div class="qs-callout">
+                Replace <code style="font-family:var(--font-mono);font-size:0.85em;color:var(--text)">frl_your_key_here</code> with your API key and <code style="font-family:var(--font-mono);font-size:0.85em;color:var(--text)">my-agent</code> with your agent's name. Then wrap your existing function with <code style="font-family:var(--font-mono);font-size:0.85em;color:var(--text)">@trace</code> and add token tracking inside your LLM call.
+              </div>
+              <div class="code-tabs" translate="no" role="tablist" aria-label="Code examples">
           <div class="code-tabs-header">
             <button
               class="code-tab-btn"
@@ -486,6 +624,27 @@
               aria-selected="false"
               aria-controls="panel-openai"
             >OpenAI SDK</button>
+            <button
+              class="code-tab-btn"
+              id="tab-gemini"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-gemini"
+            >Google Gemini</button>
+            <button
+              class="code-tab-btn"
+              id="tab-mistral"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-mistral"
+            >Mistral SDK</button>
+            <button
+              class="code-tab-btn"
+              id="tab-grok"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-grok"
+            >Grok (xAI)</button>
           </div>
 
           <div
@@ -577,7 +736,108 @@ client = OpenAI(
 
     <span style="color:#c084fc">return</span> response.choices[<span style="color:#fbbf24">0</span>].message.content</code></pre>
           </div>
+
+          <div
+            class="code-tab-panel"
+            id="panel-gemini"
+            role="tabpanel"
+            aria-labelledby="tab-gemini"
+            aria-hidden="true"
+          >
+            <pre class="code-body"><code><span style="color:#c084fc">from</span> farol <span style="color:#c084fc">import</span> trace
+<span style="color:#c084fc">import</span> google.generativeai <span style="color:#c084fc">as</span> genai
+
+genai.configure(api_key=<span style="color:#86efac">"your-gemini-key"</span>)
+model = genai.GenerativeModel(<span style="color:#86efac">"gemini-1.5-flash"</span>)
+
+<span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+    run[<span style="color:#86efac">"topic"</span>] = task
+
+    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
+        response = model.generate_content(task)
+        span.input_tokens = response.usage_metadata.prompt_token_count
+        span.output_tokens = response.usage_metadata.candidates_token_count
+
+    <span style="color:#c084fc">return</span> response.text</code></pre>
+          </div>
+
+          <div
+            class="code-tab-panel"
+            id="panel-mistral"
+            role="tabpanel"
+            aria-labelledby="tab-mistral"
+            aria-hidden="true"
+          >
+            <pre class="code-body"><code><span style="color:#c084fc">from</span> farol <span style="color:#c084fc">import</span> trace
+<span style="color:#c084fc">from</span> mistralai <span style="color:#c084fc">import</span> Mistral
+
+client = Mistral(api_key=<span style="color:#86efac">"your-mistral-key"</span>)
+
+<span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+    run[<span style="color:#86efac">"topic"</span>] = task
+
+    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
+        response = client.chat.complete(
+            model=<span style="color:#86efac">"mistral-small-latest"</span>,
+            messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
+        )
+        span.input_tokens = response.usage.prompt_tokens
+        span.output_tokens = response.usage.completion_tokens
+
+    <span style="color:#c084fc">return</span> response.choices[<span style="color:#fbbf24">0</span>].message.content</code></pre>
+          </div>
+
+          <div
+            class="code-tab-panel"
+            id="panel-grok"
+            role="tabpanel"
+            aria-labelledby="tab-grok"
+            aria-hidden="true"
+          >
+            <pre class="code-body"><code><span style="color:#c084fc">from</span> farol <span style="color:#c084fc">import</span> trace
+<span style="color:#c084fc">from</span> openai <span style="color:#c084fc">import</span> OpenAI
+
+client = OpenAI(
+    api_key=<span style="color:#86efac">"your-xai-key"</span>,
+    base_url=<span style="color:#86efac">"https://api.x.ai/v1"</span>
+)
+
+<span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+    run[<span style="color:#86efac">"topic"</span>] = task
+
+    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
+        response = client.chat.completions.create(
+            model=<span style="color:#86efac">"grok-3-mini"</span>,
+            messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
+        )
+        span.input_tokens = response.usage.prompt_tokens
+        span.output_tokens = response.usage.completion_tokens
+
+    <span style="color:#c084fc">return</span> response.choices[<span style="color:#fbbf24">0</span>].message.content</code></pre>
+          </div>
         </div>
+            </div><!-- /qs-step-content -->
+          </div><!-- /qs-step -->
+
+          <!-- Step 4 -->
+          <div class="qs-step">
+            <div class="qs-step-num" aria-hidden="true">4</div>
+            <div class="qs-step-content">
+              <p class="qs-step-title">Run your agent normally</p>
+              <div class="code-panel" translate="no" style="margin-top:0">
+                <div class="code-header">agent.py</div>
+                <pre class="code-body" style="padding:0.65rem 1.1rem"><code><span style="color:#8b919d"># Just call your function as usual — Farol tracks everything automatically</span>
+result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></pre>
+              </div>
+              <p class="qs-note">Every call to your agent will now appear in your Farol dashboard automatically.</p>
+              <p class="qs-note">Open your Farol dashboard — you'll see the run appear within seconds, with cost, duration, token usage and any errors automatically tracked.</p>
+            </div>
+          </div>
+
+        </div><!-- /qs-steps -->
       </section>
 
       <section id="sdk-reference" class="doc-section" aria-labelledby="sdk-heading">
