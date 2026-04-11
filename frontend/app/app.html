@@ -1485,6 +1485,14 @@
 
     .upgrade-banner a:hover { text-decoration: underline; }
 
+    /* ── Usage warning banner ───────────────────────────────────── */
+    .usage-warning-banner { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 1.25rem; background: rgba(249,115,22,0.1); border-bottom: 1px solid rgba(249,115,22,0.3); font-size: 0.85rem; color: var(--text); gap: 1rem; }
+    .usage-warning-actions { display: flex; align-items: center; gap: 1rem; flex-shrink: 0; }
+    .usage-warning-link { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .usage-warning-link:hover { text-decoration: underline; }
+    .usage-warning-dismiss { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; padding: 0; line-height: 1; }
+    .usage-warning-dismiss:hover { color: var(--text); }
+
     @media (max-width: 768px) {
 
       /* Show mobile top bar, hide desktop sidebar by default */
@@ -1690,6 +1698,15 @@
       <div class="upgrade-banner" id="upgrade-banner" hidden>
         You're on the free plan — 1 agent, 50k events.
         <a href="#" id="upgrade-link">Upgrade to Starter →</a>
+      </div>
+
+      <!-- Usage warning banner (80%+ usage) ──────────────────── -->
+      <div id="usage-warning-banner" class="usage-warning-banner" hidden>
+        <span id="usage-warning-text"></span>
+        <div class="usage-warning-actions">
+          <a id="usage-warning-upgrade" href="/settings" class="usage-warning-link">Upgrade now →</a>
+          <button id="usage-warning-dismiss" class="usage-warning-dismiss">×</button>
+        </div>
       </div>
 
       <!-- Overview ───────────────────────────────────────────── -->
@@ -1962,6 +1979,34 @@ def my_agent(task, run=None):
       builder: { agents: Infinity, events: 1000000 },
       studio:  { agents: Infinity, events: 1000000 },
     };
+
+    function showUsageWarning() {
+      if (sessionStorage.getItem("usage-warning-dismissed")) return;
+      if (userPlan === "builder" || userPlan === "studio") return;
+
+      const limits = PLAN_LIMITS[userPlan] ?? PLAN_LIMITS.free;
+      const eventPct = limits.events === Infinity ? 0 : (eventCount / limits.events) * 100;
+      const agentPct = limits.agents === Infinity ? 0 : (agentCount / limits.agents) * 100;
+
+      if (eventPct < 80 && agentPct < 80) return;
+
+      let message = "";
+      if (eventPct >= 100) {
+        message = `You've used all your ${limits.events.toLocaleString()} events this month.`;
+      } else if (eventPct >= 80) {
+        message = `You've used ${Math.round(eventPct)}% of your monthly events (${eventCount.toLocaleString()} / ${limits.events.toLocaleString()}).`;
+      } else if (agentPct >= 80) {
+        message = `You're at your agent limit (${agentCount} / ${limits.agents}).`;
+      }
+
+      document.getElementById("usage-warning-text").textContent = message;
+      document.getElementById("usage-warning-banner").removeAttribute("hidden");
+
+      document.getElementById("usage-warning-dismiss").addEventListener("click", function () {
+        document.getElementById("usage-warning-banner").setAttribute("hidden", "");
+        sessionStorage.setItem("usage-warning-dismissed", "1");
+      });
+    }
 
     function updateUsageBar() {
       const limits = PLAN_LIMITS[userPlan] ?? PLAN_LIMITS.free;
@@ -3335,6 +3380,7 @@ def my_agent(task, run=None):
       planBadgeEl.hidden = false;
 
       updateUsageBar();
+      showUsageWarning();
 
       const upgradeBannerEl = document.getElementById("upgrade-banner");
       const upgradeLinkEl = document.getElementById("upgrade-link");
