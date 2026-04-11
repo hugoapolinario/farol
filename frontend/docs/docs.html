@@ -575,6 +575,7 @@
               <p class="qs-step-body" style="margin-top:0.65rem;margin-bottom:0">Run this in your terminal in the same environment where your agent runs. If you're using a virtual environment, make sure it's activated first.</p>
               <div class="qs-tip" translate="no">
                 <p class="qs-tip-label">💡 Using a venv?</p>
+                <p style="margin:0 0 0.5rem;font-size:0.8125rem;color:var(--text-muted)">Not sure what a virtual environment is? Skip this and just run <code style="font-family:var(--font-mono);font-size:0.9em;color:var(--text)">pip install farol-sdk</code> directly in your terminal.</p>
                 <pre class="code-body"><code>python -m venv venv
 source venv/bin/activate  <span style="color:#8b919d"># Mac/Linux</span>
 venv\Scripts\activate     <span style="color:#8b919d"># Windows</span>
@@ -588,7 +589,7 @@ pip install farol-sdk</code></pre>
             <div class="qs-step-num" aria-hidden="true">2</div>
             <div class="qs-step-content">
               <p class="qs-step-title">Get your API key</p>
-              <p class="qs-step-body">Sign up at <a class="inline" href="https://usefarol.dev">usefarol.dev</a> and copy your API key from the dashboard.</p>
+              <p class="qs-step-body">Copy your API key from your Farol dashboard. You'll find it at the top of the page after signing in.</p>
               <a class="btn btn-primary btn-sm" href="/app">Get your API key →</a>
             </div>
           </div>
@@ -599,7 +600,7 @@ pip install farol-sdk</code></pre>
             <div class="qs-step-content">
               <p class="qs-step-title">Wrap your agent</p>
               <div class="qs-callout">
-                Replace <code style="font-family:var(--font-mono);font-size:0.85em;color:var(--text)">frl_your_key_here</code> with your API key and <code style="font-family:var(--font-mono);font-size:0.85em;color:var(--text)">my-agent</code> with your agent's name. Then wrap your existing function with <code style="font-family:var(--font-mono);font-size:0.85em;color:var(--text)">@trace</code> and add token tracking inside your LLM call.
+                Replace <code style="font-family:var(--font-mono);font-size:0.85em;color:var(--text)">frl_your_key_here</code> with your real API key from Step 2, and change <code style="font-family:var(--font-mono);font-size:0.85em;color:var(--text)">my-agent</code> to any name you want for your agent. Everything else can stay as-is.
               </div>
               <div class="code-tabs" translate="no" role="tablist" aria-label="Code examples">
           <div class="code-tabs-header">
@@ -832,8 +833,17 @@ client = OpenAI(
                 <pre class="code-body" style="padding:0.65rem 1.1rem"><code><span style="color:#8b919d"># Just call your function as usual — Farol tracks everything automatically</span>
 result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></pre>
               </div>
-              <p class="qs-note">Every call to your agent will now appear in your Farol dashboard automatically.</p>
               <p class="qs-note">Open your Farol dashboard — you'll see the run appear within seconds, with cost, duration, token usage and any errors automatically tracked.</p>
+            </div>
+          </div>
+
+          <!-- Step 5 -->
+          <div class="qs-step">
+            <div class="qs-step-num" aria-hidden="true">5</div>
+            <div class="qs-step-content">
+              <p class="qs-step-title">See it in your dashboard</p>
+              <p class="qs-step-body">Within seconds of running your agent you'll see a new entry appear in your dashboard with cost, duration, tokens used and a full trace of every step.</p>
+              <a class="btn btn-primary btn-sm" href="/demo">View live demo →</a>
             </div>
           </div>
 
