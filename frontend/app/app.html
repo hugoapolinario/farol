@@ -1138,6 +1138,14 @@
 
     .alert-item:hover .alert-view-trace { opacity: 1; }
 
+    /* ── Regression alert variant ────────────────────────────────── */
+    .alert-item.regression { border-color: rgba(129,140,248,0.35); background: rgba(129,140,248,0.08); }
+    .alert-item.regression:hover { border-color: rgba(129,140,248,0.6); background: rgba(129,140,248,0.14); }
+    .alert-item-regression-reason { font-size: 0.8rem; color: #a5b4fc; display: flex; align-items: center; gap: 0.6rem; }
+    .alert-regression-badge { font-size: 0.72rem; font-weight: 700; color: #818cf8; background: rgba(129,140,248,0.15); border: 1px solid rgba(129,140,248,0.3); border-radius: 999px; padding: 0.1rem 0.5rem; white-space: nowrap; }
+    .alert-view-runs { font-size: 0.74rem; font-weight: 600; color: var(--accent); white-space: nowrap; opacity: 0.82; transition: opacity 0.13s ease; cursor: pointer; }
+    .alert-item:hover .alert-view-runs { opacity: 1; }
+
     /* ── Agent cards ─────────────────────────────────────────────── */
     .agents-grid {
       display: grid;
@@ -2687,10 +2695,44 @@ def my_agent(task, run=None):
     }
 
     /* ── Alerts badge ─────────────────────────────────────────────── */
+    /* ── Regression alert computation ────────────────────────────── */
+    function computeRegressionAlerts(runs) {
+      const now  = Date.now();
+      const WEEK = 7 * 24 * 60 * 60 * 1000;
+      const agents = Array.from(new Set(runs.map(function (r) { return r.agent; }).filter(Boolean)));
+      const alerts = [];
+      agents.forEach(function (agent) {
+        const agentRuns  = runs.filter(function (r) { return r.agent === agent; });
+        const current    = agentRuns.filter(function (r) { return new Date(r.timestamp).getTime() >= now - WEEK; });
+        const previous   = agentRuns.filter(function (r) {
+          const t = new Date(r.timestamp).getTime();
+          return t >= now - 2 * WEEK && t < now - WEEK;
+        });
+        if (current.length < 3 || previous.length < 3) return;
+        const currentRate  = current.filter(function (r) { return r.status === "success"; }).length / current.length * 100;
+        const previousRate = previous.filter(function (r) { return r.status === "success"; }).length / previous.length * 100;
+        const drop = previousRate - currentRate;
+        if (drop >= 15) {
+          alerts.push({
+            id: "regression_" + agent,
+            agent: agent,
+            type: "regression",
+            currentRate:  Math.round(currentRate),
+            previousRate: Math.round(previousRate),
+            drop: Math.round(drop),
+            message: agent + " is failing more often this week (" + Math.round(currentRate) + "% vs " + Math.round(previousRate) + "% last week)",
+          });
+        }
+      });
+      return alerts;
+    }
+
     function updateAlertsBadge() {
-      const anomalous = allRuns.filter(function (r) { return r.anomaly; });
-      const unread    = anomalous.filter(function (r) { return !seenAlerts.has(r.id); }).length;
-      const el        = document.getElementById("alerts-count");
+      const anomalous   = allRuns.filter(function (r) { return r.anomaly; });
+      const regressions = computeRegressionAlerts(allRuns);
+      const unread = anomalous.filter(function (r) { return !seenAlerts.has(r.id); }).length
+                   + regressions.filter(function (a) { return !seenAlerts.has(a.id); }).length;
+      const el = document.getElementById("alerts-count");
       if (!el) return;
       if (unread > 0) {
         el.textContent = String(unread);
@@ -2706,17 +2748,21 @@ def my_agent(task, run=None):
       const listEl    = document.getElementById("alerts-list");
       const filterBar = document.getElementById("alerts-filter-bar");
       const filterSel = document.getElementById("alerts-agent-filter");
-      const anomalous = allRuns.filter(function (r) { return r.anomaly; });
+      const anomalous   = allRuns.filter(function (r) { return r.anomaly; });
+      const regressions = computeRegressionAlerts(allRuns);
 
-      if (!anomalous.length) {
+      if (!anomalous.length && !regressions.length) {
         if (filterBar) filterBar.hidden = true;
         if (listEl) listEl.innerHTML = '<div class="alerts-empty">No anomalies detected yet.</div>';
         return;
       }
 
-      /* Build agent dropdown from unique agents with alerts */
+      /* Build agent dropdown from the union of both alert types */
       if (filterBar) filterBar.hidden = false;
-      const agentSet = new Set(anomalous.map(function (r) { return r.agent || "—"; }));
+      const agentSet = new Set([
+        ...anomalous.map(function (r) { return r.agent || "—"; }),
+        ...regressions.map(function (a) { return a.agent || "—"; }),
+      ]);
       const prevSel = alertsAgentFilter;
       if (filterSel) {
         filterSel.innerHTML = '<option value="">All agents</option>';
@@ -2729,43 +2775,63 @@ def my_agent(task, run=None):
         alertsAgentFilter = filterSel.value;
       }
 
-      const visible = alertsAgentFilter
+      const visibleAnomalous   = alertsAgentFilter
         ? anomalous.filter(function (r) { return (r.agent || "—") === alertsAgentFilter; })
         : anomalous;
+      const visibleRegressions = alertsAgentFilter
+        ? regressions.filter(function (a) { return a.agent === alertsAgentFilter; })
+        : regressions;
 
-      if (!visible.length) {
+      if (!visibleAnomalous.length && !visibleRegressions.length) {
         if (listEl) listEl.innerHTML = '<div class="alerts-empty">No alerts for this agent.</div>';
         return;
       }
 
-      listEl.innerHTML =
-        '<div class="alerts-list">' +
-        visible.map(function (r) {
-          const isRead = seenAlerts.has(r.id);
-          return (
-            '<div class="alert-item' + (isRead ? " read" : "") + '" data-run-id="' + escapeHtml(String(r.id)) + '">' +
-            '<div class="alert-item-header">' +
-              '<div class="alert-item-left"><span class="alert-item-agent">' + escapeHtml(r.agent || "—") + '</span></div>' +
-              '<div class="alert-item-right">' +
-                '<span class="alert-item-time">' + (r.timestamp ? new Date(r.timestamp).toLocaleString() : "—") + '</span>' +
-                '<span class="alert-view-trace">View trace →</span>' +
-              '</div>' +
-            '</div>' +
-            '<div class="alert-item-topic">' + escapeHtml(r.topic || "—") + '</div>' +
-            '<div class="alert-item-reason">⚠ ' + escapeHtml(r.anomaly_reason || "Cost anomaly detected") + '</div>' +
-            '</div>'
-          );
-        }).join("") +
-        '</div>';
-
-      function markAlertRead(runId, cardEl) {
-        if (seenAlerts.has(runId)) return;
-        seenAlerts.add(runId);
+      function markAlertRead(alertId, cardEl) {
+        if (seenAlerts.has(alertId)) return;
+        seenAlerts.add(alertId);
         updateAlertsBadge();
         if (cardEl) cardEl.classList.add("read");
       }
 
-      listEl.querySelectorAll(".alert-item").forEach(function (item) {
+      const anomalyCards = visibleAnomalous.map(function (r) {
+        const isRead = seenAlerts.has(r.id);
+        return (
+          '<div class="alert-item' + (isRead ? " read" : "") + '" data-run-id="' + escapeHtml(String(r.id)) + '">' +
+          '<div class="alert-item-header">' +
+            '<div class="alert-item-left"><span class="alert-item-agent">' + escapeHtml(r.agent || "—") + '</span></div>' +
+            '<div class="alert-item-right">' +
+              '<span class="alert-item-time">' + (r.timestamp ? new Date(r.timestamp).toLocaleString() : "—") + '</span>' +
+              '<span class="alert-view-trace">View trace →</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="alert-item-topic">' + escapeHtml(r.topic || "—") + '</div>' +
+          '<div class="alert-item-reason">⚠ ' + escapeHtml(r.anomaly_reason || "Cost anomaly detected") + '</div>' +
+          '</div>'
+        );
+      });
+
+      const regressionCards = visibleRegressions.map(function (a) {
+        const isRead = seenAlerts.has(a.id);
+        return (
+          '<div class="alert-item regression' + (isRead ? " read" : "") + '" data-alert-id="' + escapeHtml(a.id) + '" data-agent="' + escapeHtml(a.agent) + '">' +
+          '<div class="alert-item-header">' +
+            '<div class="alert-item-left"><span class="alert-item-agent">↓ ' + escapeHtml(a.agent) + '</span></div>' +
+            '<div class="alert-item-right">' +
+              '<span class="alert-item-time">This week</span>' +
+              '<span class="alert-view-runs" data-agent="' + escapeHtml(a.agent) + '">View runs →</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="alert-item-topic">' + escapeHtml(a.message) + '</div>' +
+          '<div class="alert-item-regression-reason"><span class="alert-regression-badge">↓' + a.drop + ' points drop</span></div>' +
+          '</div>'
+        );
+      });
+
+      listEl.innerHTML = '<div class="alerts-list">' + anomalyCards.join("") + regressionCards.join("") + '</div>';
+
+      /* Wire anomaly cards */
+      listEl.querySelectorAll(".alert-item[data-run-id]").forEach(function (item) {
         const runId = item.dataset.runId;
         const run   = allRuns.find(function (r) { return String(r.id) === runId; });
 
@@ -2789,10 +2855,34 @@ def my_agent(task, run=None):
             openAlertTrace();
           });
         }
-
         item.addEventListener("click", function () {
           markAlertRead(runId, item);
           openAlertTrace();
+        });
+      });
+
+      /* Wire regression cards */
+      listEl.querySelectorAll(".alert-item[data-alert-id]").forEach(function (item) {
+        const alertId = item.dataset.alertId;
+        const agent   = item.dataset.agent;
+
+        function openRegressionRuns() {
+          navigateTo("runs");
+          agentFilterEl.value = agent || "";
+          applyFilterAndRender();
+        }
+
+        const runsLink = item.querySelector(".alert-view-runs");
+        if (runsLink) {
+          runsLink.addEventListener("click", function (e) {
+            e.stopPropagation();
+            markAlertRead(alertId, item);
+            openRegressionRuns();
+          });
+        }
+        item.addEventListener("click", function () {
+          markAlertRead(alertId, item);
+          openRegressionRuns();
         });
       });
     }
