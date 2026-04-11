@@ -2041,14 +2041,16 @@ def my_agent(task, run=None):
     /* ─── Agent cards ────────────────────────────────────────────── */
     /* ─── Agent health ───────────────────────────────────────────── */
     function computeAgentHealth(runs) {
-      var cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      var recent = runs.filter(function(r) { return (new Date(r.timestamp).getTime() || 0) >= cutoff; });
+      if (!runs.length) return "healthy";
+      var mostRecent = Math.max.apply(null, runs.map(function(r) { return r.timestamp || 0; }));
+      var cutoff = mostRecent - 7 * 24 * 60 * 60 * 1000;
+      var recent = runs.filter(function(r) { return (r.timestamp || 0) >= cutoff; });
       if (!recent.length) return "healthy";
       var n = recent.length;
       var succ = recent.filter(function(r) { return r.status === "success"; }).length;
       var rate = Math.round((succ / n) * 100);
       var anomalyCount = recent.filter(function(r) { return r.anomaly; }).length;
-      var sorted = recent.slice().sort(function(a, b) { return (new Date(b.timestamp).getTime() || 0) - (new Date(a.timestamp).getTime() || 0); });
+      var sorted = recent.slice().sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
       var lastRunIsError = sorted[0] && sorted[0].status === "error";
       if (rate < 60 || anomalyCount >= 2 || lastRunIsError) return "critical";
       if (rate < 80 || anomalyCount === 1) return "warning";
@@ -2058,7 +2060,7 @@ def my_agent(task, run=None):
     function renderHealthBanner() {
       var banner = document.getElementById("health-banner");
       if (!banner) return;
-      var cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      var WEEK = 7 * 24 * 60 * 60 * 1000;
       var agentMap = new Map();
       allRuns.forEach(function(r) {
         var key = r.agent || "—";
@@ -2079,7 +2081,8 @@ def my_agent(task, run=None):
       banner.hidden = false;
       if (criticals.length) {
         var item = criticals[0];
-        var recent = item.runs.filter(function(r) { return (new Date(r.timestamp).getTime() || 0) >= cutoff; });
+        var mostRecent = Math.max.apply(null, item.runs.map(function(r) { return r.timestamp || 0; }));
+        var recent = item.runs.filter(function(r) { return (r.timestamp || 0) >= mostRecent - WEEK; });
         var n = recent.length;
         var succ = recent.filter(function(r) { return r.status === "success"; }).length;
         var rate = n > 0 ? Math.round((succ / n) * 100) : 0;
@@ -2092,7 +2095,8 @@ def my_agent(task, run=None):
           '<button class="health-banner-link" data-action="runs" data-agent="' + escapeHtml(item.name) + '">View runs →</button>';
       } else {
         var item = warnings[0];
-        var recent = item.runs.filter(function(r) { return (new Date(r.timestamp).getTime() || 0) >= cutoff; });
+        var mostRecent = Math.max.apply(null, item.runs.map(function(r) { return r.timestamp || 0; }));
+        var recent = item.runs.filter(function(r) { return (r.timestamp || 0) >= mostRecent - WEEK; });
         var anomalyCount = recent.filter(function(r) { return r.anomaly; }).length;
         var extra = warnings.length - 1;
         var hint = extra > 0 ? ' <span class="health-banner-more">+' + extra + ' more</span>' : "";
