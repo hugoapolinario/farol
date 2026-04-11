@@ -110,9 +110,87 @@ Deno.serve(async (req) => {
       );
     }
 
+    const userId = keyData.user_id;
+
+    // ── Fetch subscription ────────────────────────────────────────────
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("plan, event_count, agent_names, period_start")
+      .eq("user_id", userId)
+      .single();
+
+    // Provision a free-tier row for first-time users
+    if (!sub) {
+      await supabase.from("subscriptions").insert({
+        user_id: userId,
+        plan: "free",
+        status: "active",
+        event_count: 0,
+        agent_names: [],
+        period_start: new Date().toISOString(),
+      });
+    }
+
+    // ── Plan limits ───────────────────────────────────────────────────
+    const plan = sub?.plan ?? "free";
+    const LIMITS: Record<string, { agents: number; events: number }> = {
+      free:    { agents: 1,        events: 50_000 },
+      starter: { agents: 3,        events: 300_000 },
+      builder: { agents: Infinity, events: 1_000_000 },
+      studio:  { agents: Infinity, events: 1_000_000 },
+    };
+    const limit = LIMITS[plan] ?? LIMITS.free;
+
+    // ── Billing period reset ──────────────────────────────────────────
+    const periodStart = sub?.period_start ? new Date(sub.period_start) : new Date();
+    const now = new Date();
+    const isNewPeriod =
+      now.getMonth() !== periodStart.getMonth() ||
+      now.getFullYear() !== periodStart.getFullYear();
+
+    let currentEvents = sub?.event_count ?? 0;
+    let currentAgents: string[] = sub?.agent_names ?? [];
+
+    if (isNewPeriod) {
+      const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      await supabase
+        .from("subscriptions")
+        .update({ event_count: 0, agent_names: [], period_start: firstOfMonth })
+        .eq("user_id", userId);
+      currentEvents = 0;
+      currentAgents = [];
+    }
+
+    // ── Agent limit check ─────────────────────────────────────────────
+    const agentName = typeof run.agent === "string" ? run.agent : "";
+    const isNewAgent = agentName !== "" && !currentAgents.includes(agentName);
+
+    if (isNewAgent && currentAgents.length >= limit.agents) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Agent limit reached. Your ${plan} plan allows ${limit.agents} agent(s). Upgrade at https://usefarol.dev/settings`,
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Event limit check ─────────────────────────────────────────────
+    const spanCount = spans.length > 0 ? spans.length : 1;
+    if (currentEvents + spanCount > limit.events) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Event limit reached. Your ${plan} plan allows ${limit.events.toLocaleString()} events/month. Upgrade at https://usefarol.dev/settings`,
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Insert run ────────────────────────────────────────────────────
     const { error: insertError } = await supabase
       .from("runs")
-      .insert({ ...run, user_id: keyData.user_id });
+      .insert({ ...run, user_id: userId });
 
     if (insertError) {
       return new Response(
@@ -199,6 +277,15 @@ Deno.serve(async (req) => {
         );
       }
     }
+
+    // ── Update usage counters ─────────────────────────────────────────
+    const updatedAgents = isNewAgent ? [...currentAgents, agentName] : currentAgents;
+    await supabase.from("subscriptions").upsert({
+      user_id: userId,
+      event_count: currentEvents + spanCount,
+      agent_names: updatedAgents,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" });
 
     return new Response(
       JSON.stringify({ success: true }),
