@@ -2071,53 +2071,52 @@ def my_agent(task, run=None):
     function renderHealthBanner() {
       var banner = document.getElementById("health-banner");
       if (!banner) return;
-      var agentMap = new Map();
-      allRuns.forEach(function(r) {
-        var key = r.agent || "—";
-        if (!agentMap.has(key)) agentMap.set(key, []);
-        agentMap.get(key).push(r);
-      });
-      var criticals = [], warnings = [];
-      agentMap.forEach(function(runs, name) {
+
+      var agentNames = Array.from(new Set(allRuns.map(function(r) { return r.agent || "—"; })));
+      var results = agentNames.map(function(agent) {
+        var runs = allRuns.filter(function(r) { return (r.agent || "—") === agent; });
         var s = agentHealthStats(runs);
-        console.log("[Farol health]", name, "→", s.health,
+        console.log("[Farol health]", agent, "→", s.health,
           "| recent:", s.recentCount, "runs",
           "| rate:", s.rate + "%",
           "| errors:", s.errors,
           "| anomalies:", s.anomalyCount);
-        if (s.health === "critical") criticals.push({ name: name, stats: s });
-        else if (s.health === "warning") warnings.push({ name: name, stats: s });
+        return { agent: agent, health: s.health, rate: s.rate, errors: s.errors, anomalyCount: s.anomalyCount };
       });
+
+      var criticals = results.filter(function(r) { return r.health === "critical"; });
+      var warnings  = results.filter(function(r) { return r.health === "warning"; });
+
       if (!criticals.length && !warnings.length) {
         banner.className = "";
         banner.hidden = true;
         return;
       }
+
       banner.hidden = false;
       if (criticals.length) {
-        var item = criticals[0];
-        var s = item.stats;
+        var item  = criticals[0];
         var extra = criticals.length - 1;
-        var hint = extra > 0 ? ' <span class="health-banner-more">+' + extra + ' more</span>' : "";
+        var hint  = extra > 0 ? ' <span class="health-banner-more">+' + extra + ' more</span>' : "";
         banner.className = "critical";
         banner.innerHTML =
-          '<span>🔴 <strong>' + escapeHtml(item.name) + '</strong> has a <strong>' + s.rate + '%</strong> success rate this week — ' + s.errors + ' error' + (s.errors !== 1 ? 's' : '') + ' detected.' + hint + '</span>' +
-          '<button class="health-banner-link" data-action="runs" data-agent="' + escapeHtml(item.name) + '">View runs →</button>';
+          '<span>🔴 <strong>' + escapeHtml(item.agent) + '</strong> has a <strong>' + item.rate + '%</strong> success rate this week — ' + item.errors + ' error' + (item.errors !== 1 ? 's' : '') + ' detected.' + hint + '</span>' +
+          '<button class="health-banner-link" data-action="runs" data-agent="' + escapeHtml(item.agent) + '">View runs →</button>';
       } else {
-        var item = warnings[0];
-        var s = item.stats;
+        var item  = warnings[0];
         var extra = warnings.length - 1;
-        var hint = extra > 0 ? ' <span class="health-banner-more">+' + extra + ' more</span>' : "";
+        var hint  = extra > 0 ? ' <span class="health-banner-more">+' + extra + ' more</span>' : "";
         banner.className = "warning";
         banner.innerHTML =
-          '<span>⚠️ <strong>' + escapeHtml(item.name) + '</strong> had ' + s.anomalyCount + ' cost anomal' + (s.anomalyCount !== 1 ? 'ies' : 'y') + ' this week.' + hint + '</span>' +
+          '<span>⚠️ <strong>' + escapeHtml(item.agent) + '</strong> had ' + item.anomalyCount + ' cost anomal' + (item.anomalyCount !== 1 ? 'ies' : 'y') + ' this week.' + hint + '</span>' +
           '<button class="health-banner-link" data-action="alerts">View alerts →</button>';
       }
+
       var link = banner.querySelector(".health-banner-link");
       if (link) {
         link.addEventListener("click", function() {
           var action = link.dataset.action;
-          var agent = link.dataset.agent;
+          var agent  = link.dataset.agent;
           if (action === "runs") {
             navigateTo("runs");
             if (agent) {
