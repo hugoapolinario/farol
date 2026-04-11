@@ -691,6 +691,10 @@
       box-shadow: 0 0 8px var(--accent-glow);
     }
 
+    .agent-card-dot.healthy  { background: var(--success); box-shadow: 0 0 8px rgba(74, 222, 128, 0.4); }
+    .agent-card-dot.warning  { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+    .agent-card-dot.critical { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+
     .agent-card-name {
       font-size: 0.95rem;
       font-weight: 600;
@@ -1299,6 +1303,14 @@
       font-weight: 600;
       margin-bottom: 0.55rem;
     }
+
+    /* ── Health banner ───────────────────────────────────────────── */
+    #health-banner { display: none; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.6rem 1rem; margin-bottom: 0.9rem; border-radius: var(--radius-sm); font-size: 0.84rem; border-left: 4px solid transparent; line-height: 1.4; }
+    #health-banner.critical { display: flex; background: rgba(239, 68, 68, 0.08); border-color: #ef4444; }
+    #health-banner.warning  { display: flex; background: rgba(249, 115, 22, 0.08); border-color: var(--accent); }
+    .health-banner-link { white-space: nowrap; color: var(--accent); text-decoration: none; font-weight: 600; cursor: pointer; font-family: inherit; background: none; border: none; padding: 0; font-size: inherit; flex-shrink: 0; }
+    .health-banner-link:hover { text-decoration: underline; }
+    .health-banner-more { color: var(--text-muted); font-size: 0.8em; margin-left: 0.25em; }
   </style>
 </head>
 <body>
@@ -1413,6 +1425,8 @@
             </select>
           </div>
         </div>
+        <div id="health-banner" role="alert" aria-live="polite"></div>
+
         <div class="kpi-grid" id="runs-summary" aria-live="polite">
           <div class="kpi-card">
             <div class="kpi-label">Total runs</div>
@@ -1791,6 +1805,7 @@ def my_agent(task, run=None):
       const runs = getOverviewRuns();
       renderSummary(runs);
       renderCharts(runs);
+      renderHealthBanner();
     }
 
     /* ─── Navigation ─────────────────────────────────────────────── */
@@ -2024,6 +2039,86 @@ def my_agent(task, run=None):
     }
 
     /* ─── Agent cards ────────────────────────────────────────────── */
+    /* ─── Agent health ───────────────────────────────────────────── */
+    function computeAgentHealth(runs) {
+      var cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      var recent = runs.filter(function(r) { return (new Date(r.timestamp).getTime() || 0) >= cutoff; });
+      if (!recent.length) return "healthy";
+      var n = recent.length;
+      var succ = recent.filter(function(r) { return r.status === "success"; }).length;
+      var rate = Math.round((succ / n) * 100);
+      var anomalyCount = recent.filter(function(r) { return r.anomaly; }).length;
+      var sorted = recent.slice().sort(function(a, b) { return (new Date(b.timestamp).getTime() || 0) - (new Date(a.timestamp).getTime() || 0); });
+      var lastRunIsError = sorted[0] && sorted[0].status === "error";
+      if (rate < 60 || anomalyCount >= 2 || lastRunIsError) return "critical";
+      if (rate < 80 || anomalyCount === 1) return "warning";
+      return "healthy";
+    }
+
+    function renderHealthBanner() {
+      var banner = document.getElementById("health-banner");
+      if (!banner) return;
+      var cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      var agentMap = new Map();
+      allRuns.forEach(function(r) {
+        var key = r.agent || "—";
+        if (!agentMap.has(key)) agentMap.set(key, []);
+        agentMap.get(key).push(r);
+      });
+      var criticals = [], warnings = [];
+      agentMap.forEach(function(runs, name) {
+        var h = computeAgentHealth(runs);
+        if (h === "critical") criticals.push({ name: name, runs: runs });
+        else if (h === "warning") warnings.push({ name: name, runs: runs });
+      });
+      if (!criticals.length && !warnings.length) {
+        banner.className = "";
+        banner.hidden = true;
+        return;
+      }
+      banner.hidden = false;
+      if (criticals.length) {
+        var item = criticals[0];
+        var recent = item.runs.filter(function(r) { return (new Date(r.timestamp).getTime() || 0) >= cutoff; });
+        var n = recent.length;
+        var succ = recent.filter(function(r) { return r.status === "success"; }).length;
+        var rate = n > 0 ? Math.round((succ / n) * 100) : 0;
+        var errors = recent.filter(function(r) { return r.status === "error"; }).length;
+        var extra = criticals.length - 1;
+        var hint = extra > 0 ? ' <span class="health-banner-more">+' + extra + ' more</span>' : "";
+        banner.className = "critical";
+        banner.innerHTML =
+          '<span>🔴 <strong>' + escapeHtml(item.name) + '</strong> has a <strong>' + rate + '%</strong> success rate this week — ' + errors + ' error' + (errors !== 1 ? 's' : '') + ' detected.' + hint + '</span>' +
+          '<button class="health-banner-link" data-action="runs" data-agent="' + escapeHtml(item.name) + '">View runs →</button>';
+      } else {
+        var item = warnings[0];
+        var recent = item.runs.filter(function(r) { return (new Date(r.timestamp).getTime() || 0) >= cutoff; });
+        var anomalyCount = recent.filter(function(r) { return r.anomaly; }).length;
+        var extra = warnings.length - 1;
+        var hint = extra > 0 ? ' <span class="health-banner-more">+' + extra + ' more</span>' : "";
+        banner.className = "warning";
+        banner.innerHTML =
+          '<span>⚠️ <strong>' + escapeHtml(item.name) + '</strong> had ' + anomalyCount + ' cost anomal' + (anomalyCount !== 1 ? 'ies' : 'y') + ' this week.' + hint + '</span>' +
+          '<button class="health-banner-link" data-action="alerts">View alerts →</button>';
+      }
+      var link = banner.querySelector(".health-banner-link");
+      if (link) {
+        link.addEventListener("click", function() {
+          var action = link.dataset.action;
+          var agent = link.dataset.agent;
+          if (action === "runs") {
+            navigateTo("runs");
+            if (agent) {
+              agentFilterEl.value = agent;
+              applyFilterAndRender();
+            }
+          } else {
+            navigateTo("alerts");
+          }
+        });
+      }
+    }
+
     function renderAgentCards() {
       const el = document.getElementById("agents-grid");
       const agentMap = new Map();
@@ -2043,10 +2138,12 @@ def my_agent(task, run=None):
         const sorted  = runs.slice().sort(function(a,b) { return new Date(b.timestamp) - new Date(a.timestamp); });
         const lastRun = sorted[0];
         const rateClass = rate === 100 ? "good" : rate >= 85 ? "" : "warn";
+        const health    = computeAgentHealth(runs);
+        const dotClass  = "agent-card-dot " + health;
 
         html.push(
           '<div class="agent-card" data-agent="' + escapeHtml(name) + '" title="Click to view details">' +
-          '<div class="agent-card-header"><span class="agent-card-dot"></span><span class="agent-card-name">' + escapeHtml(name) + "</span></div>" +
+          '<div class="agent-card-header"><span class="' + dotClass + '"></span><span class="agent-card-name">' + escapeHtml(name) + "</span></div>" +
           '<div class="agent-card-stats">' +
           '<div><div class="agent-stat-label">Total runs</div><div class="agent-stat-value">' + n + "</div></div>" +
           '<div><div class="agent-stat-label">Success rate</div><div class="agent-stat-value ' + rateClass + '">' + rate + "%</div></div>" +
