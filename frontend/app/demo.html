@@ -2057,8 +2057,8 @@ def my_agent(task, run=None):
       var sorted = recent.slice().sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
       var lastRunIsError = sorted[0] && sorted[0].status === "error";
       var health;
-      if (rate < 60 || anomalyCount >= 3 || (n > 0 && lastRunIsError)) health = "critical";
-      else if (rate < 80 || anomalyCount >= 1) health = "warning";
+      if (rate < 60 || (lastRunIsError && rate < 80)) health = "critical";
+      else if (rate < 80 || lastRunIsError || anomalyCount >= 3) health = "warning";
       else health = "healthy";
       return { health: health, recentCount: n, rate: rate, errors: errors, anomalyCount: anomalyCount };
     }
