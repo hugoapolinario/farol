@@ -572,10 +572,10 @@
                 <div class="code-header">terminal</div>
                 <pre class="code-body" style="padding:0.65rem 1.1rem"><code>pip install farol-sdk</code></pre>
               </div>
-              <p class="qs-step-body" style="margin-top:0.65rem;margin-bottom:0">Run this in your terminal in the same environment where your agent runs. If you're using a virtual environment, make sure it's activated first.</p>
+              <p class="qs-step-body" style="margin-top:0.65rem;margin-bottom:0.5rem">Run this in your terminal in the same environment where your agent runs. If you're using a virtual environment, make sure it's activated first.</p>
+              <p style="font-size:0.875rem;color:var(--text-muted);margin:0 0 0.5rem">Not sure what a virtual environment is? Skip the tip below and just run the command above directly in your terminal.</p>
               <div class="qs-tip" translate="no">
                 <p class="qs-tip-label">💡 Using a venv?</p>
-                <p style="margin:0 0 0.5rem;font-size:0.8125rem;color:var(--text-muted)">Not sure what a virtual environment is? Skip this and just run <code style="font-family:var(--font-mono);font-size:0.9em;color:var(--text)">pip install farol-sdk</code> directly in your terminal.</p>
                 <pre class="code-body"><code>python -m venv venv
 source venv/bin/activate  <span style="color:#8b919d"># Mac/Linux</span>
 venv\Scripts\activate     <span style="color:#8b919d"># Windows</span>
@@ -600,7 +600,7 @@ pip install farol-sdk</code></pre>
             <div class="qs-step-content">
               <p class="qs-step-title">Wrap your agent</p>
               <div class="qs-callout">
-                Replace <code style="font-family:var(--font-mono);font-size:0.85em;color:var(--text)">frl_your_key_here</code> with your real API key from Step 2, and change <code style="font-family:var(--font-mono);font-size:0.85em;color:var(--text)">my-agent</code> to any name you want for your agent. Everything else can stay as-is.
+                Replace the API key placeholder with your real key from Step 2, and give your agent a name. Everything else can stay as-is.
               </div>
               <div class="code-tabs" translate="no" role="tablist" aria-label="Code examples">
           <div class="code-tabs-header">
@@ -829,7 +829,7 @@ client = OpenAI(
             <div class="qs-step-content">
               <p class="qs-step-title">Run your agent normally</p>
               <div class="code-panel" translate="no" style="margin-top:0">
-                <div class="code-header">agent.py</div>
+                <div class="code-header">your agent file</div>
                 <pre class="code-body" style="padding:0.65rem 1.1rem"><code><span style="color:#8b919d"># Just call your function as usual — Farol tracks everything automatically</span>
 result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></pre>
               </div>
@@ -842,7 +842,7 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
             <div class="qs-step-num" aria-hidden="true">5</div>
             <div class="qs-step-content">
               <p class="qs-step-title">See it in your dashboard</p>
-              <p class="qs-step-body">Within seconds of running your agent you'll see a new entry appear in your dashboard with cost, duration, tokens used and a full trace of every step.</p>
+              <p class="qs-step-body">Curious what it looks like? See a live example with real data.</p>
               <a class="btn btn-primary btn-sm" href="/demo">View live demo →</a>
             </div>
           </div>
