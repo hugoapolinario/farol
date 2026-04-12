@@ -3,6 +3,20 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+const rateLimitMap = new Map<string, number[]>();
+
+function isRateLimited(token: string): boolean {
+  const now = Date.now();
+  const windowMs = 60 * 1000;
+  const maxRequests = 30;
+
+  const timestamps = (rateLimitMap.get(token) ?? []).filter((t) => now - t < windowMs);
+  if (timestamps.length >= maxRequests) return true;
+  timestamps.push(now);
+  rateLimitMap.set(token, timestamps);
+  return false;
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -20,6 +34,12 @@ Deno.serve(async (req) => {
     if (!token) {
       return new Response(JSON.stringify({ error: "Missing token" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    if (isRateLimited(token)) {
+      return new Response(JSON.stringify({ error: "Too many requests" }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
 
