@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
         // Get this week's runs
         const { data: thisWeekRuns } = await supabase
           .from("runs")
-          .select("agent, status, cost_usd, duration_ms, anomaly, timestamp")
+          .select("agent, status, cost_usd, duration_ms, anomaly, timestamp, quality_score")
           .eq("user_id", sub.user_id)
           .gte("timestamp", weekAgo.toISOString())
           .order("timestamp", { ascending: false });
@@ -70,6 +70,26 @@ Deno.serve(async (req) => {
         );
         const totalCost = thisWeekRuns.reduce((s, r) => s + (r.cost_usd ?? 0), 0);
         const anomalyCount = thisWeekRuns.filter((r) => r.anomaly).length;
+
+        const qualityByAgent: Record<string, { rated: number; good: number }> = {};
+        for (const run of thisWeekRuns) {
+          const q = run.quality_score;
+          const qn = typeof q === "number" ? q : Number(q);
+          if (qn !== 1 && qn !== -1) continue;
+          const name = run.agent ?? "—";
+          if (!qualityByAgent[name]) qualityByAgent[name] = { rated: 0, good: 0 };
+          qualityByAgent[name].rated++;
+          if (qn === 1) qualityByAgent[name].good++;
+        }
+        const qualityAgentRows = Object.entries(qualityByAgent)
+          .map(([name, s]) => {
+            const pct = s.rated > 0 ? Math.round(s.good / s.rated * 100) : 0;
+            return `<tr>
+            <td style="padding:8px 0;color:#e2e8f0;font-family:monospace">${name}</td>
+            <td style="padding:8px 12px;color:${pct >= 80 ? "#4ade80" : pct >= 50 ? "#e2e8f0" : "#f97316"}">${pct}% good outputs (${s.rated} rated)</td>
+          </tr>`;
+          })
+          .join("");
 
         // Last week comparison
         const lastTotal = lastWeekRuns?.length ?? 0;
@@ -152,6 +172,19 @@ Deno.serve(async (req) => {
     </div>
 
     ${anomalyCount > 0 ? `<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#fca5a5;font-size:14px">⚠ ${anomalyCount} cost spike${anomalyCount > 1 ? "s" : ""} detected this week</div>` : ""}
+
+    ${qualityAgentRows
+      ? `<div style="background:#111318;border-radius:10px;padding:20px;margin-bottom:16px;border:1px solid rgba(96,165,250,0.2)">
+      <div style="color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px">Output quality (rated this week)</div>
+      <table style="width:100%;border-collapse:collapse">
+        <tr style="border-bottom:1px solid #1e2530">
+          <th style="text-align:left;padding:0 0 8px;color:#64748b;font-size:11px;font-weight:500">AGENT</th>
+          <th style="text-align:left;padding:0 12px 8px;color:#64748b;font-size:11px;font-weight:500">QUALITY</th>
+        </tr>
+        ${qualityAgentRows}
+      </table>
+    </div>`
+      : ""}
 
     <div style="background:#111318;border-radius:10px;padding:20px;margin-bottom:24px">
       <div style="color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">By agent</div>

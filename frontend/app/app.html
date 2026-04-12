@@ -1317,6 +1317,34 @@
     .alert-item.regression { border-color: rgba(129,140,248,0.35); background: rgba(129,140,248,0.08); }
     .alert-item.regression:hover { border-color: rgba(129,140,248,0.6); background: rgba(129,140,248,0.14); }
     .alert-item-regression-reason { font-size: 0.8rem; color: #a5b4fc; display: flex; align-items: center; gap: 0.6rem; }
+
+    .alert-item.quality { border-color: rgba(96,165,250,0.35); background: rgba(96,165,250,0.06); }
+    .alert-item.quality:hover { background: rgba(96,165,250,0.1); border-color: rgba(96,165,250,0.5); }
+    .alert-quality-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(96,165,250,0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(96,165,250,0.3);
+      margin-right: 0.5rem;
+    }
+    .alert-item-quality-footer {
+      font-size: 0.8rem;
+      color: #93c5fd;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .alert-item-quality-footer .alert-view-runs {
+      margin-left: auto;
+      opacity: 0.75;
+    }
+    .alert-item:hover .alert-item-quality-footer .alert-view-runs {
+      opacity: 1;
+    }
     .alert-regression-badge { font-size: 0.72rem; font-weight: 700; color: #818cf8; background: rgba(129,140,248,0.15); border: 1px solid rgba(129,140,248,0.3); border-radius: 999px; padding: 0.1rem 0.5rem; white-space: nowrap; }
     .alert-view-runs { font-size: 0.74rem; font-weight: 600; color: var(--accent); white-space: nowrap; opacity: 0.82; transition: opacity 0.13s ease; cursor: pointer; }
     .alert-item:hover .alert-view-runs { opacity: 1; }
@@ -3045,11 +3073,78 @@ def my_agent(task, run=None):
       return alerts;
     }
 
+    function runTimestampMs(r) {
+      if (r.timestamp == null) return 0;
+      if (typeof r.timestamp === "number") return r.timestamp;
+      const t = new Date(r.timestamp).getTime();
+      return Number.isFinite(t) ? t : 0;
+    }
+
+    function computeQualityAlerts(runs) {
+      if (!runs.length) return [];
+      const WEEK = 7 * 24 * 60 * 60 * 1000;
+      const nowRef = Math.max.apply(null, runs.map(function (r) { return runTimestampMs(r); }));
+      if (!nowRef || !Number.isFinite(nowRef)) return [];
+      const agents = Array.from(new Set(runs.map(function (r) { return r.agent; }).filter(Boolean)));
+      const alerts = [];
+
+      agents.forEach(function (agent) {
+        const agentRuns = runs.filter(function (r) { return r.agent === agent; });
+        const current = agentRuns.filter(function (r) { return runTimestampMs(r) >= nowRef - WEEK; });
+        const previous = agentRuns.filter(function (r) {
+          const t = runTimestampMs(r);
+          return t >= nowRef - 2 * WEEK && t < nowRef - WEEK;
+        });
+
+        const currentRated = current.filter(function (r) {
+          const q = normalizeQualityScore(r.quality_score);
+          return q === 1 || q === -1;
+        });
+        const previousRated = previous.filter(function (r) {
+          const q = normalizeQualityScore(r.quality_score);
+          return q === 1 || q === -1;
+        });
+
+        if (currentRated.length < 3 || previousRated.length < 3) return;
+
+        const currentScore = Math.round(
+          currentRated.filter(function (r) { return normalizeQualityScore(r.quality_score) === 1; }).length /
+            currentRated.length * 100,
+        );
+        const previousScore = Math.round(
+          previousRated.filter(function (r) { return normalizeQualityScore(r.quality_score) === 1; }).length /
+            previousRated.length * 100,
+        );
+        const drop = previousScore - currentScore;
+
+        if (drop >= 30) {
+          alerts.push({
+            id: "quality_" + agent,
+            agent: agent,
+            type: "quality",
+            currentScore: currentScore,
+            previousScore: previousScore,
+            drop: drop,
+            message:
+              agent +
+              " output quality dropped this week (" +
+              currentScore +
+              "% good vs " +
+              previousScore +
+              "% last week)",
+          });
+        }
+      });
+      return alerts;
+    }
+
     function updateAlertsBadge() {
       const anomalous   = allRuns.filter(function (r) { return r.anomaly; });
       const regressions = computeRegressionAlerts(allRuns);
+      const qualities   = computeQualityAlerts(allRuns);
       const unread = anomalous.filter(function (r) { return !seenAlerts.has(r.id); }).length
-                   + regressions.filter(function (a) { return !seenAlerts.has(a.id); }).length;
+                   + regressions.filter(function (a) { return !seenAlerts.has(a.id); }).length
+                   + qualities.filter(function (a) { return !seenAlerts.has(a.id); }).length;
       const el = document.getElementById("alerts-count");
       if (!el) return;
       if (unread > 0) {
@@ -3068,18 +3163,20 @@ def my_agent(task, run=None):
       const filterSel = document.getElementById("alerts-agent-filter");
       const anomalous   = allRuns.filter(function (r) { return r.anomaly; });
       const regressions = computeRegressionAlerts(allRuns);
+      const qualities   = computeQualityAlerts(allRuns);
 
-      if (!anomalous.length && !regressions.length) {
+      if (!anomalous.length && !regressions.length && !qualities.length) {
         if (filterBar) filterBar.hidden = true;
         if (listEl) listEl.innerHTML = '<div class="alerts-empty">No anomalies detected yet.</div>';
         return;
       }
 
-      /* Build agent dropdown from the union of both alert types */
+      /* Build agent dropdown from the union of all alert types */
       if (filterBar) filterBar.hidden = false;
       const agentSet = new Set([
         ...anomalous.map(function (r) { return r.agent || "—"; }),
         ...regressions.map(function (a) { return a.agent || "—"; }),
+        ...qualities.map(function (a) { return a.agent || "—"; }),
       ]);
       const prevSel = alertsAgentFilter;
       if (filterSel) {
@@ -3099,8 +3196,11 @@ def my_agent(task, run=None):
       const visibleRegressions = alertsAgentFilter
         ? regressions.filter(function (a) { return a.agent === alertsAgentFilter; })
         : regressions;
+      const visibleQualities = alertsAgentFilter
+        ? qualities.filter(function (a) { return a.agent === alertsAgentFilter; })
+        : qualities;
 
-      if (!visibleAnomalous.length && !visibleRegressions.length) {
+      if (!visibleAnomalous.length && !visibleRegressions.length && !visibleQualities.length) {
         if (listEl) listEl.innerHTML = '<div class="alerts-empty">No alerts for this agent.</div>';
         return;
       }
@@ -3147,6 +3247,26 @@ def my_agent(task, run=None):
         );
       });
 
+      const qualityCards = visibleQualities.map(function (a) {
+        const isRead = seenAlerts.has(a.id);
+        return (
+          '<div class="alert-item quality' + (isRead ? " read" : "") + '" data-alert-id="' + escapeHtml(a.id) + '" data-agent="' + escapeHtml(a.agent) + '">' +
+          '<div class="alert-item-header">' +
+            '<div class="alert-item-left"><span class="alert-item-agent">⭐ ' + escapeHtml(a.agent) + '</span></div>' +
+            '<div class="alert-item-right">' +
+              '<span class="alert-item-time">This week</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="alert-item-topic">' + escapeHtml(a.message) + '</div>' +
+          '<div class="alert-item-quality-footer">' +
+            '<span>↓' + a.drop + ' points drop</span>' +
+            '<span class="alert-quality-badge">Quality</span>' +
+            '<span class="alert-view-runs" data-agent="' + escapeHtml(a.agent) + '">View runs →</span>' +
+          '</div>' +
+          '</div>'
+        );
+      });
+
       const listChunks = [];
       if (visibleAnomalous.length) {
         listChunks.push(
@@ -3165,6 +3285,15 @@ def my_agent(task, run=None):
             "</div>"
         );
         listChunks.push(regressionCards.join(""));
+      }
+      if (visibleQualities.length) {
+        listChunks.push(
+          '<div class="alert-section-header" id="quality-alerts-header">' +
+            '<span class="alert-section-title">Quality Alerts</span>' +
+            '<span class="alert-section-count">' + visibleQualities.length + "</span>" +
+            "</div>",
+        );
+        listChunks.push(qualityCards.join(""));
       }
       listEl.innerHTML = '<div class="alerts-list">' + listChunks.join("") + "</div>";
 
