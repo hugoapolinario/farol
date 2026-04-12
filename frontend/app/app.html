@@ -1884,8 +1884,8 @@ def my_agent(task, run=None):
           <div class="agent-modal-title-text">
             <h2 class="agent-modal-name" id="agent-modal-name">—</h2>
             <div class="agent-modal-signals" id="agent-modal-signals">
-              <span class="signal-pill reliability healthy" id="agent-signal-reliability">✓ —% reliable</span>
-              <span class="signal-pill cost warning" id="agent-signal-cost" hidden>↑ 0 cost spikes</span>
+              <span class="signal-pill reliability healthy" id="agent-modal-reliability-pill">✓ —% reliable</span>
+              <span class="signal-pill cost warning" id="agent-modal-cost-pill" hidden>↑ 0 cost spikes</span>
             </div>
           </div>
         </div>
@@ -3110,23 +3110,29 @@ def my_agent(task, run=None):
     /* Cost spike count uses the same modalRuns as KPIs/charts (selected agent + 7/30/90-day window). */
     function renderAgentModalCostPill(modalRuns) {
       var anomalyCount = modalRuns.filter(function (r) { return r.anomaly; }).length;
-      var costEl = document.getElementById("agent-signal-cost");
+      var costEl = document.getElementById("agent-modal-cost-pill");
       if (!costEl) return;
       if (anomalyCount === 0) {
-        costEl.hidden = true;
+        costEl.setAttribute("hidden", "");
       } else {
-        costEl.hidden = false;
+        costEl.removeAttribute("hidden");
         costEl.className = "signal-pill cost " + (anomalyCount >= 4 ? "critical" : "warning");
         costEl.textContent = "↑ " + anomalyCount + " cost spike" + (anomalyCount !== 1 ? "s" : "");
       }
     }
 
-    function renderAgentModalSignals(modalRuns) {
-      var rel = computeReliabilityHealth(modalRuns);
+    function renderAgentModalSignals(runs) {
+      if (!runs || runs.length === 0) {
+        document.getElementById("agent-modal-reliability-pill")?.setAttribute("hidden", "");
+        document.getElementById("agent-modal-cost-pill")?.setAttribute("hidden", "");
+        return;
+      }
+      var rel = computeReliabilityHealth(runs);
       var dotEl = document.getElementById("agent-modal-dot");
-      var relEl = document.getElementById("agent-signal-reliability");
+      var relEl = document.getElementById("agent-modal-reliability-pill");
       if (dotEl) dotEl.className = "agent-card-dot " + rel.health;
       if (!relEl) return;
+      relEl.removeAttribute("hidden");
       relEl.className = "signal-pill reliability " + rel.health;
       var prefix = rel.health === "healthy" ? "✓ " : rel.health === "warning" ? "⚠ " : "! ";
       relEl.textContent = prefix + rel.rate + "% reliable";
