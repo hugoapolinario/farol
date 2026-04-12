@@ -495,6 +495,78 @@
     .webhook-url-input:focus {
       border-color: var(--accent);
     }
+
+    .alerts-subsection {
+      padding: 0.75rem 0;
+    }
+
+    .alerts-subsection-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0 0 0.4rem;
+    }
+
+    .alerts-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0.5rem 0;
+    }
+
+    .budget-agent-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.65rem;
+      flex-wrap: wrap;
+    }
+
+    .budget-agent-label {
+      font-size: 0.85rem;
+      color: var(--text);
+      min-width: 140px;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+    }
+
+    .budget-input {
+      width: 110px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.4rem 0.6rem;
+      color: var(--text);
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .budget-input:focus {
+      border-color: var(--accent);
+    }
+
+    .budget-spend {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .budget-spend.warning {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .budget-spend.critical {
+      color: #ef4444;
+      font-weight: 600;
+    }
+
+    .budget-spend.ok {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .budget-save-btn {
+      font-size: 0.8rem;
+      padding: 0.35rem 0.7rem;
+    }
   </style>
 </head>
 <body>
@@ -604,24 +676,45 @@
       <p class="status-msg muted" id="share-status" role="status"></p>
     </section>
 
-    <div class="settings-card" id="webhook-section">
-      <div class="settings-card-label">WEBHOOK ALERTS</div>
-      <p class="settings-desc">Receive alerts in Discord, Slack, Google Chat, Zapier, or any HTTP endpoint that accepts POST requests.</p>
+    <div class="settings-card" id="alerts-section">
+      <div class="settings-card-label">ALERTS</div>
 
-      <div id="webhook-form" hidden>
-        <div class="webhook-input-row">
-          <input type="url" id="webhook-url-input" class="webhook-url-input" placeholder="https://hooks.slack.com/..." />
-          <button id="save-webhook-btn" class="btn btn-primary" type="button">Save</button>
-          <button id="test-webhook-btn" class="btn btn-secondary" type="button">Test</button>
-          <button id="remove-webhook-btn" class="btn btn-danger-outline" type="button">Remove</button>
+      <div class="alerts-subsection">
+        <h3 class="alerts-subsection-title">Webhook</h3>
+        <p class="settings-desc">Receive alerts in Discord, Slack, Google Chat, Zapier, or any HTTP endpoint that accepts POST requests.</p>
+
+        <div id="webhook-form" hidden>
+          <div class="webhook-input-row">
+            <input type="url" id="webhook-url-input" class="webhook-url-input" placeholder="https://hooks.slack.com/..." />
+            <button id="save-webhook-btn" class="btn btn-primary" type="button">Save</button>
+            <button id="test-webhook-btn" class="btn btn-secondary" type="button">Test</button>
+            <button id="remove-webhook-btn" class="btn btn-danger-outline" type="button">Remove</button>
+          </div>
+          <p class="settings-hint" id="webhook-status"></p>
+          <p class="settings-hint" id="webhook-last-fired"></p>
         </div>
-        <p class="settings-hint" id="webhook-status"></p>
-        <p class="settings-hint" id="webhook-last-fired"></p>
+
+        <p class="settings-hint" id="webhook-upgrade-hint" hidden>
+          Available on Builder and above. <a id="webhook-upgrade-link" href="#">Upgrade →</a>
+        </p>
       </div>
 
-      <p class="settings-hint" id="webhook-upgrade-hint" hidden>
-        Available on Builder and above. <a id="webhook-upgrade-link" href="#">Upgrade →</a>
-      </p>
+      <div class="alerts-divider"></div>
+
+      <div class="alerts-subsection" id="budget-section">
+        <h3 class="alerts-subsection-title">Budget alerts</h3>
+        <p class="settings-desc">Get notified when an agent exceeds a monthly spend limit. Alerts fire once per month per agent via email and webhook (if configured).</p>
+
+        <div id="budget-form" hidden>
+          <div id="budget-agents-list"></div>
+          <p class="settings-hint" id="budget-empty-hint" hidden>No agent runs yet — send telemetry to set budgets per agent.</p>
+          <p class="settings-hint">Leave blank to disable budget alerts for that agent.</p>
+        </div>
+
+        <p class="settings-hint" id="budget-upgrade-hint" hidden>
+          Available on Starter and above. <a id="budget-upgrade-link" href="#">Upgrade →</a>
+        </p>
+      </div>
     </div>
 
     <section class="card" aria-labelledby="plan-heading">
@@ -855,6 +948,143 @@
       updateWebhookLastFiredLine(data.webhook_last_fired_at, data.webhook_last_status);
     }
 
+    function parseJsonObject(raw) {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+      return raw;
+    }
+
+    function toNumberMap(obj) {
+      const out = {};
+      Object.keys(obj).forEach(function (k) {
+        const n = Number(obj[k]);
+        if (!isNaN(n) && isFinite(n)) out[k] = n;
+      });
+      return out;
+    }
+
+    function syncBudgetSection(plan) {
+      const form = document.getElementById("budget-form");
+      const hint = document.getElementById("budget-upgrade-hint");
+      if (plan === "free") {
+        form.hidden = true;
+        hint.hidden = false;
+        document.getElementById("budget-agents-list").innerHTML = "";
+        document.getElementById("budget-empty-hint").hidden = true;
+        return;
+      }
+      form.hidden = false;
+      hint.hidden = true;
+    }
+
+    async function ensureBudgetPeriodFresh(sub) {
+      if (!sub || !settingsUserId) return sub;
+      const now = new Date();
+      const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const start = sub.budget_period_start ? new Date(sub.budget_period_start) : null;
+      if (!start) {
+        const { error } = await client
+          .from("subscriptions")
+          .update({ budget_period_start: firstOfMonth })
+          .eq("user_id", settingsUserId);
+        if (error) return sub;
+        return Object.assign({}, sub, { budget_period_start: firstOfMonth });
+      }
+      if (start.getMonth() === now.getMonth() && start.getFullYear() === now.getFullYear()) {
+        return sub;
+      }
+      const { error } = await client
+        .from("subscriptions")
+        .update({
+          monthly_cost_usd: {},
+          budget_alerted: {},
+          budget_period_start: firstOfMonth,
+        })
+        .eq("user_id", settingsUserId);
+      if (error) return sub;
+      return Object.assign({}, sub, {
+        monthly_cost_usd: {},
+        budget_alerted: {},
+        budget_period_start: firstOfMonth,
+      });
+    }
+
+    async function loadBudgetAgentsUi(sub) {
+      const list = document.getElementById("budget-agents-list");
+      const emptyHint = document.getElementById("budget-empty-hint");
+      list.innerHTML = "";
+      if (!settingsUserId) return;
+      const { data, error } = await client
+        .from("runs")
+        .select("agent")
+        .eq("user_id", settingsUserId)
+        .limit(2000);
+      if (error) {
+        emptyHint.hidden = false;
+        emptyHint.textContent = error.message || "Could not load agents.";
+        return;
+      }
+      const agents = [
+        ...new Set(
+          (data || [])
+            .map(function (r) {
+              return r.agent;
+            })
+            .filter(Boolean),
+        ),
+      ].sort();
+      const limits = toNumberMap(parseJsonObject(sub.budget_limits));
+      const spent = toNumberMap(parseJsonObject(sub.monthly_cost_usd));
+      if (agents.length === 0) {
+        emptyHint.hidden = false;
+        emptyHint.textContent = "No agent runs yet — send telemetry to set budgets per agent.";
+        return;
+      }
+      emptyHint.hidden = true;
+      agents.forEach(function (agent) {
+        const limit = limits[agent];
+        const s = spent[agent] != null ? spent[agent] : 0;
+        const row = document.createElement("div");
+        row.className = "budget-agent-row";
+        row.dataset.agent = agent;
+        const label = document.createElement("span");
+        label.className = "budget-agent-label";
+        label.textContent = agent;
+        const input = document.createElement("input");
+        input.type = "number";
+        input.step = "0.01";
+        input.min = "0";
+        input.className = "budget-input";
+        input.placeholder = "No limit";
+        if (limit != null && limit > 0) input.value = String(limit);
+        const spendEl = document.createElement("span");
+        spendEl.className = "budget-spend";
+        spendEl.textContent = "$" + s.toFixed(2) + " spent this month";
+        const limitNum = limit != null && !isNaN(Number(limit)) ? Number(limit) : 0;
+        if (limitNum > 0) {
+          const ratio = s / limitNum;
+          if (ratio < 0.8) spendEl.classList.add("ok");
+          else if (ratio < 1) spendEl.classList.add("warning");
+          else spendEl.classList.add("critical");
+        }
+        const saveBtn = document.createElement("button");
+        saveBtn.type = "button";
+        saveBtn.className = "btn btn-secondary budget-save-btn";
+        saveBtn.textContent = "Save";
+        row.appendChild(label);
+        row.appendChild(input);
+        row.appendChild(spendEl);
+        row.appendChild(saveBtn);
+        list.appendChild(row);
+      });
+    }
+
+    async function loadBudgetFull(sub) {
+      syncBudgetSection(settingsUserPlan);
+      if (settingsUserPlan === "free") return;
+      const fresh = await ensureBudgetPeriodFresh(sub);
+      await loadBudgetAgentsUi(fresh);
+    }
+
     function syncShareSectionUI(token) {
       const linkWrap = document.getElementById("share-link-wrap");
       const genBtn = document.getElementById("generate-share-link");
@@ -914,6 +1144,7 @@
       const starterUpgradeUrl = CHECKOUT_URLS.starter +
         "?checkout%5Bcustom%5D%5Buser_id%5D=" + encodeURIComponent(user.id);
       document.getElementById("share-upgrade-link").href = starterUpgradeUrl;
+      document.getElementById("budget-upgrade-link").href = starterUpgradeUrl;
 
       const builderUpgradeUrl = CHECKOUT_URLS.builder +
         "?checkout%5Bcustom%5D%5Buser_id%5D=" + encodeURIComponent(user.id);
@@ -923,7 +1154,9 @@
       try {
         const { data: sub } = await client
           .from("subscriptions")
-          .select("plan, status, webhook_url, webhook_last_fired_at, webhook_last_status")
+          .select(
+            "plan, status, webhook_url, webhook_last_fired_at, webhook_last_status, budget_limits, monthly_cost_usd, budget_period_start, budget_alerted",
+          )
           .eq("user_id", user.id)
           .single();
 
@@ -951,11 +1184,13 @@
           sub?.webhook_last_fired_at,
           sub?.webhook_last_status,
         );
+        await loadBudgetFull(sub);
       } catch (_e) {
         settingsUserPlan = "free";
         document.getElementById("plan-name").textContent = "Free";
         document.getElementById("plan-hint").textContent = PLAN_HINTS.free;
         syncWebhookSection("free", null, null, null);
+        syncBudgetSection("free");
       }
 
       await loadShareToken(user.id);
@@ -1188,6 +1423,53 @@
         statusEl.textContent = "✗ Failed: " + (err && err.message ? err.message : String(err));
       } finally {
         this.disabled = false;
+      }
+    });
+
+    document.getElementById("budget-agents-list").addEventListener("click", async function (ev) {
+      const btn = ev.target.closest(".budget-save-btn");
+      if (!btn || !settingsUserId || settingsUserPlan === "free") return;
+      const row = btn.closest(".budget-agent-row");
+      const agent = row && row.dataset.agent;
+      if (!agent) return;
+      const input = row.querySelector(".budget-input");
+      const raw = input && input.value ? input.value.trim() : "";
+      btn.disabled = true;
+      try {
+        const { data: subRow, error: fetchErr } = await client
+          .from("subscriptions")
+          .select("budget_limits, monthly_cost_usd, budget_period_start")
+          .eq("user_id", settingsUserId)
+          .single();
+        if (fetchErr) throw fetchErr;
+        let fresh = await ensureBudgetPeriodFresh(subRow);
+        const limits = toNumberMap(parseJsonObject(fresh.budget_limits));
+        if (raw === "") {
+          delete limits[agent];
+        } else {
+          const v = parseFloat(raw);
+          if (isNaN(v) || v < 0) {
+            return;
+          }
+          limits[agent] = v;
+        }
+        const { error: upErr } = await client
+          .from("subscriptions")
+          .update({ budget_limits: limits })
+          .eq("user_id", settingsUserId);
+        if (upErr) throw upErr;
+        const { data: subNew, error: refetchErr } = await client
+          .from("subscriptions")
+          .select("budget_limits, monthly_cost_usd, budget_period_start")
+          .eq("user_id", settingsUserId)
+          .single();
+        if (refetchErr) throw refetchErr;
+        fresh = await ensureBudgetPeriodFresh(subNew);
+        await loadBudgetAgentsUi(fresh);
+      } catch (_e) {
+        /* ignore */
+      } finally {
+        btn.disabled = false;
       }
     });
 

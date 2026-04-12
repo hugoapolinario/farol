@@ -40,6 +40,25 @@ function checkRateLimit(key: string): { ok: true } | { ok: false; retryAfterSec:
   return { ok: true };
 }
 
+function asNumberRecord(val: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!val || typeof val !== "object" || Array.isArray(val)) return out;
+  for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+    const n = typeof v === "number" ? v : Number(v);
+    if (Number.isFinite(n)) out[k] = n;
+  }
+  return out;
+}
+
+function asBooleanRecord(val: unknown): Record<string, boolean> {
+  const out: Record<string, boolean> = {};
+  if (!val || typeof val !== "object" || Array.isArray(val)) return out;
+  for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+    out[k] = Boolean(v);
+  }
+  return out;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -115,7 +134,9 @@ Deno.serve(async (req) => {
     // ── Fetch subscription ────────────────────────────────────────────
     const { data: sub } = await supabase
       .from("subscriptions")
-      .select("plan, event_count, agent_names, period_start, webhook_url")
+      .select(
+        "plan, event_count, agent_names, period_start, webhook_url, budget_limits, monthly_cost_usd, budget_period_start, budget_alerted",
+      )
       .eq("user_id", userId)
       .single();
 
@@ -159,6 +180,31 @@ Deno.serve(async (req) => {
         .eq("user_id", userId);
       currentEvents = 0;
       currentAgents = [];
+    }
+
+    let monthlyCostMap = asNumberRecord(sub?.monthly_cost_usd);
+    let budgetAlertedMap = asBooleanRecord(sub?.budget_alerted);
+    if (sub) {
+      const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const budgetPeriodStart = sub.budget_period_start
+        ? new Date(sub.budget_period_start as string)
+        : null;
+      if (!budgetPeriodStart) {
+        await supabase.from("subscriptions").update({
+          budget_period_start: firstOfMonth,
+        }).eq("user_id", userId);
+      } else if (
+        budgetPeriodStart.getMonth() !== now.getMonth() ||
+        budgetPeriodStart.getFullYear() !== now.getFullYear()
+      ) {
+        await supabase.from("subscriptions").update({
+          monthly_cost_usd: {},
+          budget_alerted: {},
+          budget_period_start: firstOfMonth,
+        }).eq("user_id", userId);
+        monthlyCostMap = {};
+        budgetAlertedMap = {};
+      }
     }
 
     // ── Agent limit check ─────────────────────────────────────────────
@@ -286,6 +332,79 @@ Deno.serve(async (req) => {
       agent_names: updatedAgents,
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
+
+    if (agentName) {
+      const runCost = typeof run.cost_usd === "number"
+        ? run.cost_usd
+        : Number(run.cost_usd) || 0;
+      const currentMonthlyCost = monthlyCostMap[agentName] ?? 0;
+      const newMonthlyCost = currentMonthlyCost + runCost;
+      const budgetLimits = asNumberRecord(sub?.budget_limits);
+      const agentBudget = budgetLimits[agentName];
+
+      if (
+        agentBudget != null &&
+        agentBudget > 0 &&
+        newMonthlyCost >= agentBudget &&
+        !budgetAlertedMap[agentName]
+      ) {
+        const resendKey = Deno.env.get("RESEND_API_KEY");
+        if (resendKey) {
+          const { data: userData } = await supabase.auth.admin.getUserById(userId);
+          const userEmail = userData?.user?.email;
+          if (userEmail) {
+            try {
+              await fetch("https://api.resend.com/emails", {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${resendKey}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  from: "Farol <alerts@usefarol.dev>",
+                  to: [userEmail],
+                  subject:
+                    `[Farol] Budget alert — ${agentName} exceeded $${agentBudget}`,
+                  text:
+                    `Your agent "${agentName}" has exceeded its monthly budget of $${agentBudget}.\n\nSpent this month: $${newMonthlyCost.toFixed(6)}\n\nView your dashboard: https://usefarol.dev/app`,
+                }),
+              });
+            } catch (_e) {
+              /* non-fatal */
+            }
+          }
+        }
+
+        const wh = typeof sub?.webhook_url === "string"
+          ? sub.webhook_url.trim()
+          : "";
+        if (wh && ["builder", "studio"].includes(plan)) {
+          try {
+            await fetch(wh, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                event: "budget_exceeded",
+                agent: agentName,
+                budget_usd: agentBudget,
+                spent_usd: newMonthlyCost,
+                dashboard: "https://usefarol.dev/app",
+              }),
+            });
+          } catch (_e) {
+            /* non-fatal */
+          }
+        }
+
+        budgetAlertedMap[agentName] = true;
+      }
+
+      monthlyCostMap[agentName] = newMonthlyCost;
+      await supabase.from("subscriptions").update({
+        monthly_cost_usd: monthlyCostMap,
+        budget_alerted: budgetAlertedMap,
+      }).eq("user_id", userId);
+    }
 
     const webhookUrl =
       typeof sub?.webhook_url === "string" ? sub.webhook_url.trim() : "";
