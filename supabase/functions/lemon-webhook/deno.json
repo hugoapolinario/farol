@@ -1,0 +1,7 @@
+{
+  "envVars": [
+    "LEMONSQUEEZY_WEBHOOK_SECRET",
+    "SUPABASE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY"
+  ]
+}

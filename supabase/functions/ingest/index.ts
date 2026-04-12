@@ -348,13 +348,23 @@ Deno.serve(async (req) => {
         newMonthlyCost >= agentBudget &&
         !budgetAlertedMap[agentName]
       ) {
+        console.log(
+          "[budget alert] threshold exceeded for",
+          agentName,
+          "spent:",
+          newMonthlyCost,
+          "limit:",
+          agentBudget,
+        );
+
         const resendKey = Deno.env.get("RESEND_API_KEY");
         if (resendKey) {
           const { data: userData } = await supabase.auth.admin.getUserById(userId);
           const userEmail = userData?.user?.email;
           if (userEmail) {
+            console.log("[budget alert] sending email to", userEmail);
             try {
-              await fetch("https://api.resend.com/emails", {
+              const emailRes = await fetch("https://api.resend.com/emails", {
                 method: "POST",
                 headers: {
                   Authorization: `Bearer ${resendKey}`,
@@ -369,8 +379,10 @@ Deno.serve(async (req) => {
                     `Your agent "${agentName}" has exceeded its monthly budget of $${agentBudget}.\n\nSpent this month: $${newMonthlyCost.toFixed(6)}\n\nView your dashboard: https://usefarol.dev/app`,
                 }),
               });
-            } catch (_e) {
-              /* non-fatal */
+              console.log("[budget alert] email result:", emailRes.status);
+              await emailRes.text().catch(() => {});
+            } catch (e) {
+              console.error("[budget alert] email fetch error:", e);
             }
           }
         }
@@ -379,8 +391,9 @@ Deno.serve(async (req) => {
           ? sub.webhook_url.trim()
           : "";
         if (wh && ["builder", "studio"].includes(plan)) {
+          console.log("[budget alert] sending webhook");
           try {
-            await fetch(wh, {
+            const webhookRes = await fetch(wh, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -391,8 +404,10 @@ Deno.serve(async (req) => {
                 dashboard: "https://usefarol.dev/app",
               }),
             });
-          } catch (_e) {
-            /* non-fatal */
+            console.log("[budget alert] webhook result:", webhookRes.status);
+            await webhookRes.text().catch(() => {});
+          } catch (e) {
+            console.error("[budget alert] webhook fetch error:", e);
           }
         }
 
