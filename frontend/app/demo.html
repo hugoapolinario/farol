@@ -292,6 +292,12 @@
 
     .kpi-value.accent { color: var(--accent); }
 
+    .kpi-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
     /* ── Charts ──────────────────────────────────────────────────── */
     .charts-grid {
       display: grid;
@@ -1357,6 +1363,28 @@
     .agent-kpi-value.good { color: var(--success); }
     .agent-kpi-value.warn { color: var(--accent); }
 
+    .agent-latency-row {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      border-top: 1px solid var(--border);
+      margin-top: 0.5rem;
+    }
+
+    .latency-chip {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.25rem 0.6rem;
+    }
+
+    .latency-chip strong {
+      color: var(--text);
+      margin-left: 0.3rem;
+    }
+
     .agent-modal-charts {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1519,6 +1547,7 @@
           <div class="kpi-card">
             <div class="kpi-label">Avg duration</div>
             <div class="kpi-value" id="sum-duration">—</div>
+            <div class="kpi-sub" id="sum-duration-p95">p95: —</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-label">Total cost</div>
@@ -1658,6 +1687,11 @@ def my_agent(task, run=None):
           <div class="agent-kpi-label">Avg Cost</div>
           <div class="agent-kpi-value" id="agent-kpi-cost">—</div>
         </div>
+      </div>
+      <div class="agent-latency-row" id="agent-latency-row" hidden>
+        <span class="latency-chip">p50 <strong id="agent-p50">—</strong></span>
+        <span class="latency-chip">p95 <strong id="agent-p95">—</strong></span>
+        <span class="latency-chip">p99 <strong id="agent-p99">—</strong></span>
       </div>
       <div class="ov-empty" id="agent-modal-empty" hidden aria-live="polite">No runs in this period.</div>
       <div class="agent-modal-charts" id="agent-modal-charts-grid">
@@ -2063,12 +2097,30 @@ def my_agent(task, run=None):
     }
 
     /* ─── Summary KPIs ───────────────────────────────────────────── */
+    function computePercentile(runs, percentile) {
+      if (!runs.length) return 0;
+      const sorted = runs
+        .map(function (r) { return Number(r.duration_ms); })
+        .filter(function (d) { return d > 0; })
+        .sort(function (a, b) { return a - b; });
+      if (!sorted.length) return 0;
+      const idx = Math.ceil((percentile / 100) * sorted.length) - 1;
+      return sorted[Math.max(0, idx)];
+    }
+
+    function fmtDuration(ms) {
+      return ms >= 1000 ? (ms / 1000).toFixed(1) + "s" : ms + "ms";
+    }
+
     function renderSummary(runs) {
       const n = runs.length;
+      const durEl = document.getElementById("sum-duration");
+      const p95El = document.getElementById("sum-duration-p95");
       if (!n) {
         document.getElementById("sum-total").textContent    = "—";
         document.getElementById("sum-success").textContent  = "—";
-        document.getElementById("sum-duration").textContent = "—";
+        durEl.textContent = "—";
+        if (p95El) p95El.textContent = "p95: —";
         document.getElementById("sum-cost").textContent     = "—";
         return;
       }
@@ -2076,7 +2128,9 @@ def my_agent(task, run=None):
       const succ = runs.filter(function(r) { return r.status === "success"; }).length;
       document.getElementById("sum-success").textContent = Math.round((succ / n) * 100) + "%";
       const avgMs = runs.reduce(function(a,r) { return a + (Number(r.duration_ms) || 0); }, 0) / n;
-      document.getElementById("sum-duration").textContent = (avgMs / 1000).toFixed(1) + "s";
+      durEl.textContent = (avgMs / 1000).toFixed(1) + "s";
+      const p95ms = computePercentile(runs, 95);
+      if (p95El) p95El.textContent = "p95: " + (p95ms > 0 ? fmtDuration(p95ms) : "—");
       const totalCost = runs.reduce(function(a,r) { return a + (Number(r.cost_usd) || 0); }, 0);
       document.getElementById("sum-cost").textContent = "$" + totalCost.toFixed(5);
     }
@@ -2753,12 +2807,18 @@ def my_agent(task, run=None):
       const totalEl   = document.getElementById("agent-kpi-total");
       const successEl = document.getElementById("agent-kpi-success");
       const costEl    = document.getElementById("agent-kpi-cost");
+      const latRow    = document.getElementById("agent-latency-row");
       if (!n) {
         totalEl.textContent   = "—";
         successEl.textContent = "—"; successEl.className = "agent-kpi-value";
         costEl.textContent    = "—";
+        if (latRow) latRow.hidden = true;
         return;
       }
+      if (latRow) latRow.hidden = false;
+      document.getElementById("agent-p50").textContent = fmtDuration(computePercentile(runs, 50));
+      document.getElementById("agent-p95").textContent = fmtDuration(computePercentile(runs, 95));
+      document.getElementById("agent-p99").textContent = fmtDuration(computePercentile(runs, 99));
       totalEl.textContent = String(n);
       const succ = runs.filter(function(r) { return r.status === "success"; }).length;
       const rate = Math.round((succ / n) * 100);
