@@ -4,7 +4,18 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 
-Deno.serve(async (_req) => {
+Deno.serve(async (req) => {
+  const DIGEST_SECRET = Deno.env.get("WEEKLY_DIGEST_SECRET");
+
+  // When WEEKLY_DIGEST_SECRET is set, require matching x-digest-secret (e.g. from pg_cron).
+  const authHeader = req.headers.get("x-digest-secret");
+  if (DIGEST_SECRET && authHeader !== DIGEST_SECRET) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 

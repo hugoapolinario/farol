@@ -1,2 +1,4 @@
+# Set WEEKLY_DIGEST_SECRET via `supabase secrets set` (hosted) or env for local.
+# pg_cron should send the same value in header x-digest-secret (see migrations).
 [functions.weekly-digest]
 verify_jwt = false
