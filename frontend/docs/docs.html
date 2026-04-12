@@ -754,6 +754,13 @@ pip install farol-sdk</code></pre>
               aria-selected="false"
               aria-controls="panel-grok"
             >Grok (xAI)</button>
+            <button
+              class="code-tab-btn"
+              id="tab-node"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-node"
+            >Node.js</button>
           </div>
 
           <div
@@ -927,6 +934,46 @@ client = OpenAI(
 
     <span style="color:#c084fc">return</span> response.choices[<span style="color:#fbbf24">0</span>].message.content</code></pre>
           </div>
+
+          <div
+            class="code-tab-panel"
+            id="panel-node"
+            role="tabpanel"
+            aria-labelledby="tab-node"
+            aria-hidden="true"
+          >
+            <pre class="code-body"><code><span style="color:#c084fc">import</span> { trace, Run } <span style="color:#c084fc">from</span> <span style="color:#86efac">'@usefarol/sdk'</span>;
+<span style="color:#c084fc">import</span> Anthropic <span style="color:#c084fc">from</span> <span style="color:#86efac">'@anthropic-ai/sdk'</span>;
+
+<span style="color:#c084fc">const</span> anthropic = <span style="color:#c084fc">new</span> Anthropic();
+
+<span style="color:#c084fc">const</span> myAgent = trace(
+  <span style="color:#c084fc">async</span> (run: Run, task: string) =&gt; {
+    run.topic = task;
+
+    <span style="color:#c084fc">const</span> span = run.startSpan(<span style="color:#86efac">'llm_call'</span>, { type: <span style="color:#86efac">'llm'</span> });
+    <span style="color:#c084fc">try</span> {
+      <span style="color:#c084fc">const</span> response = <span style="color:#c084fc">await</span> anthropic.messages.create({
+        model: <span style="color:#86efac">'claude-haiku-4-5'</span>,
+        max_tokens: <span style="color:#fbbf24">1024</span>,
+        messages: [{ role: <span style="color:#86efac">'user'</span>, content: task }]
+      });
+      span.inputTokens = response.usage.input_tokens;
+      span.outputTokens = response.usage.output_tokens;
+      <span style="color:#c084fc">return</span> response.content[<span style="color:#fbbf24">0</span>].text;
+    } <span style="color:#c084fc">finally</span> {
+      span.end();
+    }
+  },
+  {
+    agentName: <span style="color:#86efac">'my-agent'</span>,
+    farolKey: <span style="color:#86efac">'frl_your_key_here'</span>,
+  }
+);
+
+<span style="color:#8b919d">// Call your agent normally</span>
+<span style="color:#c084fc">const</span> result = <span style="color:#c084fc">await</span> myAgent(<span style="color:#86efac">'your task here'</span>);</code></pre>
+          </div>
         </div>
             </div><!-- /qs-step-content -->
           </div><!-- /qs-step -->
@@ -1024,6 +1071,7 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
 
       <section id="sdk-reference" class="doc-section" aria-labelledby="sdk-heading">
         <h2 id="sdk-heading">SDK reference</h2>
+        <p><strong style="color:var(--text)">Node.js SDK</strong> — Install with <code style="font-family:var(--font-mono);font-size:0.88em">npm install @usefarol/sdk</code>. Full TypeScript support. See <a class="inline" href="https://www.npmjs.com/package/@usefarol/sdk" rel="noopener noreferrer">npmjs.com/package/@usefarol/sdk</a>.</p>
         <p>The <code style="font-family:var(--font-mono);font-size:0.88em;color:var(--text)">trace</code> decorator wraps your function and passes a <code style="font-family:var(--font-mono);font-size:0.88em">run</code> dict for steps, tokens, and timing.</p>
         <table class="param-table">
           <thead>
