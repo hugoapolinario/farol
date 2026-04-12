@@ -1959,7 +1959,7 @@
             <option value="">All agents</option>
           </select>
           <div class="runs-search-wrap">
-            <input type="text" id="runs-search" placeholder="Search by topic…" class="runs-search-input" />
+            <input type="text" id="runs-search" placeholder="Search by topic or error..." class="runs-search-input" />
           </div>
           <button type="button" id="export-csv-btn" class="btn-export" title="Export visible runs to CSV">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -2568,7 +2568,12 @@ def my_agent(task, run=None):
       if (v === "") runs = allRuns.slice();
       else if (v === AGENT_NONE_VALUE) runs = allRuns.filter(function (r) { return r.agent == null || r.agent === ""; });
       else runs = allRuns.filter(function (r) { return r.agent === v; });
-      if (q) runs = runs.filter(function (r) { return (r.topic ?? "").toLowerCase().includes(q); });
+      if (q) {
+        runs = runs.filter(function (r) {
+          return (r.topic ?? "").toLowerCase().includes(q) ||
+            (r.error ?? "").toLowerCase().includes(q);
+        });
+      }
       return runs;
     }
 
