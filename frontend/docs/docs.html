@@ -942,14 +942,31 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
 
       <section id="webhook-integrations" class="doc-section" aria-labelledby="webhook-integrations-heading">
         <h2 id="webhook-integrations-heading">Webhook integrations</h2>
-        <p>On <strong style="color:var(--text)">Builder</strong> plans and above, you can add a webhook URL in <a class="inline" href="/settings">Account settings</a>. Farol sends a JSON <code style="font-family:var(--font-mono);font-size:0.88em">POST</code> when a cost anomaly is detected. Use the steps below to wire common destinations.</p>
+        <p>On <strong style="color:var(--text)">Builder</strong> plans and above (<a class="inline" href="/index.html#pricing-heading">see pricing</a>), you can add a webhook URL in <a class="inline" href="/settings">Account settings</a>. Farol sends a JSON <code style="font-family:var(--font-mono);font-size:0.88em">POST</code> when a cost anomaly is detected. Use the steps below to wire common destinations.</p>
+
+        <p>Farol sends this JSON payload to your webhook URL when a cost anomaly is detected:</p>
+        <div class="code-panel" translate="no" style="margin-top:0.5rem">
+          <div class="code-header">webhook payload</div>
+          <pre class="code-body"><code>{
+  "event": "cost_anomaly",
+  "agent": "research-agent",
+  "topic": "Weekly data pipeline run",
+  "reason": "Cost 3.2× above median baseline (median: $0.000078, actual: $0.000248)",
+  "cost_usd": 0.000248,
+  "timestamp": "2026-04-12T10:00:00.000Z",
+  "dashboard": "https://usefarol.dev/app"
+}</code></pre>
+        </div>
+        <p>Farol expects a 2xx response. Failed deliveries are logged in <a class="inline" href="/settings">Account settings</a>.</p>
 
         <details class="doc-disclosure">
           <summary>Discord</summary>
           <div class="doc-disclosure-body">
             <ul>
-              <li>Go to <strong style="color:var(--text)">Server Settings</strong> → <strong style="color:var(--text)">Integrations</strong> → <strong style="color:var(--text)">Webhooks</strong> → <strong style="color:var(--text)">New Webhook</strong>.</li>
-              <li>Copy the webhook URL and paste it in Farol Settings.</li>
+              <li>Open your Discord server and go to Server Settings (click the server name at the top left).</li>
+              <li>Navigate to Integrations → Webhooks → New Webhook.</li>
+              <li>Choose a channel, give it a name, then click Copy Webhook URL.</li>
+              <li>Paste the URL in Farol Settings → Webhook section and click Save.</li>
             </ul>
           </div>
         </details>
@@ -958,8 +975,10 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
           <summary>Google Chat</summary>
           <div class="doc-disclosure-body">
             <ul>
-              <li>Open a Space → <strong style="color:var(--text)">Apps &amp; Integrations</strong> → <strong style="color:var(--text)">Add webhooks</strong>.</li>
-              <li>Copy the webhook URL and paste it in Farol Settings.</li>
+              <li>Open Google Chat and go to the Space where you want alerts (Spaces are group channels).</li>
+              <li>Click the Space name at the top → Apps &amp; Integrations → Add webhooks.</li>
+              <li>Give it a name, click Save, then copy the webhook URL.</li>
+              <li>Paste the URL in Farol Settings → Webhook section and click Save.</li>
             </ul>
           </div>
         </details>
@@ -967,21 +986,19 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
         <details class="doc-disclosure">
           <summary>Telegram</summary>
           <div class="doc-disclosure-body">
-            <ul>
-              <li>Create a bot with <a class="inline" href="https://t.me/BotFather" rel="noopener noreferrer">@BotFather</a> and get the token.</li>
-              <li>Use URL: <code style="font-family:var(--font-mono);font-size:0.85em;color:var(--text)">https://api.telegram.org/bot{TOKEN}/sendMessage</code></li>
-            </ul>
-            <p><strong style="color:var(--text)">Note:</strong> Telegram requires a different payload format — use Zapier or Make to bridge.</p>
+            <p>Telegram requires a custom payload format that differs from Farol's standard JSON. The easiest way to connect is via Zapier or Make (see below) — create a Catch Hook, then add a step to send a Telegram message using the bot action.</p>
+            <p>You'll still need a Telegram bot — create one with <a class="inline" href="https://t.me/BotFather" rel="noopener noreferrer">@BotFather</a> to get your token, then use it in Zapier/Make.</p>
           </div>
         </details>
 
         <details class="doc-disclosure">
           <summary>Zapier / Make</summary>
           <div class="doc-disclosure-body">
+            <p>A Catch Hook is a trigger that gives you a unique URL. When Farol sends data to that URL, your Zap or scenario runs automatically.</p>
             <ul>
               <li>Create a <strong style="color:var(--text)">Catch Hook</strong> trigger in Zapier or Make.</li>
               <li>Copy the webhook URL and paste it in Farol Settings.</li>
-              <li>Connect to any app (Gmail, Notion, PagerDuty, etc.).</li>
+              <li>For example: receive a Farol alert → send a Telegram message, create a Notion entry, or page your team in PagerDuty.</li>
             </ul>
           </div>
         </details>
