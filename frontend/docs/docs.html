@@ -942,10 +942,7 @@ client = OpenAI(
             aria-labelledby="tab-node"
             aria-hidden="true"
           >
-            <pre class="code-body"><code><span style="color:#c084fc">import</span> Anthropic <span style="color:#c084fc">from</span> <span style="color:#86efac">'@anthropic-ai/sdk'</span>;
-<span style="color:#c084fc">import</span> { trace } <span style="color:#c084fc">from</span> <span style="color:#86efac">'@usefarol/sdk'</span>;
-
-<span style="color:#c084fc">const</span> client = <span style="color:#c084fc">new</span> Anthropic();
+            <pre class="code-body"><code><span style="color:#c084fc">import</span> { trace } <span style="color:#c084fc">from</span> <span style="color:#86efac">'@usefarol/sdk'</span>;
 
 <span style="color:#c084fc">const</span> myAgent = trace(
   <span style="color:#c084fc">async</span> (run, task: string) =&gt; {
@@ -953,17 +950,14 @@ client = OpenAI(
 
     <span style="color:#c084fc">const</span> span = run.startSpan(<span style="color:#86efac">'llm_call'</span>, { type: <span style="color:#86efac">'llm'</span> });
     <span style="color:#c084fc">try</span> {
-      <span style="color:#c084fc">const</span> response = <span style="color:#c084fc">await</span> client.messages.create({
-        model: <span style="color:#86efac">'claude-haiku-4-5'</span>,
-        max_tokens: <span style="color:#fbbf24">1024</span>,
-        messages: [{ role: <span style="color:#86efac">'user'</span>, content: task }]
-      });
+      <span style="color:#8b919d">// call your LLM here (Anthropic, OpenAI, Gemini, etc.)</span>
+      <span style="color:#c084fc">const</span> response = <span style="color:#c084fc">await</span> yourLlm.call(task);
       span.inputTokens = response.usage.input_tokens;
       span.outputTokens = response.usage.output_tokens;
       run.inputTokens += response.usage.input_tokens;
       run.outputTokens += response.usage.output_tokens;
       span.end();
-      <span style="color:#c084fc">return</span> response.content[<span style="color:#fbbf24">0</span>].type === <span style="color:#86efac">'text'</span> ? response.content[<span style="color:#fbbf24">0</span>].text : <span style="color:#86efac">''</span>;
+      <span style="color:#c084fc">return</span> response.text;
     } <span style="color:#c084fc">catch</span> (e) {
       span.end(e <span style="color:#c084fc">instanceof</span> Error ? e : <span style="color:#c084fc">new</span> Error(String(e)));
       <span style="color:#c084fc">throw</span> e;
@@ -972,11 +966,11 @@ client = OpenAI(
   {
     agentName: <span style="color:#86efac">'my-agent'</span>,
     farolKey: <span style="color:#86efac">'frl_your_key_here'</span>,
-    model: <span style="color:#86efac">'claude-haiku-4-5'</span>,
   }
 );
 
 <span style="color:#c084fc">const</span> result = <span style="color:#c084fc">await</span> myAgent(<span style="color:#86efac">'your task here'</span>);</code></pre>
+            <p class="qs-step-body" style="margin-top:0.65rem;margin-bottom:0">Full examples for Anthropic, OpenAI and more on <a class="inline" href="https://www.npmjs.com/package/@usefarol/sdk" rel="noopener noreferrer">npm</a> →</p>
           </div>
         </div>
             </div><!-- /qs-step-content -->
