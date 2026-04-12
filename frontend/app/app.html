@@ -2071,7 +2071,8 @@ def my_agent(task, run=None):
     let ovDays = 7;
     let ovAgent = "";
     let alertsAgentFilter = "";
-    const seenAlerts = new Set();
+    const storedSeen = localStorage.getItem("farol_seen_alerts");
+    const seenAlerts = new Set(storedSeen ? JSON.parse(storedSeen) : []);
     let agentModalName = null;
     let agentModalDays = 7;
     let agentCostChart = null;
@@ -2790,6 +2791,7 @@ def my_agent(task, run=None):
       function markAlertRead(alertId, cardEl) {
         if (seenAlerts.has(alertId)) return;
         seenAlerts.add(alertId);
+        localStorage.setItem("farol_seen_alerts", JSON.stringify([...seenAlerts]));
         updateAlertsBadge();
         if (cardEl) cardEl.classList.add("read");
       }
@@ -3500,6 +3502,7 @@ def my_agent(task, run=None):
     }
 
     logoutBtn.addEventListener("click", async function () {
+      localStorage.removeItem("farol_seen_alerts");
       await client.auth.signOut();
       window.location.href = "/login";
     });
