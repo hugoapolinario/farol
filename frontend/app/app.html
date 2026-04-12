@@ -897,6 +897,32 @@
     .runs-search-input:focus { border-color: var(--accent); }
     .runs-search-input::placeholder { color: var(--text-muted); }
 
+    .btn-export {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.75rem;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+
+    .btn-export:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .btn-export.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     .runs-card {
       padding: 0;
       overflow: hidden;
@@ -1904,6 +1930,12 @@
           <div class="runs-search-wrap">
             <input type="text" id="runs-search" placeholder="Search by topic…" class="runs-search-input" />
           </div>
+          <button type="button" id="export-csv-btn" class="btn-export" title="Export visible runs to CSV">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+            Export CSV
+          </button>
         </section>
         <p id="runs-count-label" style="margin:0.5rem 0 0.4rem;font-size:0.8rem;color:var(--text-muted);"></p>
         <section class="card runs-card table-wrap" aria-labelledby="runs-heading">
@@ -3513,6 +3545,78 @@ def my_agent(task, run=None):
       renderRuns(displayedRuns);
     }
 
+    function applyExportCsvButtonState() {
+      const btn = document.getElementById("export-csv-btn");
+      if (!btn) return;
+      if (userPlan === "free") {
+        btn.classList.add("locked");
+        btn.title = "Export available on Starter and above — Upgrade at usefarol.dev/settings";
+      } else {
+        btn.classList.remove("locked");
+        btn.title = "Export visible runs to CSV";
+      }
+    }
+
+    function exportRunsCSV() {
+      if (userPlan === "free") {
+        alert("CSV export is available on Starter and above. Upgrade at usefarol.dev/settings");
+        return;
+      }
+
+      const runs = displayedRuns;
+      if (!runs.length) return;
+
+      const headers = [
+        "Agent",
+        "Topic",
+        "Model",
+        "Status",
+        "Anomaly",
+        "Duration (ms)",
+        "Input Tokens",
+        "Output Tokens",
+        "Cost (USD)",
+        "Quality",
+        "Error",
+        "Timestamp"
+      ];
+
+      const rows = runs.map(function (r) {
+        const q = normalizeQualityScore(r.quality_score);
+        return [
+          r.agent ?? "",
+          '"' + String(r.topic ?? "").replace(/"/g, '""') + '"',
+          r.model ?? "",
+          r.status ?? "",
+          r.anomaly ? "yes" : "no",
+          r.duration_ms ?? "",
+          r.input_tokens ?? "",
+          r.output_tokens ?? "",
+          r.cost_usd ?? "",
+          q === 1 ? "good" : q === -1 ? "bad" : "",
+          '"' + String(r.error ?? "").replace(/"/g, '""') + '"',
+          r.timestamp ?? ""
+        ];
+      });
+
+      const csv = [headers].concat(rows).map(function (row) { return row.join(","); }).join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      let agentLabel = "all-agents";
+      const af = agentFilterEl.value;
+      if (af && af !== AGENT_NONE_VALUE) {
+        agentLabel = String(af).replace(/[^a-zA-Z0-9._-]+/g, "_");
+      } else if (af === AGENT_NONE_VALUE) {
+        agentLabel = "no-agent";
+      }
+      const dateLabel = new Date().toISOString().split("T")[0];
+      a.href = url;
+      a.download = "farol-" + agentLabel + "-" + dateLabel + ".csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
     function renderRuns(runs) {
       const countLabel = document.getElementById("runs-count-label");
       if (countLabel) {
@@ -3776,6 +3880,8 @@ def my_agent(task, run=None):
         upgradeBannerEl.hidden = false;
       }
 
+      applyExportCsvButtonState();
+
       try {
         setStatus("Loading runs...");
         await loadRuns(user.id);
@@ -3814,6 +3920,8 @@ def my_agent(task, run=None):
       closeTrace();
       applyFilterAndRender();
     });
+
+    document.getElementById("export-csv-btn").addEventListener("click", exportRunsCSV);
 
     document.getElementById("alerts-agent-filter").addEventListener("change", function () {
       alertsAgentFilter = this.value;
