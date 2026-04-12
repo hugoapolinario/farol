@@ -437,6 +437,15 @@
       margin-top: 0.05rem;
     }
 
+    .qs-note-plain {
+      display: block;
+    }
+
+    .qs-note-plain::before {
+      content: none;
+      display: none;
+    }
+
     .btn-sm {
       padding: 0.45rem 0.9rem;
       font-size: 0.875rem;
@@ -761,8 +770,9 @@ client = Anthropic()
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
 <span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+    run[<span style="color:#86efac">"topic"</span>] = task
+
     <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
-        run[<span style="color:#86efac">"topic"</span>] = task
         response = client.messages.create(
             model=<span style="color:#86efac">"claude-haiku-4-5"</span>,
             max_tokens=<span style="color:#fbbf24">1024</span>,
@@ -786,8 +796,9 @@ client = Anthropic()
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
 <span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+    run[<span style="color:#86efac">"topic"</span>] = task
+
     <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
-        run[<span style="color:#86efac">"topic"</span>] = task
         response = httpx.post(
             <span style="color:#86efac">"https://api.anthropic.com/v1/messages"</span>,
             headers={
@@ -822,8 +833,9 @@ client = OpenAI(
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
 <span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+    run[<span style="color:#86efac">"topic"</span>] = task
+
     <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
-        run[<span style="color:#86efac">"topic"</span>] = task
         response = client.chat.completions.create(
             model=<span style="color:#86efac">"gpt-4o-mini"</span>,
             messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
@@ -849,8 +861,9 @@ model = genai.GenerativeModel(<span style="color:#86efac">"gemini-1.5-flash"</sp
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
 <span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+    run[<span style="color:#86efac">"topic"</span>] = task
+
     <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
-        run[<span style="color:#86efac">"topic"</span>] = task
         response = model.generate_content(task)
         span.input_tokens = response.usage_metadata.prompt_token_count
         span.output_tokens = response.usage_metadata.candidates_token_count
@@ -872,8 +885,9 @@ client = Mistral(api_key=<span style="color:#86efac">"your-mistral-key"</span>)
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
 <span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+    run[<span style="color:#86efac">"topic"</span>] = task
+
     <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
-        run[<span style="color:#86efac">"topic"</span>] = task
         response = client.chat.complete(
             model=<span style="color:#86efac">"mistral-small-latest"</span>,
             messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
@@ -901,8 +915,9 @@ client = OpenAI(
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
 <span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+    run[<span style="color:#86efac">"topic"</span>] = task
+
     <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
-        run[<span style="color:#86efac">"topic"</span>] = task
         response = client.chat.completions.create(
             model=<span style="color:#86efac">"grok-3-mini"</span>,
             messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
@@ -926,7 +941,7 @@ client = OpenAI(
                 <pre class="code-body" style="padding:0.65rem 1.1rem"><code><span style="color:#8b919d"># Just call your function as usual — Farol tracks everything automatically</span>
 result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></pre>
               </div>
-              <p class="qs-note">Open your Farol dashboard — you'll see the run appear within seconds, with cost, duration, token usage and any errors automatically tracked.</p>
+              <p class="qs-note qs-note-plain">Open your Farol dashboard — you'll see the run appear within seconds, with cost, duration, token usage and any errors automatically tracked.</p>
             </div>
           </div>
 
@@ -1105,7 +1120,7 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
             </tr>
             <tr>
               <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">span.error</code></th>
-              <td>Set automatically if an exception is raised inside the span.</td>
+              <td>Automatically set if your code raises an error inside the span.</td>
             </tr>
           </tbody>
         </table>
