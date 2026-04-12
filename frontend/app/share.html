@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Farol — Shared dashboard</title>
+  <style>
+    :root {
+      --bg-deep: #0a0b0d;
+      --bg-surface: #111318;
+      --bg-elevated: #181b22;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8eaef;
+      --text-muted: #8b919d;
+      --accent: #f97316;
+      --accent-dim: rgba(249, 115, 22, 0.14);
+      --accent-glow: rgba(249, 115, 22, 0.35);
+      --success: #4ade80;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --max: 1120px;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249, 115, 22, 0.12), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 40%, rgba(249, 115, 22, 0.06), transparent 50%),
+        var(--bg-deep);
+      color: var(--text);
+      color-scheme: dark;
+    }
+
+    .share-topbar {
+      border-bottom: 1px solid var(--border);
+      background: rgba(10, 11, 13, 0.82);
+      backdrop-filter: blur(12px);
+    }
+
+    .share-topbar-inner {
+      width: min(100% - 2rem, var(--max));
+      margin: 0 auto;
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      padding: 0.65rem 0;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .logo-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, var(--accent), #ea580c);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 20px var(--accent-glow);
+      flex-shrink: 0;
+    }
+
+    .logo-mark svg { width: 15px; height: 15px; color: #0a0b0d; }
+
+    .share-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.35rem 0.75rem;
+      background: var(--bg-elevated);
+    }
+
+    main {
+      flex: 1;
+      width: min(100% - 2rem, var(--max));
+      margin: 0 auto;
+      padding: 1.35rem 0 2rem;
+    }
+
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 0 0 1rem;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+    }
+
+    .share-loading,
+    .share-error {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      color: var(--text-muted);
+    }
+
+    .share-error strong {
+      display: block;
+      color: #fca5a5;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .ov-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.9rem;
+    }
+
+    .ov-filter-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .ov-filter-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .ov-select {
+      padding: 0.42rem 0.65rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.84rem;
+      cursor: pointer;
+    }
+
+    .ov-select:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    .overview-card {
+      margin-bottom: 1rem;
+      border-color: rgba(249, 115, 22, 0.16);
+      background:
+        linear-gradient(165deg, rgba(24, 27, 34, 0.95) 0%, rgba(10, 11, 13, 0.98) 100%);
+      overflow: hidden;
+    }
+
+    .overview-label {
+      margin: 0;
+      padding: 0.75rem 1rem;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      background: rgba(249, 115, 22, 0.04);
+    }
+
+    .runs-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.65rem;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(249, 115, 22, 0.04);
+    }
+
+    @media (max-width: 800px) {
+      .runs-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    .runs-summary-item { min-width: 0; }
+
+    .runs-summary-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.2rem;
+    }
+
+    .runs-summary-value {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .runs-summary-item .kpi-value {
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .runs-summary-value.accent { color: var(--accent); }
+
+    .kpi-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    .ov-empty {
+      padding: 1.25rem 1rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.65rem;
+      padding: 0.85rem 1rem;
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    @media (max-width: 800px) {
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+
+    .chart-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-elevated);
+      padding: 0.55rem 0.65rem;
+      min-height: 260px;
+      max-height: 260px;
+    }
+
+    .chart-canvas {
+      width: 100%;
+      height: 100%;
+      max-height: 260px;
+      display: block;
+    }
+
+    .agents-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 0.85rem;
+    }
+
+    .agent-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+      padding: 1.1rem 1.2rem;
+      cursor: default;
+    }
+
+    .agent-card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .agent-card-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    .agent-card-dot.healthy  { background: var(--success); box-shadow: 0 0 8px rgba(74, 222, 128, 0.4); }
+    .agent-card-dot.warning  { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+    .agent-card-dot.critical { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+
+    .agent-card-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .agent-card-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.8rem 1.2rem;
+    }
+
+    .agent-stat-label {
+      font-size: 0.63rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.18rem;
+      font-weight: 600;
+    }
+
+    .agent-stat-value { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+    .agent-stat-value.good { color: var(--success); }
+    .agent-stat-value.warn { color: var(--accent); }
+    .agent-stat-value.muted { color: var(--text-muted); font-size: 0.8rem; font-weight: 500; }
+    .agent-stat-full { grid-column: 1 / -1; }
+
+    .runs-card { padding: 0; overflow: hidden; }
+
+    .table-wrap-inner { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    thead { background: var(--bg-elevated); }
+
+    th, td {
+      padding: 0.72rem 0.8rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .model-pill {
+      display: inline-block;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.12rem 0.45rem;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    .tokens-cell {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .error-cell {
+      font-size: 0.76rem;
+      color: #f87171;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.73rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+
+    .badge.success {
+      color: var(--success);
+      background: rgba(74, 222, 128, 0.09);
+      border-color: rgba(74, 222, 128, 0.25);
+    }
+
+    .badge.error {
+      color: #fca5a5;
+      background: rgba(248, 113, 113, 0.12);
+      border-color: rgba(248, 113, 113, 0.28);
+    }
+
+    .badge.baseline {
+      color: #b4bac7;
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .badge.spike {
+      color: #fecaca;
+      background: rgba(248, 113, 113, 0.2);
+      border-color: rgba(248, 113, 113, 0.45);
+      font-weight: 700;
+    }
+
+    .share-footer {
+      text-align: center;
+      padding: 1.5rem 1rem 2rem;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      margin-top: auto;
+    }
+
+    .share-footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .share-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header class="share-topbar">
+    <div class="share-topbar-inner">
+      <a class="logo" href="https://usefarol.dev" rel="noopener" target="_blank" aria-label="Farol home">
+        <span class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <path d="M12 3L4 9v12h16V9l-8-6z"></path>
+            <path d="M9 21V12h6v9"></path>
+            <circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none"></circle>
+          </svg>
+        </span>
+        Farol
+      </a>
+      <span class="share-badge">Shared dashboard · Read only</span>
+    </div>
+  </header>
+
+  <div id="share-loading" class="share-loading">Loading shared dashboard…</div>
+  <div id="share-error" class="share-error" hidden>
+    <strong>Invalid or expired share link.</strong>
+    <span>Ask the owner for a new link or visit <a href="https://usefarol.dev" style="color:var(--accent)">usefarol.dev</a>.</span>
+  </div>
+
+  <main id="share-dashboard" hidden>
+    <section aria-labelledby="overview-heading">
+      <h1 class="section-title" id="overview-heading">Overview</h1>
+      <div class="ov-filter-bar">
+        <div class="ov-filter-group">
+          <span class="ov-filter-label">Period</span>
+          <select class="ov-select" id="ov-date-filter" aria-label="Period">
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90" selected>Last 90 days</option>
+          </select>
+        </div>
+        <div class="ov-filter-group">
+          <span class="ov-filter-label">Agent</span>
+          <select class="ov-select" id="ov-agent-filter" aria-label="Agent filter">
+            <option value="">All agents</option>
+          </select>
+        </div>
+      </div>
+      <section class="card overview-card">
+        <p class="overview-label">Summary</p>
+        <div class="runs-summary" id="runs-summary" aria-live="polite">
+          <div class="runs-summary-item">
+            <div class="runs-summary-label">Total runs</div>
+            <div class="runs-summary-value" id="sum-total">—</div>
+          </div>
+          <div class="runs-summary-item">
+            <div class="runs-summary-label">Success rate</div>
+            <div class="runs-summary-value accent" id="sum-success">—</div>
+          </div>
+          <div class="runs-summary-item">
+            <div class="runs-summary-label">Avg duration</div>
+            <div class="runs-summary-value kpi-value" id="sum-duration">—</div>
+            <div class="kpi-sub" id="sum-duration-p95">p95: —</div>
+          </div>
+          <div class="runs-summary-item">
+            <div class="runs-summary-label">Total cost</div>
+            <div class="runs-summary-value accent" id="sum-cost">—</div>
+          </div>
+        </div>
+        <div class="ov-empty" id="ov-empty" hidden>No runs in this period.</div>
+        <div class="charts-grid" id="ov-charts-grid" aria-label="Run analytics charts">
+          <div class="chart-card">
+            <canvas id="cost-chart" class="chart-canvas" aria-label="Cost per run chart"></canvas>
+          </div>
+          <div class="chart-card">
+            <canvas id="success-chart" class="chart-canvas" aria-label="Success rate by agent chart"></canvas>
+          </div>
+          <div class="chart-card">
+            <canvas id="duration-chart" class="chart-canvas" aria-label="Duration per run chart"></canvas>
+          </div>
+          <div class="chart-card">
+            <canvas id="tokens-chart" class="chart-canvas" aria-label="Tokens per run chart"></canvas>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section aria-labelledby="agents-heading">
+      <h2 class="section-title" id="agents-heading">Agents</h2>
+      <div class="agents-grid" id="agents-grid"></div>
+    </section>
+
+    <section aria-labelledby="runs-heading">
+      <h2 class="section-title" id="runs-heading">Runs</h2>
+      <section class="card runs-card table-wrap">
+        <div class="table-wrap-inner">
+          <table>
+            <thead>
+              <tr>
+                <th>Agent</th>
+                <th>Topic</th>
+                <th>Model</th>
+                <th>Status</th>
+                <th>Anomaly</th>
+                <th>Steps</th>
+                <th>Duration</th>
+                <th>Tokens</th>
+                <th>Cost</th>
+                <th>Error</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="runs-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="share-footer">
+    Powered by Farol · <a href="https://usefarol.dev" rel="noopener" target="_blank">usefarol.dev</a>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script>
+    const SHARE_DATA_URL = "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/share-data";
+
+    let allRuns = [];
+    let ovDays = 90;
+    let ovAgent = "";
+    let costChart = null;
+    let successChart = null;
+    let durationChart = null;
+    let tokensChart = null;
+
+    const ovDateEl = document.getElementById("ov-date-filter");
+    const ovAgentEl = document.getElementById("ov-agent-filter");
+
+    function escapeHtml(s) {
+      if (s == null) return "";
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function getOverviewRuns() {
+      const cutoff = Date.now() - ovDays * 86400000;
+      return allRuns.filter(function (r) {
+        const ts = r.timestamp ? new Date(r.timestamp).getTime() : 0;
+        return ts >= cutoff && (ovAgent === "" || r.agent === ovAgent);
+      });
+    }
+
+    function populateOvAgentFilter() {
+      const prev = ovAgentEl.value;
+      ovAgentEl.innerHTML = '<option value="">All agents</option>';
+      const seen = new Set();
+      allRuns.forEach(function (r) {
+        const a = r.agent;
+        if (a && a !== "" && !seen.has(a)) {
+          seen.add(a);
+          const opt = document.createElement("option");
+          opt.value = a;
+          opt.textContent = a;
+          ovAgentEl.appendChild(opt);
+        }
+      });
+      if (prev && seen.has(prev)) {
+        ovAgentEl.value = prev;
+        ovAgent = prev;
+      } else {
+        ovAgentEl.value = "";
+        ovAgent = "";
+      }
+    }
+
+    function computePercentile(runs, percentile) {
+      if (!runs.length) return 0;
+      const sorted = runs
+        .map(function (r) { return Number(r.duration_ms); })
+        .filter(function (d) { return d > 0; })
+        .sort(function (a, b) { return a - b; });
+      if (!sorted.length) return 0;
+      const idx = Math.ceil((percentile / 100) * sorted.length) - 1;
+      return sorted[Math.max(0, idx)];
+    }
+
+    function fmtDuration(ms) {
+      return ms >= 1000 ? (ms / 1000).toFixed(1) + "s" : ms + "ms";
+    }
+
+    function renderSummary(runs) {
+      const n = runs.length;
+      const durEl = document.getElementById("sum-duration");
+      const p95El = document.getElementById("sum-duration-p95");
+      if (!n) {
+        document.getElementById("sum-total").textContent = "—";
+        document.getElementById("sum-success").textContent = "—";
+        durEl.textContent = "—";
+        if (p95El) p95El.textContent = "p95: —";
+        document.getElementById("sum-cost").textContent = "—";
+        return;
+      }
+      document.getElementById("sum-total").textContent = String(n);
+      const successes = runs.filter(function (r) { return r.status === "success"; }).length;
+      document.getElementById("sum-success").textContent = Math.round((successes / n) * 100) + "%";
+      const avgMs = runs.reduce(function (a, r) { return a + (Number(r.duration_ms) || 0); }, 0) / n;
+      durEl.textContent = (avgMs / 1000).toFixed(1) + "s";
+      const p95ms = computePercentile(runs, 95);
+      if (p95El) p95El.textContent = "p95: " + (p95ms > 0 ? fmtDuration(p95ms) : "—");
+      const totalCost = runs.reduce(function (a, r) { return a + (Number(r.cost_usd) || 0); }, 0);
+      document.getElementById("sum-cost").textContent = "$" + totalCost.toFixed(5);
+    }
+
+    function tooltipPlugin(formatFn) {
+      return {
+        backgroundColor: "#111318",
+        titleColor: "#8b919d",
+        bodyColor: "#e8eaef",
+        borderColor: "rgba(249, 115, 22, 0.45)",
+        borderWidth: 1,
+        padding: 9,
+        displayColors: false,
+        callbacks: {
+          label: function (ctx) { return " " + formatFn(ctx.parsed.y); }
+        }
+      };
+    }
+
+    function buildCostSeries(runs) {
+      const sorted = runs.slice().sort(function (a, b) {
+        return new Date(a.timestamp) - new Date(b.timestamp);
+      });
+      return {
+        labels: sorted.map(function (r) {
+          if (!r.timestamp) return "—";
+          return new Date(r.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+        }),
+        values: sorted.map(function (r) { return Number(r.cost_usd) || 0; })
+      };
+    }
+
+    function buildSuccessByAgent(runs) {
+      const grouped = new Map();
+      for (let i = 0; i < runs.length; i += 1) {
+        const run = runs[i];
+        const key = run.agent != null && run.agent !== "" ? run.agent : "—";
+        if (!grouped.has(key)) grouped.set(key, { total: 0, success: 0 });
+        const stat = grouped.get(key);
+        stat.total += 1;
+        if (run.status === "success") stat.success += 1;
+      }
+      const labels = Array.from(grouped.keys()).sort(function (a, b) {
+        return a.localeCompare(b, undefined, { sensitivity: "base" });
+      });
+      const values = labels.map(function (label) {
+        const stat = grouped.get(label);
+        if (!stat || stat.total === 0) return 0;
+        return (stat.success / stat.total) * 100;
+      });
+      const colors = values.map(function (v) { return v >= 100 ? "#4ade80" : "#f97316"; });
+      return { labels: labels, values: values, colors: colors };
+    }
+
+    function renderCharts(runs) {
+      const chartsGrid = document.getElementById("ov-charts-grid");
+      const ovEmpty = document.getElementById("ov-empty");
+
+      if (!runs.length) {
+        if (costChart) { costChart.destroy(); costChart = null; }
+        if (successChart) { successChart.destroy(); successChart = null; }
+        if (durationChart) { durationChart.destroy(); durationChart = null; }
+        if (tokensChart) { tokensChart.destroy(); tokensChart = null; }
+        if (chartsGrid) chartsGrid.hidden = true;
+        if (ovEmpty) ovEmpty.hidden = false;
+        return;
+      }
+
+      if (chartsGrid) chartsGrid.hidden = false;
+      if (ovEmpty) ovEmpty.hidden = true;
+      if (typeof Chart === "undefined") return;
+
+      const costCanvas = document.getElementById("cost-chart");
+      const successCanvas = document.getElementById("success-chart");
+      const durationCanvas = document.getElementById("duration-chart");
+      const tokensCanvas = document.getElementById("tokens-chart");
+      if (!costCanvas || !successCanvas || !durationCanvas || !tokensCanvas) return;
+
+      const gridColor = "rgba(255, 255, 255, 0.045)";
+      const tickColor = "#8b919d";
+      const titleColor = "#e8eaef";
+
+      const costSeries = buildCostSeries(runs);
+      if (costChart) costChart.destroy();
+      costChart = new Chart(costCanvas, {
+        type: "line",
+        data: {
+          labels: costSeries.labels,
+          datasets: [{
+            data: costSeries.values,
+            borderColor: "#f97316",
+            backgroundColor: "transparent",
+            pointBackgroundColor: "#f97316",
+            pointBorderColor: "#f97316",
+            pointRadius: 2,
+            pointHoverRadius: 3,
+            borderWidth: 2,
+            fill: false,
+            tension: 0.2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: "Cost per run", color: titleColor },
+            tooltip: tooltipPlugin(function (v) { return "$" + Number(v).toFixed(6); })
+          },
+          scales: {
+            x: { ticks: { color: tickColor, maxRotation: 45, minRotation: 45, autoSkip: true, font: { size: 11 } }, grid: { color: gridColor } },
+            y: { ticks: { color: tickColor, font: { size: 11 }, callback: function (value) { return "$" + Number(value).toFixed(6); } }, grid: { color: gridColor } }
+          },
+          layout: { padding: { left: 18 } }
+        }
+      });
+
+      const successSeries = buildSuccessByAgent(runs);
+      const successMin = Math.max(0, Math.min.apply(null, successSeries.values) - 10);
+      if (successChart) successChart.destroy();
+      successChart = new Chart(successCanvas, {
+        type: "bar",
+        data: {
+          labels: successSeries.labels,
+          datasets: [{
+            data: successSeries.values,
+            backgroundColor: successSeries.colors,
+            borderColor: successSeries.colors,
+            borderWidth: 1,
+            borderRadius: 4,
+            maxBarThickness: 44
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: "Success rate by agent", color: titleColor },
+            tooltip: tooltipPlugin(function (v) { return Number(v).toFixed(0) + "%"; })
+          },
+          scales: {
+            x: { ticks: { color: tickColor, font: { size: 11 } }, grid: { color: gridColor } },
+            y: { min: successMin, max: 100, ticks: { color: tickColor, font: { size: 11 }, callback: function (value) { return Number(value).toFixed(0) + "%"; } }, grid: { color: gridColor } }
+          }
+        }
+      });
+
+      const recentRuns = runs.slice().sort(function (a, b) {
+        return new Date(a.timestamp) - new Date(b.timestamp);
+      });
+      const timeLabels = recentRuns.map(function (r) {
+        if (!r.timestamp) return "—";
+        return new Date(r.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+      });
+
+      if (durationChart) durationChart.destroy();
+      durationChart = new Chart(durationCanvas, {
+        type: "line",
+        data: {
+          labels: timeLabels,
+          datasets: [{
+            data: recentRuns.map(function (r) { return (Number(r.duration_ms) || 0) / 1000; }),
+            borderColor: "#60a5fa",
+            backgroundColor: "transparent",
+            pointBackgroundColor: "#60a5fa",
+            pointBorderColor: "#60a5fa",
+            pointRadius: 2,
+            pointHoverRadius: 3,
+            borderWidth: 2,
+            fill: false,
+            tension: 0.2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: "Duration per run", color: titleColor },
+            tooltip: tooltipPlugin(function (v) { return Number(v).toFixed(2) + "s"; })
+          },
+          scales: {
+            x: { ticks: { color: tickColor, maxRotation: 45, minRotation: 45, autoSkip: true, font: { size: 11 } }, grid: { color: gridColor } },
+            y: { ticks: { color: tickColor, font: { size: 11 }, callback: function (value) { return Number(value).toFixed(1) + "s"; } }, grid: { color: gridColor } }
+          }
+        }
+      });
+
+      if (tokensChart) tokensChart.destroy();
+      tokensChart = new Chart(tokensCanvas, {
+        type: "line",
+        data: {
+          labels: timeLabels,
+          datasets: [{
+            data: recentRuns.map(function (r) {
+              return (Number(r.input_tokens) || 0) + (Number(r.output_tokens) || 0);
+            }),
+            borderColor: "#a78bfa",
+            backgroundColor: "transparent",
+            pointBackgroundColor: "#a78bfa",
+            pointBorderColor: "#a78bfa",
+            pointRadius: 2,
+            pointHoverRadius: 3,
+            borderWidth: 2,
+            fill: false,
+            tension: 0.2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: "Tokens per run", color: titleColor },
+            tooltip: tooltipPlugin(function (v) { return Number(v).toLocaleString() + " tok"; })
+          },
+          scales: {
+            x: { ticks: { color: tickColor, maxRotation: 45, minRotation: 45, autoSkip: true, font: { size: 11 } }, grid: { color: gridColor } },
+            y: { ticks: { color: tickColor, font: { size: 11 } }, grid: { color: gridColor } }
+          }
+        }
+      });
+    }
+
+    function refreshOverview() {
+      const runs = getOverviewRuns();
+      renderSummary(runs);
+      renderCharts(runs);
+    }
+
+    var HEALTH_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+    function getHealthRecentRuns(runs) {
+      var cutoff = Date.now() - HEALTH_WEEK_MS;
+      return runs.filter(function (r) { return (new Date(r.timestamp).getTime() || 0) >= cutoff; });
+    }
+
+    function computeReliabilityHealth(recent) {
+      if (!recent.length) return { health: "healthy", rate: 100, lastFailed: false };
+      var n = recent.length;
+      var succ = recent.filter(function (r) { return r.status === "success"; }).length;
+      var rate = Math.round((succ / n) * 100);
+      var sorted = recent.slice().sort(function (a, b) {
+        return (new Date(b.timestamp).getTime() || 0) - (new Date(a.timestamp).getTime() || 0);
+      });
+      var lastFailed = sorted[0] && sorted[0].status === "error";
+      var health;
+      if (rate < 60 || (lastFailed && rate < 80)) health = "critical";
+      else if (rate < 80 || lastFailed) health = "warning";
+      else health = "healthy";
+      return { health: health, rate: rate, lastFailed: lastFailed };
+    }
+
+    function computeReliabilityDotClass(runs) {
+      return computeReliabilityHealth(getHealthRecentRuns(runs)).health;
+    }
+
+    function renderAgentCards() {
+      const grid = document.getElementById("agents-grid");
+      if (!grid) return;
+
+      const agentMap = new Map();
+      allRuns.forEach(function (r) {
+        const key = r.agent || "—";
+        if (!agentMap.has(key)) agentMap.set(key, []);
+        agentMap.get(key).push(r);
+      });
+
+      const html = [];
+      agentMap.forEach(function (runs, name) {
+        const n = runs.length;
+        const succ = runs.filter(function (r) { return r.status === "success"; }).length;
+        const rate = n > 0 ? Math.round((succ / n) * 100) : 0;
+        const avgCost = n > 0 ? runs.reduce(function (a, r) { return a + (Number(r.cost_usd) || 0); }, 0) / n : 0;
+        const avgDur = n > 0 ? runs.reduce(function (a, r) { return a + (Number(r.duration_ms) || 0); }, 0) / n : 0;
+        const sorted = runs.slice().sort(function (a, b) { return new Date(b.timestamp) - new Date(a.timestamp); });
+        const lastRun = sorted[0];
+        const rateClass = rate === 100 ? "good" : rate >= 80 ? "" : "warn";
+        const dotClass = "agent-card-dot " + computeReliabilityDotClass(runs);
+
+        html.push(
+          '<div class="agent-card">' +
+            '<div class="agent-card-header">' +
+              '<span class="' + dotClass + '"></span>' +
+              '<span class="agent-card-name">' + escapeHtml(name) + "</span>" +
+            "</div>" +
+            '<div class="agent-card-stats">' +
+              '<div><div class="agent-stat-label">Total runs</div><div class="agent-stat-value">' + n + "</div></div>" +
+              '<div><div class="agent-stat-label">Success rate</div><div class="agent-stat-value ' + rateClass + '">' + rate + "%</div></div>" +
+              '<div><div class="agent-stat-label">Avg cost</div><div class="agent-stat-value">$' + avgCost.toFixed(6) + "</div></div>" +
+              '<div><div class="agent-stat-label">Avg duration</div><div class="agent-stat-value">' + (avgDur / 1000).toFixed(2) + "s</div></div>" +
+              '<div class="agent-stat-full"><div class="agent-stat-label">Last run</div><div class="agent-stat-value muted">' +
+                (lastRun ? new Date(lastRun.timestamp).toLocaleString() : "—") +
+              "</div></div>" +
+            "</div>" +
+          "</div>"
+        );
+      });
+
+      grid.innerHTML = html.length ? html.join("") : '<p style="color:var(--text-muted);font-size:0.9rem">No agents in this share.</p>';
+    }
+
+    function renderRunsTable() {
+      const tbody = document.getElementById("runs-body");
+      const runs = getOverviewRuns().slice().sort(function (a, b) {
+        return (new Date(b.timestamp).getTime() || 0) - (new Date(a.timestamp).getTime() || 0);
+      });
+
+      if (!runs.length) {
+        tbody.innerHTML = '<tr><td colspan="11" style="color:#8b919d;padding:1.5rem">No runs in this period.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = "";
+      runs.forEach(function (r) {
+        const tr = document.createElement("tr");
+        const isBaseline = !r.anomaly && typeof r.anomaly_reason === "string" && r.anomaly_reason.indexOf("Building baseline") !== -1;
+        const anomalyCell = r.anomaly
+          ? '<span class="badge spike">! spike</span>'
+          : (isBaseline ? '<span class="badge baseline">baseline</span>' : "");
+        const stepCount = Array.isArray(r.steps) ? r.steps.length : 0;
+        const inTok = Number(r.input_tokens) || 0;
+        const outTok = Number(r.output_tokens) || 0;
+        const modelName = r.model ? escapeHtml(r.model) : "";
+        const modelCell = r.model
+          ? '<span class="model-pill" title="' + modelName + '">' + modelName + "</span>"
+          : "—";
+        let errorCell = "";
+        if (r.status === "error" && r.error != null && String(r.error).length > 0) {
+          const full = String(r.error);
+          const truncated = full.length > 60 ? full.slice(0, 60) + "…" : full;
+          errorCell = '<span class="error-cell" title="' + escapeHtml(full) + '">' + escapeHtml(truncated) + "</span>";
+        }
+
+        tr.innerHTML =
+          "<td>" + (r.agent != null && r.agent !== "" ? escapeHtml(r.agent) : "—") + "</td>" +
+          "<td>" + (r.topic != null && r.topic !== "" ? escapeHtml(r.topic) : "—") + "</td>" +
+          "<td>" + modelCell + "</td>" +
+          '<td><span class="badge ' + (r.status === "success" ? "success" : "error") + '">' + escapeHtml(r.status || "unknown") + "</span></td>" +
+          "<td>" + anomalyCell + "</td>" +
+          "<td>" + stepCount + "</td>" +
+          "<td>" + (r.duration_ms != null ? (Number(r.duration_ms) / 1000).toFixed(2) + "s" : "—") + "</td>" +
+          '<td class="tokens-cell">' + inTok + "in / " + outTok + "out</td>" +
+          "<td>" + (r.cost_usd != null ? "$" + Number(r.cost_usd).toFixed(6) : "—") + "</td>" +
+          "<td>" + errorCell + "</td>" +
+          "<td>" + (r.timestamp ? new Date(r.timestamp).toLocaleString() : "—") + "</td>";
+        tbody.appendChild(tr);
+      });
+    }
+
+    function applyFilters() {
+      refreshOverview();
+      renderRunsTable();
+    }
+
+    async function loadSharedData(token) {
+      const res = await fetch(SHARE_DATA_URL + "?token=" + encodeURIComponent(token));
+      const body = await res.json().catch(function () { return {}; });
+      if (!res.ok || body.error) {
+        throw new Error(body.error || "fetch failed");
+      }
+      return body.runs || [];
+    }
+
+    (async function () {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("token");
+
+      if (!token || !token.trim()) {
+        document.getElementById("share-loading").hidden = true;
+        document.getElementById("share-error").hidden = false;
+        return;
+      }
+
+      try {
+        allRuns = await loadSharedData(token.trim());
+        document.getElementById("share-loading").hidden = true;
+        document.getElementById("share-dashboard").hidden = false;
+        populateOvAgentFilter();
+        renderAgentCards();
+        applyFilters();
+      } catch (_e) {
+        document.getElementById("share-loading").hidden = true;
+        document.getElementById("share-error").hidden = false;
+      }
+    })();
+
+    ovDateEl.addEventListener("change", function () {
+      ovDays = Number(this.value);
+      applyFilters();
+    });
+
+    ovAgentEl.addEventListener("change", function () {
+      ovAgent = this.value;
+      applyFilters();
+    });
+  </script>
+</body>
+</html>

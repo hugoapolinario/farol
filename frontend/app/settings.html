@@ -386,6 +386,91 @@
       font-size: 0.83rem;
       color: var(--text-muted);
     }
+
+    .settings-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+      padding: 1.15rem 1.2rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .settings-card-label {
+      margin: 0 0 0.45rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .settings-desc {
+      margin: 0 0 1rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .share-link-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: stretch;
+    }
+
+    .share-link-input {
+      flex: 1 1 240px;
+      min-width: 0;
+      padding: 0.6rem 0.75rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.82rem;
+    }
+
+    .share-link-input:focus {
+      outline: 2px solid var(--accent-dim);
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      border-color: rgba(249, 115, 22, 0.4);
+      background: var(--accent-dim);
+    }
+
+    .btn-danger-outline {
+      background: transparent;
+      color: #fecaca;
+      border-color: var(--danger-border);
+    }
+
+    .btn-danger-outline:hover:not(:disabled) {
+      background: rgba(248, 113, 113, 0.15);
+    }
+
+    .settings-hint {
+      margin: 0.65rem 0 0;
+      font-size: 0.83rem;
+      color: var(--text-muted);
+    }
+
+    .settings-hint a {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .settings-hint a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -478,6 +563,23 @@
       <p class="status-msg muted" id="regenerate-status" role="status"></p>
     </section>
 
+    <section class="settings-card" id="share-section" aria-labelledby="share-heading">
+      <div class="settings-card-label" id="share-heading">Shared dashboard</div>
+      <p class="settings-desc">Share a read-only view of your dashboard with clients or teammates. No login required.</p>
+      <div id="share-link-wrap" hidden>
+        <div class="share-link-row">
+          <input type="text" id="share-link-input" readonly class="share-link-input" autocomplete="off" aria-label="Share link" />
+          <button type="button" id="copy-share-link" class="btn btn-secondary">Copy</button>
+          <button type="button" id="revoke-share-link" class="btn btn-danger-outline">Revoke</button>
+        </div>
+      </div>
+      <div id="share-generate-wrap">
+        <button type="button" id="generate-share-link" class="btn btn-primary">Generate share link</button>
+        <p class="settings-hint" id="share-plan-hint" hidden>Available on Starter and above. <a id="share-upgrade-link" href="#">Upgrade →</a></p>
+      </div>
+      <p class="status-msg muted" id="share-status" role="status"></p>
+    </section>
+
     <section class="card" aria-labelledby="plan-heading">
       <p class="section-label" id="plan-heading">Plan</p>
       <div class="plan-row">
@@ -531,6 +633,10 @@
       studio:  "Unlimited agents · 1M events/month · 5 seats · Priority support",
     };
     const UPGRADE_NEXT = { free: "starter", starter: "builder", builder: "studio" };
+    const SHARE_PAGE_BASE = "https://usefarol.dev/share";
+
+    let settingsUserId = null;
+    let settingsUserPlan = "free";
 
     const userEmailEl = document.getElementById("user-email");
     const apiKeyValueEl = document.getElementById("api-key-value");
@@ -649,6 +755,56 @@
       }
     }
 
+    function setShareStatus(message, className) {
+      const el = document.getElementById("share-status");
+      el.textContent = message || "";
+      el.className = "status-msg " + (className || "muted");
+    }
+
+    function syncShareSectionUI(token) {
+      const linkWrap = document.getElementById("share-link-wrap");
+      const genBtn = document.getElementById("generate-share-link");
+      const hint = document.getElementById("share-plan-hint");
+      const input = document.getElementById("share-link-input");
+
+      if (settingsUserPlan === "free") {
+        linkWrap.hidden = true;
+        genBtn.hidden = true;
+        hint.hidden = false;
+        input.value = "";
+        return;
+      }
+
+      hint.hidden = true;
+
+      if (token) {
+        input.value = SHARE_PAGE_BASE + "?token=" + encodeURIComponent(token);
+        linkWrap.hidden = false;
+        genBtn.hidden = true;
+      } else {
+        input.value = "";
+        linkWrap.hidden = true;
+        genBtn.hidden = false;
+      }
+    }
+
+    async function loadShareToken(userId) {
+      const { data, error } = await client
+        .from("share_tokens")
+        .select("token")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) {
+        setShareStatus(error.message, "error");
+        syncShareSectionUI(null);
+        return;
+      }
+
+      setShareStatus("", "muted");
+      syncShareSectionUI(data && data.token ? data.token : null);
+    }
+
     async function init() {
       const { data, error } = await client.auth.getUser();
 
@@ -658,7 +814,12 @@
       }
 
       const user = data.user;
+      settingsUserId = user.id;
       userEmailEl.textContent = user.email || "Signed in";
+
+      const starterUpgradeUrl = CHECKOUT_URLS.starter +
+        "?checkout%5Bcustom%5D%5Buser_id%5D=" + encodeURIComponent(user.id);
+      document.getElementById("share-upgrade-link").href = starterUpgradeUrl;
 
       // Populate Plan section
       try {
@@ -669,6 +830,7 @@
           .single();
 
         const plan = sub?.plan ?? "free";
+        settingsUserPlan = plan;
         const planNameEl = document.getElementById("plan-name");
         const planHintEl = document.getElementById("plan-hint");
         const upgradeBtn = document.getElementById("upgrade-btn");
@@ -685,9 +847,12 @@
           upgradeBtn.hidden = false;
         }
       } catch (_e) {
+        settingsUserPlan = "free";
         document.getElementById("plan-name").textContent = "Free";
         document.getElementById("plan-hint").textContent = PLAN_HINTS.free;
       }
+
+      await loadShareToken(user.id);
 
       try {
         currentApiKey = await getOrCreateApiKey(user.id);
@@ -731,6 +896,63 @@
     logoutBtn.addEventListener("click", async function () {
       await client.auth.signOut();
       window.location.href = "/login";
+    });
+
+    document.getElementById("generate-share-link").addEventListener("click", async function () {
+      if (!settingsUserId || settingsUserPlan === "free") return;
+      const btn = this;
+      btn.disabled = true;
+      setShareStatus("", "muted");
+      const newToken = crypto.randomUUID().replace(/-/g, "") + randomString(24);
+      let err = null;
+      const { error: insertError } = await client.from("share_tokens").insert({
+        user_id: settingsUserId,
+        token: newToken
+      });
+      if (insertError) {
+        const { error: updateError } = await client
+          .from("share_tokens")
+          .update({ token: newToken })
+          .eq("user_id", settingsUserId);
+        err = updateError;
+      }
+      if (err) {
+        setShareStatus(err.message || "Could not create share link.", "error");
+      } else {
+        syncShareSectionUI(newToken);
+        setShareStatus("Share link created. Anyone with the link can view this dashboard (read-only).", "success");
+      }
+      btn.disabled = false;
+    });
+
+    document.getElementById("revoke-share-link").addEventListener("click", async function () {
+      if (!settingsUserId) return;
+      this.disabled = true;
+      setShareStatus("", "muted");
+      const { error } = await client.from("share_tokens").delete().eq("user_id", settingsUserId);
+      if (error) {
+        setShareStatus(error.message, "error");
+      } else {
+        syncShareSectionUI(null);
+        setShareStatus("Share link revoked.", "success");
+      }
+      this.disabled = false;
+    });
+
+    document.getElementById("copy-share-link").addEventListener("click", async function () {
+      const input = document.getElementById("share-link-input");
+      const url = input.value;
+      if (!url) return;
+      const btn = this;
+      try {
+        await navigator.clipboard.writeText(url);
+        btn.textContent = "Copied!";
+        setTimeout(function () {
+          btn.textContent = "Copy";
+        }, 2000);
+      } catch (_e) {
+        setShareStatus("Unable to copy link.", "error");
+      }
     });
 
     regenerateKeyBtn.addEventListener("click", function () {
