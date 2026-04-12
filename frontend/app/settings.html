@@ -1114,27 +1114,30 @@
           valueToSave: valueToSave,
           budget_limitsPayload: payload.budget_limits,
         });
-        const { data: updatedRow, error: upErr } = await client
+        const { error: upErr } = await client
           .from("subscriptions")
           .update(payload)
-          .eq("user_id", settingsUserId)
-          .select("budget_limits, monthly_cost_usd, budget_period_start")
-          .single();
+          .eq("user_id", settingsUserId);
+
         if (upErr) {
           console.log("[budget save] update failed", upErr);
-          throw upErr;
+          return;
         }
-        console.log("[budget save] update succeeded", { returnedRow: updatedRow });
-        const { data: subNew, error: refetchErr } = await client
+
+        console.log("[budget save] update succeeded");
+
+        const { data: refetch, error: refetchErr } = await client
           .from("subscriptions")
           .select("budget_limits, monthly_cost_usd, budget_period_start")
           .eq("user_id", settingsUserId)
           .single();
+
         if (refetchErr) {
           console.log("[budget save] refetch after update failed", refetchErr);
           throw refetchErr;
         }
-        fresh = await ensureBudgetPeriodFresh(subNew);
+
+        fresh = await ensureBudgetPeriodFresh(refetch);
         const limitsRawAfter = parseJsonObject(fresh.budget_limits);
         console.log("[budget save] budget_limits after refetch", limitsRawAfter);
         const limitsAfter = toNumberMap(limitsRawAfter);
