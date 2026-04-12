@@ -568,6 +568,11 @@
       color: var(--text-muted);
     }
 
+    table.compare .compare-cell-yes {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
     /* Pricing */
     .pricing-kicker {
       margin: 0 0 1.75rem;
@@ -907,6 +912,30 @@
               <td><span class="dash">Partial</span></td>
               <td><span class="dash">Partial</span></td>
             </tr>
+            <tr>
+              <th scope="row">Output quality scoring</th>
+              <td class="col-farol"><span class="compare-cell-yes">Yes</span></td>
+              <td><span class="dash">No</span></td>
+              <td><span class="dash">No</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Budget alerts</th>
+              <td class="col-farol"><span class="compare-cell-yes">Yes</span></td>
+              <td><span class="dash">No</span></td>
+              <td><span class="dash">No</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Weekly digest email</th>
+              <td class="col-farol"><span class="compare-cell-yes">Yes</span></td>
+              <td><span class="dash">No</span></td>
+              <td><span class="dash">No</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Shared read-only dashboard</th>
+              <td class="col-farol"><span class="compare-cell-yes">Yes</span></td>
+              <td><span class="dash">No</span></td>
+              <td><span class="dash">Partial</span></td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -923,6 +952,7 @@
           <ul class="pricing-list">
             <li>1 agent</li>
             <li>50k events/month</li>
+            <li>Cost anomaly detection</li>
             <li>Email alerts</li>
           </ul>
           <a href="/signup" class="btn btn-ghost" style="margin-top:auto;width:100%;justify-content:center;">Get started free</a>
@@ -934,6 +964,7 @@
           <ul class="pricing-list">
             <li>3 agents</li>
             <li>300k events/month</li>
+            <li>Cost anomaly detection</li>
             <li>Email alerts</li>
           </ul>
           <a href="https://obsfarol.lemonsqueezy.com/checkout/buy/d4c5f967-e228-459c-8619-438e314b786b" class="btn btn-primary" style="margin-top:auto;width:100%;justify-content:center;">Get started</a>
@@ -946,8 +977,7 @@
           <ul class="pricing-list">
             <li>Unlimited agents</li>
             <li>1M events/month</li>
-            <li>Cost anomaly detection</li>
-            <li>Slack alerts</li>
+            <li>Slack + webhook alerts</li>
           </ul>
           <a href="https://obsfarol.lemonsqueezy.com/checkout/buy/f65e187a-8079-458b-b8c0-56f81d93a656" class="btn btn-primary" style="margin-top:auto;width:100%;justify-content:center;">Get started</a>
         </article>
@@ -968,8 +998,8 @@
 
     <section class="wrap" aria-labelledby="cta-heading">
       <div class="cta-band">
-        <h2 id="cta-heading">Be the first to know when something breaks</h2>
-        <p>Join the waitlist for early access, pricing for small teams, and the public beta timeline.</p>
+        <h2 id="cta-heading">Start monitoring your agents today.</h2>
+        <p>Free forever. No credit card. One decorator.</p>
         <a href="/signup" class="btn btn-primary" style="font-size:1rem;padding:0.72rem 1.5rem;">Sign up free →</a>
       </div>
     </section>
