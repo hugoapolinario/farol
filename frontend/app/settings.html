@@ -496,6 +496,12 @@
       border-color: var(--accent);
     }
 
+    .webhook-saved-indicator {
+      font-size: 0.78rem;
+      color: #4ade80;
+      margin-left: 0.4rem;
+    }
+
     .alerts-subsection {
       padding: 0.75rem 0;
     }
@@ -694,6 +700,7 @@
           <div class="webhook-input-row">
             <input type="url" id="webhook-url-input" class="webhook-url-input" placeholder="https://hooks.slack.com/..." />
             <button id="save-webhook-btn" class="btn btn-primary" type="button">Save</button>
+            <span id="webhook-saved-indicator" class="webhook-saved-indicator" hidden aria-live="polite">✓ Saved</span>
             <button id="test-webhook-btn" class="btn btn-secondary" type="button">Test</button>
             <button id="remove-webhook-btn" class="btn btn-danger-outline" type="button">Remove</button>
           </div>
@@ -925,6 +932,7 @@
       const hint = document.getElementById("webhook-upgrade-hint");
       const input = document.getElementById("webhook-url-input");
       const statusEl = document.getElementById("webhook-status");
+      const savedInd = document.getElementById("webhook-saved-indicator");
 
       if (plan === "free" || plan === "starter") {
         form.hidden = true;
@@ -932,12 +940,18 @@
         input.value = "";
         document.getElementById("webhook-last-fired").textContent = "";
         statusEl.textContent = "";
+        if (savedInd) savedInd.hidden = true;
         return;
       }
 
       form.hidden = false;
       hint.hidden = true;
-      input.value = webhookUrl && String(webhookUrl).trim() ? String(webhookUrl).trim() : "";
+      const trimmed = webhookUrl && String(webhookUrl).trim() ? String(webhookUrl).trim() : "";
+      input.value = trimmed;
+      if (savedInd) {
+        savedInd.textContent = "✓ Saved";
+        savedInd.hidden = trimmed === "";
+      }
       updateWebhookLastFiredLine(lastFiredAt, lastStatus);
     }
 
@@ -949,8 +963,16 @@
         .maybeSingle();
       if (error || !data) return;
       const input = document.getElementById("webhook-url-input");
-      if (data.webhook_url && String(data.webhook_url).trim()) {
-        input.value = String(data.webhook_url).trim();
+      const savedInd = document.getElementById("webhook-saved-indicator");
+      const wTrim = data.webhook_url && String(data.webhook_url).trim()
+        ? String(data.webhook_url).trim()
+        : "";
+      if (wTrim) {
+        input.value = wTrim;
+      }
+      if (savedInd) {
+        savedInd.textContent = "✓ Saved";
+        savedInd.hidden = wTrim === "";
       }
       updateWebhookLastFiredLine(data.webhook_last_fired_at, data.webhook_last_status);
     }
@@ -1045,9 +1067,121 @@
       });
     }
 
+    async function budgetAgentsListClickHandler(e) {
+      const btn = e.target.closest(".budget-save-btn");
+      if (!btn) return;
+      const agentName = btn.dataset.agent;
+      if (!agentName || !settingsUserId || settingsUserPlan === "free") return;
+      let input = null;
+      if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+        input = document.querySelector(
+          '.budget-input[data-agent="' + CSS.escape(agentName) + '"]',
+        );
+      }
+      if (!input) {
+        const rowFallback = btn.closest(".budget-agent-row");
+        input = rowFallback && rowFallback.querySelector(".budget-input");
+      }
+      if (!input || input.dataset.agent !== agentName) return;
+      const row = btn.closest(".budget-agent-row");
+      if (!row) return;
+      const raw = input.value ? input.value.trim() : "";
+      btn.disabled = true;
+      try {
+        const { data: subRow, error: fetchErr } = await client
+          .from("subscriptions")
+          .select("budget_limits, monthly_cost_usd, budget_period_start")
+          .eq("user_id", settingsUserId)
+          .single();
+        if (fetchErr) throw fetchErr;
+        let fresh = await ensureBudgetPeriodFresh(subRow);
+        const limits = toNumberMap(parseJsonObject(fresh.budget_limits));
+        let valueToSave = null;
+        if (raw === "") {
+          delete limits[agentName];
+          valueToSave = "(clear limit)";
+        } else {
+          const v = parseFloat(raw);
+          if (isNaN(v) || v < 0) {
+            return;
+          }
+          limits[agentName] = v;
+          valueToSave = v;
+        }
+        const payload = { budget_limits: Object.assign({}, limits) };
+        console.log("[budget save] before update", {
+          agent: agentName,
+          valueToSave: valueToSave,
+          budget_limitsPayload: payload.budget_limits,
+        });
+        const { data: updatedRow, error: upErr } = await client
+          .from("subscriptions")
+          .update(payload)
+          .eq("user_id", settingsUserId)
+          .select("budget_limits, monthly_cost_usd, budget_period_start")
+          .single();
+        if (upErr) {
+          console.log("[budget save] update failed", upErr);
+          throw upErr;
+        }
+        console.log("[budget save] update succeeded", { returnedRow: updatedRow });
+        const { data: subNew, error: refetchErr } = await client
+          .from("subscriptions")
+          .select("budget_limits, monthly_cost_usd, budget_period_start")
+          .eq("user_id", settingsUserId)
+          .single();
+        if (refetchErr) {
+          console.log("[budget save] refetch after update failed", refetchErr);
+          throw refetchErr;
+        }
+        fresh = await ensureBudgetPeriodFresh(subNew);
+        const limitsRawAfter = parseJsonObject(fresh.budget_limits);
+        console.log("[budget save] budget_limits after refetch", limitsRawAfter);
+        const limitsAfter = toNumberMap(limitsRawAfter);
+        const spentAfter = toNumberMap(parseJsonObject(fresh.monthly_cost_usd));
+        const lim = limitsAfter[agentName];
+        const limitAfter = lim != null && !isNaN(Number(lim)) ? Number(lim) : 0;
+        if (limitAfter > 0) {
+          input.value = String(limitAfter);
+          input.placeholder = String(limitAfter);
+        } else {
+          input.value = "";
+          input.placeholder = "No limit";
+        }
+        const spendEl = row.querySelector(".budget-spend");
+        if (spendEl) {
+          applyBudgetSpendDisplay(
+            spendEl,
+            spentAfter[agentName] != null ? spentAfter[agentName] : 0,
+            limitAfter,
+          );
+        }
+        const savedMsg = row.querySelector(".budget-saved-msg");
+        if (savedMsg) {
+          if (row._budgetSaveTimer) clearTimeout(row._budgetSaveTimer);
+          savedMsg.textContent = "✓ Saved";
+          savedMsg.hidden = false;
+          row._budgetSaveTimer = setTimeout(function () {
+            savedMsg.textContent = "";
+            savedMsg.hidden = true;
+            row._budgetSaveTimer = null;
+          }, 2000);
+        }
+      } catch (err) {
+        console.error("[budget save] error", err);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
     async function loadBudgetAgentsUi(sub) {
       const list = document.getElementById("budget-agents-list");
       const emptyHint = document.getElementById("budget-empty-hint");
+      if (!list) return;
+      if (!list.dataset.budgetSaveDelegationAttached) {
+        list.dataset.budgetSaveDelegationAttached = "1";
+        list.addEventListener("click", budgetAgentsListClickHandler);
+      }
       list.innerHTML = "";
       if (!settingsUserId) return;
       const { data, error } = await client
@@ -1091,6 +1225,7 @@
         input.step = "0.01";
         input.min = "0";
         input.className = "budget-input";
+        input.dataset.agent = agent;
         if (limit != null && isFinite(Number(limit)) && Number(limit) > 0) {
           input.value = String(limit);
           input.placeholder = String(limit);
@@ -1105,6 +1240,7 @@
         saveBtn.type = "button";
         saveBtn.className = "btn btn-secondary budget-save-btn";
         saveBtn.textContent = "Save";
+        saveBtn.dataset.agent = agent;
         const savedMsg = document.createElement("span");
         savedMsg.className = "budget-saved-msg";
         savedMsg.setAttribute("aria-live", "polite");
@@ -1422,7 +1558,12 @@
         statusEl.textContent = error.message || "Could not save.";
         return;
       }
-      statusEl.textContent = "✓ Saved";
+      statusEl.textContent = "";
+      const savedInd = document.getElementById("webhook-saved-indicator");
+      if (savedInd) {
+        savedInd.textContent = "✓ Saved";
+        savedInd.hidden = false;
+      }
     });
 
     document.getElementById("test-webhook-btn").addEventListener("click", async function () {
@@ -1466,98 +1607,6 @@
       }
     });
 
-    document.getElementById("budget-agents-list").addEventListener("click", async function (ev) {
-      const btn = ev.target.closest(".budget-save-btn");
-      if (!btn || !settingsUserId || settingsUserPlan === "free") return;
-      const row = btn.closest(".budget-agent-row");
-      const agent = row && row.dataset.agent;
-      if (!agent) return;
-      const input = row.querySelector(".budget-input");
-      const raw = input && input.value ? input.value.trim() : "";
-      btn.disabled = true;
-      try {
-        const { data: subRow, error: fetchErr } = await client
-          .from("subscriptions")
-          .select("budget_limits, monthly_cost_usd, budget_period_start")
-          .eq("user_id", settingsUserId)
-          .single();
-        if (fetchErr) throw fetchErr;
-        let fresh = await ensureBudgetPeriodFresh(subRow);
-        const limits = toNumberMap(parseJsonObject(fresh.budget_limits));
-        let valueToSave = null;
-        if (raw === "") {
-          delete limits[agent];
-          valueToSave = "(clear limit)";
-        } else {
-          const v = parseFloat(raw);
-          if (isNaN(v) || v < 0) {
-            return;
-          }
-          limits[agent] = v;
-          valueToSave = v;
-        }
-        const payload = { budget_limits: Object.assign({}, limits) };
-        console.log("[budget save] before update", {
-          agent: agent,
-          valueToSave: valueToSave,
-          budget_limitsPayload: payload.budget_limits,
-        });
-        const { data: updatedRow, error: upErr } = await client
-          .from("subscriptions")
-          .update(payload)
-          .eq("user_id", settingsUserId)
-          .select("budget_limits, monthly_cost_usd, budget_period_start")
-          .single();
-        if (upErr) {
-          console.log("[budget save] update failed", upErr);
-          throw upErr;
-        }
-        console.log("[budget save] update succeeded", { returnedRow: updatedRow });
-        const { data: subNew, error: refetchErr } = await client
-          .from("subscriptions")
-          .select("budget_limits, monthly_cost_usd, budget_period_start")
-          .eq("user_id", settingsUserId)
-          .single();
-        if (refetchErr) {
-          console.log("[budget save] refetch after update failed", refetchErr);
-          throw refetchErr;
-        }
-        fresh = await ensureBudgetPeriodFresh(subNew);
-        const limitsRawAfter = parseJsonObject(fresh.budget_limits);
-        console.log("[budget save] budget_limits after refetch", limitsRawAfter);
-        const limitsAfter = toNumberMap(limitsRawAfter);
-        const spentAfter = toNumberMap(parseJsonObject(fresh.monthly_cost_usd));
-        const lim = limitsAfter[agent];
-        const limitAfter = lim != null && !isNaN(Number(lim)) ? Number(lim) : 0;
-        if (limitAfter > 0) {
-          input.value = String(limitAfter);
-          input.placeholder = String(limitAfter);
-        } else {
-          input.value = "";
-          input.placeholder = "No limit";
-        }
-        const spendEl = row.querySelector(".budget-spend");
-        if (spendEl) {
-          applyBudgetSpendDisplay(spendEl, spentAfter[agent] != null ? spentAfter[agent] : 0, limitAfter);
-        }
-        const savedMsg = row.querySelector(".budget-saved-msg");
-        if (savedMsg) {
-          if (row._budgetSaveTimer) clearTimeout(row._budgetSaveTimer);
-          savedMsg.textContent = "✓ Saved";
-          savedMsg.hidden = false;
-          row._budgetSaveTimer = setTimeout(function () {
-            savedMsg.textContent = "";
-            savedMsg.hidden = true;
-            row._budgetSaveTimer = null;
-          }, 2000);
-        }
-      } catch (err) {
-        console.error("[budget save] error", err);
-      } finally {
-        btn.disabled = false;
-      }
-    });
-
     document.getElementById("remove-webhook-btn").addEventListener("click", async function () {
       if (!settingsUserId || settingsUserPlan === "free" || settingsUserPlan === "starter") return;
       const input = document.getElementById("webhook-url-input");
@@ -1576,6 +1625,8 @@
       input.value = "";
       document.getElementById("webhook-last-fired").textContent = "";
       statusEl.textContent = "Webhook removed";
+      const savedInd = document.getElementById("webhook-saved-indicator");
+      if (savedInd) savedInd.hidden = true;
     });
 
     deleteConfirmBtn.addEventListener("click", async function () {
