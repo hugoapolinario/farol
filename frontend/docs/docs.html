@@ -525,6 +525,95 @@
     .code-tab-panel[aria-hidden="false"] {
       display: block;
     }
+
+    .doc-disclosure {
+      margin-bottom: 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      overflow: hidden;
+    }
+
+    .doc-disclosure:last-child {
+      margin-bottom: 0;
+    }
+
+    .doc-disclosure summary {
+      cursor: pointer;
+      padding: 0.85rem 1rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      user-select: none;
+    }
+
+    .doc-disclosure summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .doc-disclosure summary::after {
+      content: "";
+      width: 0.45rem;
+      height: 0.45rem;
+      border-right: 2px solid var(--accent);
+      border-bottom: 2px solid var(--accent);
+      transform: rotate(-45deg);
+      flex-shrink: 0;
+      margin-top: -0.15rem;
+      transition: transform 0.2s ease;
+    }
+
+    .doc-disclosure[open] summary::after {
+      transform: rotate(45deg);
+      margin-top: 0.1rem;
+    }
+
+    .doc-disclosure summary:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+
+    .doc-disclosure-body {
+      padding: 0 1rem 1rem;
+      border-top: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.12);
+    }
+
+    .doc-disclosure-body p,
+    .doc-disclosure-body li {
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+      margin: 0 0 0.65rem;
+      line-height: 1.6;
+    }
+
+    .doc-disclosure-body p:last-child,
+    .doc-disclosure-body ul:last-child {
+      margin-bottom: 0;
+    }
+
+    .doc-disclosure-body ul {
+      margin: 0 0 0.65rem;
+      padding-left: 1.25rem;
+    }
+
+    .doc-disclosure-body li {
+      margin-bottom: 0.4rem;
+    }
+
+    .doc-disclosure-body li:last-child {
+      margin-bottom: 0;
+    }
+
+    .doc-disclosure-body .code-panel {
+      margin-top: 0.5rem;
+      margin-bottom: 0.65rem;
+    }
   </style>
 </head>
 <body>
@@ -550,6 +639,7 @@
   <main id="main" class="wrap docs-shell">
     <nav class="docs-sidebar" aria-label="Documentation sections">
       <a href="#quick-start">Quick start</a>
+      <a href="#webhook-integrations">Webhook integrations</a>
       <a href="#sdk-reference">SDK reference</a>
       <a href="#dashboard">Dashboard</a>
       <a href="#faq">FAQ</a>
@@ -848,6 +938,53 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
           </div>
 
         </div><!-- /qs-steps -->
+      </section>
+
+      <section id="webhook-integrations" class="doc-section" aria-labelledby="webhook-integrations-heading">
+        <h2 id="webhook-integrations-heading">Webhook integrations</h2>
+        <p>On <strong style="color:var(--text)">Builder</strong> plans and above, you can add a webhook URL in <a class="inline" href="/settings">Account settings</a>. Farol sends a JSON <code style="font-family:var(--font-mono);font-size:0.88em">POST</code> when a cost anomaly is detected. Use the steps below to wire common destinations.</p>
+
+        <details class="doc-disclosure">
+          <summary>Discord</summary>
+          <div class="doc-disclosure-body">
+            <ul>
+              <li>Go to <strong style="color:var(--text)">Server Settings</strong> → <strong style="color:var(--text)">Integrations</strong> → <strong style="color:var(--text)">Webhooks</strong> → <strong style="color:var(--text)">New Webhook</strong>.</li>
+              <li>Copy the webhook URL and paste it in Farol Settings.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="doc-disclosure">
+          <summary>Google Chat</summary>
+          <div class="doc-disclosure-body">
+            <ul>
+              <li>Open a Space → <strong style="color:var(--text)">Apps &amp; Integrations</strong> → <strong style="color:var(--text)">Add webhooks</strong>.</li>
+              <li>Copy the webhook URL and paste it in Farol Settings.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="doc-disclosure">
+          <summary>Telegram</summary>
+          <div class="doc-disclosure-body">
+            <ul>
+              <li>Create a bot with <a class="inline" href="https://t.me/BotFather" rel="noopener noreferrer">@BotFather</a> and get the token.</li>
+              <li>Use URL: <code style="font-family:var(--font-mono);font-size:0.85em;color:var(--text)">https://api.telegram.org/bot{TOKEN}/sendMessage</code></li>
+            </ul>
+            <p><strong style="color:var(--text)">Note:</strong> Telegram requires a different payload format — use Zapier or Make to bridge.</p>
+          </div>
+        </details>
+
+        <details class="doc-disclosure">
+          <summary>Zapier / Make</summary>
+          <div class="doc-disclosure-body">
+            <ul>
+              <li>Create a <strong style="color:var(--text)">Catch Hook</strong> trigger in Zapier or Make.</li>
+              <li>Copy the webhook URL and paste it in Farol Settings.</li>
+              <li>Connect to any app (Gmail, Notion, PagerDuty, etc.).</li>
+            </ul>
+          </div>
+        </details>
       </section>
 
       <section id="sdk-reference" class="doc-section" aria-labelledby="sdk-heading">
