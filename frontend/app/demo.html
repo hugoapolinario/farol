@@ -835,6 +835,37 @@
 
     .alerts-list { display: flex; flex-direction: column; gap: 0.65rem; }
 
+    .alert-section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.5rem 0 0.4rem;
+      margin-top: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .alert-section-header:first-child {
+      margin-top: 0;
+      border-top: none;
+    }
+
+    .alert-section-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .alert-section-count {
+      font-size: 0.72rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.1rem 0.5rem;
+      color: var(--text-muted);
+    }
+
     .alert-item {
       border: 1px solid rgba(248, 113, 113, 0.28);
       border-radius: var(--radius-sm);
@@ -2288,6 +2319,7 @@ def my_agent(task, run=None):
       return runs.filter(function (r) { return (r.timestamp || 0) >= cutoff; });
     }
 
+    /* Healthy when rate >= 80 (warning uses rate < 80, so exactly 80% is healthy unless lastFailed). */
     function computeReliabilityHealth(recent) {
       if (!recent.length) return { health: "healthy", rate: 100, lastFailed: false };
       var n = recent.length;
@@ -2306,6 +2338,7 @@ def my_agent(task, run=None):
       return computeReliabilityHealth(getDemoHealthRecentRuns(runs)).health;
     }
 
+    /* Reliability dot + KPI use recent-window rate; agent card success % uses rate >= 80 (inclusive) for green vs warn. */
     function agentHealthStats(runs) {
       var recent = getDemoHealthRecentRuns(runs);
       var rel = computeReliabilityHealth(recent);
@@ -2363,7 +2396,7 @@ def my_agent(task, run=None):
         var hint = extra > 0 ? ' <span class="health-banner-more">+' + extra + ' more</span>' : "";
         banner.className = "critical";
         banner.innerHTML =
-          '<span>🔴 <strong>' + escapeHtml(item.agent) + '</strong> is failing more often — <strong>' + item.rate + '%</strong> success last active week with ' + item.errors + " error" + (item.errors !== 1 ? "s" : "") + "." + hint + "</span>" +
+          '<span>🔴 <strong>' + escapeHtml(item.agent) + '</strong> had a <strong>' + item.rate + '%</strong> success rate last active week — ' + item.errors + " error" + (item.errors !== 1 ? "s" : "") + " detected." + hint + "</span>" +
           '<button class="health-banner-link" data-action="runs" data-agent="' + escapeHtml(item.agent) + '">View runs →</button>';
       } else if (warnRel.length) {
         var item = warnRel[0];
@@ -2379,7 +2412,7 @@ def my_agent(task, run=None):
         var hint = extra > 0 ? ' <span class="health-banner-more">+' + extra + ' more</span>' : "";
         banner.className = "warning";
         banner.innerHTML =
-          '<span>⚠️ <strong>' + escapeHtml(item.agent) + "</strong> has frequent cost spikes — <strong>" + item.anomalyCount + "</strong> detected last active week." + hint + "</span>" +
+          '<span>⚠️ <strong>' + escapeHtml(item.agent) + "</strong> had <strong>" + item.anomalyCount + "</strong> cost spike" + (item.anomalyCount !== 1 ? "s" : "") + " detected last active week." + hint + "</span>" +
           '<button class="health-banner-link" data-action="alerts">View alerts →</button>';
       }
 
@@ -2419,7 +2452,7 @@ def my_agent(task, run=None):
         const avgDur  = n > 0 ? runs.reduce(function(a,r) { return a+(Number(r.duration_ms)||0); }, 0) / n : 0;
         const sorted  = runs.slice().sort(function(a,b) { return new Date(b.timestamp) - new Date(a.timestamp); });
         const lastRun = sorted[0];
-        const rateClass = rate === 100 ? "good" : rate >= 85 ? "" : "warn";
+        const rateClass = rate === 100 ? "good" : rate >= 80 ? "" : "warn";
         const hs        = agentHealthStats(runs);
         console.log("[Farol health] card:", name, "→ dot (reliability):", hs.reliabilityHealth,
           "| recent:", hs.recentCount, "runs",
@@ -2465,7 +2498,7 @@ def my_agent(task, run=None):
         const totalSucc  = allAgentRuns.filter(function(r) { return r.status === "success"; }).length;
         const overallRate = Math.round((totalSucc / totalRuns) * 100);
         const totalCost  = allAgentRuns.reduce(function(a, r) { return a + (Number(r.cost_usd) || 0); }, 0);
-        const rateClass  = overallRate === 100 ? "good" : overallRate >= 85 ? "" : "warn";
+        const rateClass  = overallRate === 100 ? "good" : overallRate >= 80 ? "" : "warn";
 
         statsBar.hidden = false;
         statsBar.innerHTML =
@@ -2610,7 +2643,26 @@ def my_agent(task, run=None):
         );
       });
 
-      el.innerHTML = '<div class="alerts-list">' + anomalyCards.join("") + regressionCards.join("") + "</div>";
+      const listChunks = [];
+      if (visibleAnomalous.length) {
+        listChunks.push(
+          '<div class="alert-section-header" id="cost-alerts-header">' +
+            '<span class="alert-section-title">Cost Anomalies</span>' +
+            '<span class="alert-section-count">' + visibleAnomalous.length + "</span>" +
+            "</div>"
+        );
+        listChunks.push(anomalyCards.join(""));
+      }
+      if (visibleRegressions.length) {
+        listChunks.push(
+          '<div class="alert-section-header" id="regression-alerts-header">' +
+            '<span class="alert-section-title">Performance Regressions</span>' +
+            '<span class="alert-section-count">' + visibleRegressions.length + "</span>" +
+            "</div>"
+        );
+        listChunks.push(regressionCards.join(""));
+      }
+      el.innerHTML = '<div class="alerts-list">' + listChunks.join("") + "</div>";
 
       /* Wire anomaly cards */
       el.querySelectorAll(".alert-item[data-run-id]").forEach(function(item) {
@@ -2823,7 +2875,7 @@ def my_agent(task, run=None):
       const succ = runs.filter(function(r) { return r.status === "success"; }).length;
       const rate = Math.round((succ / n) * 100);
       successEl.textContent = rate + "%";
-      successEl.className = "agent-kpi-value " + (rate === 100 ? "good" : rate >= 85 ? "" : "warn");
+      successEl.className = "agent-kpi-value " + (rate === 100 ? "good" : rate >= 80 ? "" : "warn");
       const avgCost = runs.reduce(function(a,r) { return a+(Number(r.cost_usd)||0); }, 0) / n;
       costEl.textContent = "$" + avgCost.toFixed(6);
     }
