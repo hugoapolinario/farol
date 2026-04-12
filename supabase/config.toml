@@ -45,3 +45,8 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/test-webhook/index.ts"
 
+[functions.weekly-digest]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/weekly-digest/index.ts"
+
