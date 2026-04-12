@@ -1,11 +1,11 @@
-# farol-sdk
+# @usefarol/sdk
 
 **AI agent observability for Node.js** — wrap your agent entrypoints with a single `trace()` helper to send runs, token usage, cost, and spans to [Farol](https://usefarol.dev).
 
 ## Install
 
 ```bash
-npm install farol-sdk
+npm install @usefarol/sdk
 ```
 
 Requires **Node.js 18+** (global `fetch`).
@@ -18,7 +18,7 @@ Create or copy your API key from the Farol app: **[usefarol.dev](https://usefaro
 
 ```typescript
 import Anthropic from "@anthropic-ai/sdk";
-import { trace } from "farol-sdk";
+import { trace } from "@usefarol/sdk";
 
 const client = new Anthropic();
 
@@ -60,7 +60,7 @@ await myAgent("Summarize this week’s metrics.");
 
 ```typescript
 import OpenAI from "openai";
-import { trace } from "farol-sdk";
+import { trace } from "@usefarol/sdk";
 
 const openai = new OpenAI();
 
@@ -103,7 +103,7 @@ await myAgent("Hello!");
 Use `run.startSpan(name, { type, metadata })` for tools, retrieval, or extra LLM steps. Call `span.end()` when the step finishes, or `span.end(error)` on failure. Unclosed spans are auto-ended when the run completes.
 
 ```typescript
-import { trace } from "farol-sdk";
+import { trace } from "@usefarol/sdk";
 
 const pipeline = trace(
   async (run, query: string) => {
