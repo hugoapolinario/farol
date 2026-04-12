@@ -9,6 +9,8 @@ export interface TraceOptions {
   costPer1kInputTokens?: number;
   costPer1kOutputTokens?: number;
   captureIo?: boolean;
+  /** 0.0 to 1.0, default 1.0 */
+  sampleRate?: number;
 }
 
 export interface SpanOptions {
@@ -109,6 +111,7 @@ export function trace<T extends unknown[], R>(
     costPer1kInputTokens = 0.00025,
     costPer1kOutputTokens = 0.00125,
     captureIo = false,
+    sampleRate = 1.0,
   } = options;
 
   if (captureIo) {
@@ -142,7 +145,13 @@ export function trace<T extends unknown[], R>(
         if (!span.endedAt) span.end();
       }
 
-      await sendToFarol(run, farolKey, farolEndpoint, captureIo);
+      const shouldSend =
+        run.status === "error" || Math.random() <= sampleRate;
+      if (shouldSend) {
+        await sendToFarol(run, farolKey, farolEndpoint, captureIo);
+      } else {
+        console.log(`[Farol] Run sampled out (sampleRate=${sampleRate})`);
+      }
     }
   };
 }

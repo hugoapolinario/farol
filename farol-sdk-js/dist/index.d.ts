@@ -6,6 +6,8 @@ interface TraceOptions {
     costPer1kInputTokens?: number;
     costPer1kOutputTokens?: number;
     captureIo?: boolean;
+    /** 0.0 to 1.0, default 1.0 */
+    sampleRate?: number;
 }
 interface SpanOptions {
     type?: "tool" | "llm";

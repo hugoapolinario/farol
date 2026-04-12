@@ -147,6 +147,18 @@ await pipeline("What is Farol?");
 
 Set `captureIo: true` in `trace` options to include `span.input` / `span.output` in the payload (only when you assign them). **Do not enable for sensitive data** without reviewing compliance needs.
 
+## Sampling
+
+Set `sampleRate` to reduce the percentage of runs sent to Farol. Errors are always sent regardless of sample rate.
+
+```typescript
+const myAgent = trace(fn, {
+  agentName: "my-agent",
+  farolKey: "frl_...",
+  sampleRate: 0.1, // send 10% of successful runs
+});
+```
+
 ## Options
 
 | Option | Description |
@@ -157,6 +169,7 @@ Set `captureIo: true` in `trace` options to include `span.input` / `span.output`
 | `model` | Model label on the run |
 | `costPer1kInputTokens` / `costPer1kOutputTokens` | USD per 1k tokens for cost estimates |
 | `captureIo` | When `true`, include span `input`/`output` if set |
+| `sampleRate` | Fraction of successful runs to send (`0.0`–`1.0`). Errors always sent. Default `1.0`. |
 
 ## Build (from source)
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import secrets
 import statistics
 import string
@@ -384,6 +385,7 @@ def trace(
     farol_key: Optional[str] = None,
     farol_endpoint: str = "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/ingest",
     capture_io: bool = False,
+    sample_rate: float = 1.0,  # 1.0 = 100%, 0.1 = 10%
 ):
     def decorator(func):
         _capture_io_warned = False
@@ -432,7 +434,12 @@ def trace(
                     (run["output_tokens"] / 1000 * cost_per_1k_output_tokens),
                     6,
                 )
-                _save_run(run, farol_key, farol_endpoint, capture_io)
+                # Always send errors regardless of sample rate
+                should_send = run["status"] == "error" or random.random() <= sample_rate
+                if should_send:
+                    _save_run(run, farol_key, farol_endpoint, capture_io)
+                else:
+                    print(f"[Farol] Run sampled out (sample_rate={sample_rate})")
 
         return wrapper
 

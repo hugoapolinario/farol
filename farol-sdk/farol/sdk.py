@@ -14,6 +14,7 @@ Environment variables (when using integrations):
 from __future__ import annotations
 
 import os
+import random
 import statistics
 import time
 from datetime import datetime
@@ -222,6 +223,7 @@ def trace(
     model: str = "claude-haiku-4-5-20251001",
     cost_per_1k_input_tokens: float = 0.00025,
     cost_per_1k_output_tokens: float = 0.00125,
+    sample_rate: float = 1.0,  # 1.0 = 100%, 0.1 = 10%
 ) -> Callable[[F], F]:
     def decorator(func: F) -> F:
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -260,7 +262,12 @@ def trace(
                     (run["output_tokens"] / 1000 * cost_per_1k_output_tokens),
                     6,
                 )
-                save_run(run)
+                # Always send errors regardless of sample rate
+                should_send = run["status"] == "error" or random.random() <= sample_rate
+                if should_send:
+                    save_run(run)
+                else:
+                    print(f"[Farol] Run sampled out (sample_rate={sample_rate})")
 
         return wrapper  # type: ignore[return-value]
 

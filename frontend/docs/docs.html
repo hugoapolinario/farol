@@ -1104,6 +1104,23 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
               <th scope="row">capture_io</th>
               <td>Optional. Set <code style="font-family:var(--font-mono);font-size:0.9em">True</code> to store prompt inputs and outputs in the dashboard. Default <code style="font-family:var(--font-mono);font-size:0.9em">False</code>. Handle with care — prompts may contain sensitive data.</td>
             </tr>
+            <tr>
+              <th scope="row">sample_rate</th>
+              <td>Optional. Fraction of successful runs to send (<code style="font-family:var(--font-mono);font-size:0.9em">0.0</code>–<code style="font-family:var(--font-mono);font-size:0.9em">1.0</code>). Errors always sent. Default <code style="font-family:var(--font-mono);font-size:0.9em">1.0</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 id="nodejs-trace-options" style="margin-top:1.25rem;font-size:1.05rem">Node.js <code style="font-family:var(--font-mono);font-size:0.9em">trace()</code> options</h3>
+        <table class="param-table">
+          <thead>
+            <tr><th scope="col">Option</th><th scope="col">Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">sampleRate</code></th>
+              <td>Fraction of successful runs to send (<code style="font-family:var(--font-mono);font-size:0.9em">0.0</code>–<code style="font-family:var(--font-mono);font-size:0.9em">1.0</code>). Errors always sent. Default <code style="font-family:var(--font-mono);font-size:0.9em">1.0</code>.</td>
+            </tr>
           </tbody>
         </table>
         <div class="code-panel" translate="no" style="margin-top:1rem">

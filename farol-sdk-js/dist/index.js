@@ -91,7 +91,8 @@ function trace(fn, options) {
     model = "unknown",
     costPer1kInputTokens = 25e-5,
     costPer1kOutputTokens = 125e-5,
-    captureIo = false
+    captureIo = false,
+    sampleRate = 1
   } = options;
   if (captureIo) {
     console.warn(
@@ -117,7 +118,12 @@ function trace(fn, options) {
       for (const span of run.spans) {
         if (!span.endedAt) span.end();
       }
-      await sendToFarol(run, farolKey, farolEndpoint, captureIo);
+      const shouldSend = run.status === "error" || Math.random() <= sampleRate;
+      if (shouldSend) {
+        await sendToFarol(run, farolKey, farolEndpoint, captureIo);
+      } else {
+        console.log(`[Farol] Run sampled out (sampleRate=${sampleRate})`);
+      }
     }
   };
 }
