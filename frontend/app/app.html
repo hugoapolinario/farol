@@ -1315,6 +1315,14 @@
       letter-spacing: -0.02em;
     }
 
+    .agent-modal-signals { display: flex; gap: 0.5rem; margin-top: 0.25rem; flex-wrap: wrap; }
+    .signal-pill { font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 999px; border: 1px solid; }
+    .signal-pill.reliability.healthy { color: #4ade80; border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.08); }
+    .signal-pill.reliability.warning { color: var(--accent); border-color: rgba(249,115,22,0.3); background: rgba(249,115,22,0.08); }
+    .signal-pill.reliability.critical { color: #ef4444; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); }
+    .signal-pill.cost.warning { color: var(--accent); border-color: rgba(249,115,22,0.3); background: rgba(249,115,22,0.08); }
+    .signal-pill.cost.critical { color: #ef4444; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); }
+
     .agent-modal-controls { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
 
     .agent-date-select {
@@ -1873,7 +1881,13 @@ def my_agent(task, run=None):
       <div class="agent-modal-header">
         <div class="agent-modal-title-row">
           <span class="agent-card-dot" id="agent-modal-dot"></span>
-          <h2 class="agent-modal-name" id="agent-modal-name">—</h2>
+          <div class="agent-modal-title-text">
+            <h2 class="agent-modal-name" id="agent-modal-name">—</h2>
+            <div class="agent-modal-signals" id="agent-modal-signals">
+              <span class="signal-pill reliability healthy" id="agent-signal-reliability">✓ —% reliable</span>
+              <span class="signal-pill cost warning" id="agent-signal-cost" hidden>↑ 0 cost spikes</span>
+            </div>
+          </div>
         </div>
         <div class="agent-modal-controls">
           <select class="agent-date-select" id="agent-modal-date">
@@ -2890,68 +2904,99 @@ def my_agent(task, run=None):
     }
 
     /* ── Agent cards ──────────────────────────────────────────────── */
-    /* ─── Agent health ───────────────────────────────────────────── */
-    function computeAgentHealth(runs) {
-      var cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      var recent = runs.filter(function (r) { return (new Date(r.timestamp).getTime() || 0) >= cutoff; });
-      if (!recent.length) return "healthy";
+    /* ─── Agent health (reliability vs cost) ─────────────────────── */
+    var HEALTH_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+    function getOverviewHealthRecentRuns(runs) {
+      var cutoff = Date.now() - HEALTH_WEEK_MS;
+      return runs.filter(function (r) { return (new Date(r.timestamp).getTime() || 0) >= cutoff; });
+    }
+
+    function computeReliabilityHealth(recent) {
+      if (!recent.length) return { health: "healthy", rate: 100, lastFailed: false };
       var n = recent.length;
       var succ = recent.filter(function (r) { return r.status === "success"; }).length;
       var rate = Math.round((succ / n) * 100);
-      var anomalyCount = recent.filter(function (r) { return r.anomaly; }).length;
       var sorted = recent.slice().sort(function (a, b) { return (new Date(b.timestamp).getTime() || 0) - (new Date(a.timestamp).getTime() || 0); });
-      var lastRunIsError = sorted[0] && sorted[0].status === "error";
-      if (rate < 60 || anomalyCount >= 2 || lastRunIsError) return "critical";
-      if (rate < 80 || anomalyCount === 1) return "warning";
-      return "healthy";
+      var lastFailed = sorted[0] && sorted[0].status === "error";
+      var health;
+      if (rate < 60 || (lastFailed && rate < 80)) health = "critical";
+      else if (rate < 80 || lastFailed) health = "warning";
+      else health = "healthy";
+      return { health: health, rate: rate, lastFailed: lastFailed };
+    }
+
+    function computeReliabilityDotClass(runs) {
+      return computeReliabilityHealth(getOverviewHealthRecentRuns(runs)).health;
+    }
+
+    function buildOverviewBannerStats(runs) {
+      var recent = getOverviewHealthRecentRuns(runs);
+      var rel = computeReliabilityHealth(recent);
+      var errors = recent.filter(function (r) { return r.status === "error"; }).length;
+      var anomalyCount = recent.filter(function (r) { return r.anomaly; }).length;
+      return {
+        reliabilityHealth: rel.health,
+        rate: rel.rate,
+        errors: errors,
+        anomalyCount: anomalyCount,
+        recentCount: recent.length,
+      };
     }
 
     function renderHealthBanner() {
       var banner = document.getElementById("health-banner");
       if (!banner) return;
-      var cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      var agentMap = new Map();
-      allRuns.forEach(function (r) {
-        var key = r.agent || "—";
-        if (!agentMap.has(key)) agentMap.set(key, []);
-        agentMap.get(key).push(r);
+      var agentNames = Array.from(new Set(allRuns.map(function (r) { return r.agent || "—"; })));
+      var results = agentNames.map(function (agent) {
+        var runs = allRuns.filter(function (r) { return (r.agent || "—") === agent; });
+        var s = buildOverviewBannerStats(runs);
+        return {
+          agent: agent,
+          reliabilityHealth: s.reliabilityHealth,
+          rate: s.rate,
+          errors: s.errors,
+          anomalyCount: s.anomalyCount,
+        };
       });
-      var criticals = [], warnings = [];
-      agentMap.forEach(function (runs, name) {
-        var h = computeAgentHealth(runs);
-        if (h === "critical") criticals.push({ name: name, runs: runs });
-        else if (h === "warning") warnings.push({ name: name, runs: runs });
-      });
-      if (!criticals.length && !warnings.length) {
+
+      var criticalRel = results.filter(function (r) { return r.reliabilityHealth === "critical"; });
+      var warnRel = results.filter(function (r) { return r.reliabilityHealth === "warning"; });
+      var costSpikes = results.filter(function (r) { return r.reliabilityHealth === "healthy" && r.anomalyCount >= 4; });
+
+      if (!criticalRel.length && !warnRel.length && !costSpikes.length) {
         banner.className = "";
         banner.hidden = true;
         return;
       }
+
       banner.hidden = false;
-      if (criticals.length) {
-        var item = criticals[0];
-        var recent = item.runs.filter(function (r) { return (new Date(r.timestamp).getTime() || 0) >= cutoff; });
-        var n = recent.length;
-        var succ = recent.filter(function (r) { return r.status === "success"; }).length;
-        var rate = n > 0 ? Math.round((succ / n) * 100) : 0;
-        var errors = recent.filter(function (r) { return r.status === "error"; }).length;
-        var extra = criticals.length - 1;
+      if (criticalRel.length) {
+        var item = criticalRel[0];
+        var extra = criticalRel.length - 1;
         var hint = extra > 0 ? ' <span class="health-banner-more">+' + extra + ' more</span>' : "";
         banner.className = "critical";
         banner.innerHTML =
-          '<span>🔴 <strong>' + escapeHtml(item.name) + '</strong> has a <strong>' + rate + '%</strong> success rate this week — ' + errors + ' error' + (errors !== 1 ? 's' : '') + ' detected.' + hint + '</span>' +
-          '<button class="health-banner-link" data-action="runs" data-agent="' + escapeHtml(item.name) + '">View runs →</button>';
-      } else {
-        var item = warnings[0];
-        var recent = item.runs.filter(function (r) { return (new Date(r.timestamp).getTime() || 0) >= cutoff; });
-        var anomalyCount = recent.filter(function (r) { return r.anomaly; }).length;
-        var extra = warnings.length - 1;
+          '<span>🔴 <strong>' + escapeHtml(item.agent) + '</strong> is failing more often — <strong>' + item.rate + '%</strong> success in the last 7 days with ' + item.errors + " error" + (item.errors !== 1 ? "s" : "") + "." + hint + "</span>" +
+          '<button class="health-banner-link" data-action="runs" data-agent="' + escapeHtml(item.agent) + '">View runs →</button>';
+      } else if (warnRel.length) {
+        var item = warnRel[0];
+        var extra = warnRel.length - 1;
         var hint = extra > 0 ? ' <span class="health-banner-more">+' + extra + ' more</span>' : "";
         banner.className = "warning";
         banner.innerHTML =
-          '<span>⚠️ <strong>' + escapeHtml(item.name) + '</strong> had ' + anomalyCount + ' cost anomal' + (anomalyCount !== 1 ? 'ies' : 'y') + ' this week.' + hint + '</span>' +
-          '<button class="health-banner-link" data-action="alerts">View alerts →</button>';
+          '<span>⚠️ <strong>' + escapeHtml(item.agent) + '</strong> is failing more often — <strong>' + item.rate + "%</strong> success in the last 7 days." + hint + "</span>" +
+          '<button class="health-banner-link" data-action="runs" data-agent="' + escapeHtml(item.agent) + '">View runs →</button>';
+      } else {
+        var item = costSpikes[0];
+        var extra = costSpikes.length - 1;
+        var hint = extra > 0 ? ' <span class="health-banner-more">+' + extra + ' more</span>' : "";
+        banner.className = "warning";
+        banner.innerHTML =
+          '<span>⚠️ <strong>' + escapeHtml(item.agent) + "</strong> has frequent cost spikes — <strong>" + item.anomalyCount + "</strong> detected in the last 7 days." + hint + "</span>" +
+          '<button class="health-banner-link" data-action="alerts" data-agent="' + escapeHtml(item.agent) + '">View alerts →</button>';
       }
+
       var link = banner.querySelector(".health-banner-link");
       if (link) {
         link.addEventListener("click", function () {
@@ -2992,8 +3037,8 @@ def my_agent(task, run=None):
         const sorted  = runs.slice().sort(function (a, b) { return new Date(b.timestamp) - new Date(a.timestamp); });
         const lastRun = sorted[0];
         const rateClass = rate === 100 ? "good" : rate >= 80 ? "" : "warn";
-        const health    = computeAgentHealth(runs);
-        const dotClass  = "agent-card-dot " + health;
+        const relDot    = computeReliabilityDotClass(runs);
+        const dotClass  = "agent-card-dot " + relDot;
 
         html.push(
           '<div class="agent-card" data-agent="' + escapeHtml(name) + '" title="Click to view details">' +
@@ -3060,6 +3105,31 @@ def my_agent(task, run=None):
         return r.agent === agentModalName &&
           (r.timestamp ? new Date(r.timestamp).getTime() : 0) >= cutoff;
       });
+    }
+
+    /* Cost spike count uses the same modalRuns as KPIs/charts (selected agent + 7/30/90-day window). */
+    function renderAgentModalCostPill(modalRuns) {
+      var anomalyCount = modalRuns.filter(function (r) { return r.anomaly; }).length;
+      var costEl = document.getElementById("agent-signal-cost");
+      if (!costEl) return;
+      if (anomalyCount === 0) {
+        costEl.hidden = true;
+      } else {
+        costEl.hidden = false;
+        costEl.className = "signal-pill cost " + (anomalyCount >= 4 ? "critical" : "warning");
+        costEl.textContent = "↑ " + anomalyCount + " cost spike" + (anomalyCount !== 1 ? "s" : "");
+      }
+    }
+
+    function renderAgentModalSignals(modalRuns) {
+      var rel = computeReliabilityHealth(modalRuns);
+      var dotEl = document.getElementById("agent-modal-dot");
+      var relEl = document.getElementById("agent-signal-reliability");
+      if (dotEl) dotEl.className = "agent-card-dot " + rel.health;
+      if (!relEl) return;
+      relEl.className = "signal-pill reliability " + rel.health;
+      var prefix = rel.health === "healthy" ? "✓ " : rel.health === "warning" ? "⚠ " : "! ";
+      relEl.textContent = prefix + rel.rate + "% reliable";
     }
 
     function renderAgentModalKpis(runs) {
@@ -3193,26 +3263,30 @@ def my_agent(task, run=None):
     }
 
     function refreshAgentModal() {
-      const runs     = getAgentModalRuns();
+      const modalRuns = getAgentModalRuns();
       const emptyEl  = document.getElementById("agent-modal-empty");
       const chartsEl = document.getElementById("agent-modal-charts-grid");
       const tableEl  = document.getElementById("agent-modal-table-section");
 
-      renderAgentModalKpis(runs);
+      renderAgentModalKpis(modalRuns);
+      renderAgentModalSignals(modalRuns);
+      renderAgentModalCostPill(modalRuns);
 
-      if (!runs.length) {
+      if (!modalRuns.length) {
         if (agentCostChart) { agentCostChart.destroy(); agentCostChart = null; }
         if (agentDurChart)  { agentDurChart.destroy();  agentDurChart  = null; }
         if (emptyEl)  emptyEl.hidden  = false;
         if (chartsEl) chartsEl.hidden = true;
         if (tableEl)  tableEl.hidden  = true;
+        var dotEl = document.getElementById("agent-modal-dot");
+        if (dotEl) dotEl.className = "agent-card-dot healthy";
         return;
       }
       if (emptyEl)  emptyEl.hidden  = true;
       if (chartsEl) chartsEl.hidden = false;
       if (tableEl)  tableEl.hidden  = false;
-      renderAgentModalCharts(runs);
-      renderAgentModalTable(runs);
+      renderAgentModalCharts(modalRuns);
+      renderAgentModalTable(modalRuns);
     }
 
     function openAgentModal(agentName) {
