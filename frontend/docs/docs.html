@@ -222,6 +222,15 @@
       color: var(--text);
     }
 
+    .doc-section h3 {
+      font-family: var(--font-display);
+      font-size: 1.08rem;
+      font-weight: 600;
+      margin: 1.5rem 0 0.65rem;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
     .doc-section p, .doc-section li {
       color: var(--text-muted);
       font-size: 0.9375rem;
@@ -663,7 +672,7 @@
                 <pre class="code-body" style="padding:0.65rem 1.1rem"><code>pip install farol-sdk</code></pre>
               </div>
               <p class="qs-step-body" style="margin-top:0.65rem;margin-bottom:0.5rem">Run this in your terminal in the same environment where your agent runs. If you're using a virtual environment, make sure it's activated first.</p>
-              <p style="font-size:0.875rem;color:var(--text-muted);margin:0 0 0.5rem">Not sure what a virtual environment is? Skip the tip below and just run the command above directly in your terminal.</p>
+              <p style="font-size:0.875rem;color:var(--text-muted);margin:0 0 0.5rem">Not sure what a virtual environment is? Skip this and just run pip install farol-sdk directly in your terminal.</p>
               <div class="qs-tip" translate="no">
                 <p class="qs-tip-label">💡 Using a venv?</p>
                 <pre class="code-body"><code>python -m venv venv
@@ -752,9 +761,8 @@ client = Anthropic()
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
 <span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
-    run[<span style="color:#86efac">"topic"</span>] = task
-
     <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
+        run[<span style="color:#86efac">"topic"</span>] = task
         response = client.messages.create(
             model=<span style="color:#86efac">"claude-haiku-4-5"</span>,
             max_tokens=<span style="color:#fbbf24">1024</span>,
@@ -778,9 +786,8 @@ client = Anthropic()
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
 <span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
-    run[<span style="color:#86efac">"topic"</span>] = task
-
     <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
+        run[<span style="color:#86efac">"topic"</span>] = task
         response = httpx.post(
             <span style="color:#86efac">"https://api.anthropic.com/v1/messages"</span>,
             headers={
@@ -815,9 +822,8 @@ client = OpenAI(
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
 <span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
-    run[<span style="color:#86efac">"topic"</span>] = task
-
     <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
+        run[<span style="color:#86efac">"topic"</span>] = task
         response = client.chat.completions.create(
             model=<span style="color:#86efac">"gpt-4o-mini"</span>,
             messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
@@ -843,9 +849,8 @@ model = genai.GenerativeModel(<span style="color:#86efac">"gemini-1.5-flash"</sp
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
 <span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
-    run[<span style="color:#86efac">"topic"</span>] = task
-
     <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
+        run[<span style="color:#86efac">"topic"</span>] = task
         response = model.generate_content(task)
         span.input_tokens = response.usage_metadata.prompt_token_count
         span.output_tokens = response.usage_metadata.candidates_token_count
@@ -867,9 +872,8 @@ client = Mistral(api_key=<span style="color:#86efac">"your-mistral-key"</span>)
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
 <span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
-    run[<span style="color:#86efac">"topic"</span>] = task
-
     <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
+        run[<span style="color:#86efac">"topic"</span>] = task
         response = client.chat.complete(
             model=<span style="color:#86efac">"mistral-small-latest"</span>,
             messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
@@ -897,9 +901,8 @@ client = OpenAI(
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
 <span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
-    run[<span style="color:#86efac">"topic"</span>] = task
-
     <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
+        run[<span style="color:#86efac">"topic"</span>] = task
         response = client.chat.completions.create(
             model=<span style="color:#86efac">"grok-3-mini"</span>,
             messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
@@ -1032,6 +1035,14 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
               <th scope="row">cost_per_1k_output_tokens</th>
               <td>Optional. USD per 1k output (completion) tokens. Default <code style="font-family:var(--font-mono);font-size:0.9em">0.00125</code> (Claude Haiku).</td>
             </tr>
+            <tr>
+              <th scope="row">farol_endpoint</th>
+              <td>Optional. Custom ingest URL. Default points to Farol's hosted endpoint.</td>
+            </tr>
+            <tr>
+              <th scope="row">capture_io</th>
+              <td>Optional. Set <code style="font-family:var(--font-mono);font-size:0.9em">True</code> to store prompt inputs and outputs in the dashboard. Default <code style="font-family:var(--font-mono);font-size:0.9em">False</code>. Handle with care — prompts may contain sensitive data.</td>
+            </tr>
           </tbody>
         </table>
         <div class="code-panel" translate="no" style="margin-top:1rem">
@@ -1044,20 +1055,70 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
     cost_per_1k_output_tokens=<span style="color:#fbbf24">0.00125</span>,  <span style="color:#8b919d"># Claude Haiku output price</span>
 )</code></pre>
         </div>
+
+        <h3 id="spans-tracking">Spans — tracking steps inside a run</h3>
+        <p>Use <code style="font-family:var(--font-mono);font-size:0.88em;color:var(--text)">run.span()</code> to record individual steps inside your agent — tool calls, LLM calls, database lookups, etc.</p>
+        <div class="code-panel" translate="no" style="margin-top:0.75rem">
+          <div class="code-header">example — tool and LLM spans</div>
+          <pre class="code-body"><code><span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"web_search"</span>, type=<span style="color:#86efac">"tool"</span>, metadata={<span style="color:#86efac">"url"</span>: url}) <span style="color:#c084fc">as</span> span:
+    result = search(url)
+
+<span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
+    response = llm.call(prompt)
+    span.input_tokens = response.usage.input_tokens
+    span.output_tokens = response.usage.output_tokens
+    span.input = prompt      <span style="color:#8b919d"># only stored if capture_io=True</span>
+    span.output = response.text</code></pre>
+        </div>
+        <table class="param-table" style="margin-top:1rem">
+          <thead>
+            <tr><th scope="col">Field</th><th scope="col">Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">name</code></th>
+              <td>Required. Label for this span in the trace timeline.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">type</code></th>
+              <td>Optional. <code style="font-family:var(--font-mono);font-size:0.9em">"tool"</code> or <code style="font-family:var(--font-mono);font-size:0.9em">"llm"</code>. Default <code style="font-family:var(--font-mono);font-size:0.9em">"tool"</code>.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">metadata</code></th>
+              <td>Optional. Dict of extra info shown in the trace panel.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">span.input_tokens</code></th>
+              <td>Token count for input (LLM spans).</td>
+            </tr>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">span.output_tokens</code></th>
+              <td>Token count for output (LLM spans).</td>
+            </tr>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">span.input</code></th>
+              <td>Prompt text — only stored if <code style="font-family:var(--font-mono);font-size:0.9em">capture_io=True</code>.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">span.output</code></th>
+              <td>Response text — only stored if <code style="font-family:var(--font-mono);font-size:0.9em">capture_io=True</code>.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">span.error</code></th>
+              <td>Set automatically if an exception is raised inside the span.</td>
+            </tr>
+          </tbody>
+        </table>
       </section>
 
       <section id="dashboard" class="doc-section" aria-labelledby="dashboard-heading">
         <h2 id="dashboard-heading">Dashboard</h2>
-        <p>Each row is one run. Columns:</p>
+        <p>The dashboard has four sections:</p>
         <ul>
-          <li><strong style="color:var(--text)">Agent</strong> — name you set with <code style="font-family:var(--font-mono);font-size:0.88em">agent_name</code>.</li>
-          <li><strong style="color:var(--text)">Topic</strong> — optional topic string if you set <code style="font-family:var(--font-mono);font-size:0.88em">run["topic"]</code>.</li>
-          <li><strong style="color:var(--text)">Status</strong> — success or error for that run.</li>
-          <li><strong style="color:var(--text)">Anomaly</strong> — cost spike vs your recent baseline, or “baseline” while Farol learns.</li>
-          <li><strong style="color:var(--text)">Steps</strong> — number of recorded steps in the trace.</li>
-          <li><strong style="color:var(--text)">Duration</strong> — wall-clock time for the run.</li>
-          <li><strong style="color:var(--text)">Tokens</strong> — input and output token counts.</li>
-          <li><strong style="color:var(--text)">Cost</strong> — estimated USD calculated separately from input and output tokens using <code style="font-family:var(--font-mono);font-size:0.88em">cost_per_1k_input_tokens</code> and <code style="font-family:var(--font-mono);font-size:0.88em">cost_per_1k_output_tokens</code>.</li>
+          <li><strong style="color:var(--text)">Overview</strong> — KPI cards (total runs, success rate, avg duration with p95, total cost) and 4 charts. Filter by period (7/30/90 days) and agent.</li>
+          <li><strong style="color:var(--text)">Runs</strong> — full runs table. Columns: Agent, Topic, Model, Status, Quality, Anomaly, Steps, Duration, Tokens, Cost, Error, Timestamp. Click any row to open the trace timeline showing all spans. Search by topic, filter by agent, export to CSV (Starter+).</li>
+          <li><strong style="color:var(--text)">Agents</strong> — one card per agent showing total runs, success rate, avg cost, avg duration, last run. Click a card to open a detailed modal with charts and runs filtered to that agent.</li>
+          <li><strong style="color:var(--text)">Alerts</strong> — cost anomaly alerts and performance regression alerts. Clicking an alert opens the trace for that run.</li>
         </ul>
       </section>
 
@@ -1065,11 +1126,23 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
         <h2 id="faq-heading">FAQ</h2>
         <div class="faq-item">
           <h3>Does Farol store my prompts?</h3>
-          <p>Farol is built for run metadata: timing, tokens, cost, steps, and errors. Do not put secrets in fields you sync. Treat prompt content like any production telemetry—only send what you are comfortable storing in your database.</p>
+          <p>No — by default Farol only stores run metadata: timing, tokens, cost, and errors. Prompt inputs and outputs are never stored unless you explicitly set <code style="font-family:var(--font-mono);font-size:0.88em">capture_io=True</code> in the <code style="font-family:var(--font-mono);font-size:0.88em">@trace</code> decorator. Even with <code style="font-family:var(--font-mono);font-size:0.88em">capture_io=True</code>, inputs and outputs are truncated at 50,000 characters.</p>
+        </div>
+        <div class="faq-item">
+          <h3>How do I track multiple steps in my agent?</h3>
+          <p>Use <code style="font-family:var(--font-mono);font-size:0.88em">run.span()</code> as a context manager inside your traced function. Each span appears as a step in the trace timeline. See the <a class="inline" href="#spans-tracking">Spans</a> section above for full details.</p>
         </div>
         <div class="faq-item">
           <h3>Which frameworks does Farol support?</h3>
           <p>Any Python code path: the SDK is a decorator. LangChain, CrewAI, custom loops—wrap the entrypoint and update <code style="font-family:var(--font-mono);font-size:0.88em">run</code> with token counts (and optional steps) however your stack exposes them.</p>
+        </div>
+        <div class="faq-item">
+          <h3>What counts as an event for billing?</h3>
+          <p>Each span inside a run counts as one event. A run with 3 spans (e.g. 2 tool calls + 1 LLM call) counts as 3 events. A run with no spans counts as 1 event.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Which Python versions does Farol support?</h3>
+          <p>Farol SDK supports Python 3.8 and above.</p>
         </div>
         <div class="faq-item">
           <h3>How does cost anomaly detection work?</h3>
