@@ -763,7 +763,7 @@
         </span>
         Farol
       </a>
-      <div style="display:flex;align-items:center;gap:1.5rem;">
+      <div class="nav-links" style="display:flex;align-items:center;gap:1.5rem;">
         <a href="/docs" class="nav-link">Docs</a>
         <a href="/demo" class="nav-link">View demo</a>
         <a href="/login" class="nav-link">Log in</a>
@@ -964,5 +964,53 @@
       </p>
     </div>
   </footer>
+
+  <script src="/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    (async () => {
+      if (!window.SUPABASE_URL || !window.SUPABASE_KEY || typeof supabase === "undefined") return;
+      const { createClient } = supabase;
+      const client = createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+      const { data: { session } } = await client.auth.getSession();
+
+      if (!session) return;
+
+      const email = session.user.email;
+
+      const navLogin = document.querySelector('a[href="/login"]');
+      const navGetStarted = document.querySelector('a[href="/signup"]');
+      if (navLogin) navLogin.style.display = "none";
+      if (navGetStarted) navGetStarted.style.display = "none";
+
+      const nav = document.querySelector(".nav-links") ?? document.querySelector("nav");
+      if (nav) {
+        const dashBtn = document.createElement("a");
+        dashBtn.href = "/app";
+        dashBtn.className = "btn btn-primary";
+        dashBtn.textContent = "Dashboard →";
+        dashBtn.style.marginLeft = "0.5rem";
+
+        const emailSpan = document.createElement("span");
+        emailSpan.textContent = email;
+        emailSpan.style.cssText = "font-size:0.8rem;color:var(--text-muted);margin-right:0.5rem";
+
+        nav.appendChild(emailSpan);
+        nav.appendChild(dashBtn);
+      }
+
+      const heroSignup = document.querySelector('a[href="/signup"].btn-primary');
+      if (heroSignup) {
+        heroSignup.href = "/app";
+        heroSignup.textContent = "Go to dashboard →";
+      }
+
+      const ctaSignup = document.querySelectorAll('a[href="/signup"].btn-primary');
+      ctaSignup.forEach((btn) => {
+        btn.href = "/app";
+        btn.textContent = "Go to dashboard →";
+      });
+    })();
+  </script>
 </body>
 </html>
