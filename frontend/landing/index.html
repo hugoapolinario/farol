@@ -519,58 +519,67 @@
       font-size: 0.9375rem;
     }
 
-    /* Comparison table */
-    .compare-wrap {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
+    /* Always-on automation */
+    .auto-section {
+      padding: 5rem 1.5rem;
+      display: flex;
+      justify-content: center;
     }
 
-    table.compare {
+    .auto-inner {
+      max-width: 640px;
       width: 100%;
-      border-collapse: collapse;
-      font-size: 0.9375rem;
-      min-width: 520px;
     }
 
-    table.compare th,
-    table.compare td {
-      padding: 1rem 1.25rem;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-    }
-
-    table.compare thead th {
-      background: var(--bg-elevated);
-      font-weight: 600;
-    }
-
-    table.compare tbody tr:last-child td {
-      border-bottom: none;
-    }
-
-    table.compare .col-farol {
-      background: rgba(249, 115, 22, 0.06);
-      border-left: 2px solid var(--accent);
-    }
-
-    .check {
-      color: #4ade80;
-      font-weight: 600;
-    }
-
-    .partial {
-      color: #fbbf24;
-    }
-
-    .dash {
-      color: var(--text-muted);
-    }
-
-    table.compare .compare-cell-yes {
+    .auto-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
       color: var(--accent);
       font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .auto-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 2rem;
+      line-height: 1.2;
+    }
+
+    .auto-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .auto-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      color: var(--text-muted);
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .auto-list li::before {
+      content: "✓";
+      color: var(--accent);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 0.05rem;
+    }
+
+    .auto-footer {
+      font-size: 1rem;
+      color: var(--text);
+      font-weight: 600;
+      font-style: italic;
     }
 
     /* Pricing */
@@ -868,76 +877,19 @@
       </div>
     </section>
 
-    <section class="wrap" aria-labelledby="compare-heading">
-      <p class="section-label">Compare</p>
-      <h2 id="compare-heading" class="section-title">Farol vs. the usual suspects</h2>
-      <div class="compare-wrap">
-        <table class="compare">
-          <thead>
-            <tr>
-              <th scope="col">Capability</th>
-              <th scope="col" class="col-farol">Farol</th>
-              <th scope="col">Helicone</th>
-              <th scope="col">Langfuse</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th scope="row">Indie &amp; small-team pricing</th>
-              <td class="col-farol"><span class="check">Yes</span></td>
-              <td><span class="partial">Moderate — usage-based</span></td>
-              <td><span class="partial">Free tier + complex units</span></td>
-            </tr>
-            <tr>
-              <th scope="row">Live run stream</th>
-              <td class="col-farol"><span class="check">Yes</span></td>
-              <td><span class="partial">Yes</span></td>
-              <td><span class="partial">Yes</span></td>
-            </tr>
-            <tr>
-              <th scope="row">Cost anomaly alerts</th>
-              <td class="col-farol"><span class="check">First-class</span></td>
-              <td><span class="partial">Basic cost tracking</span></td>
-              <td><span class="partial">Limited</span></td>
-            </tr>
-            <tr>
-              <th scope="row">No infrastructure setup</th>
-              <td class="col-farol"><span class="check">Yes</span></td>
-              <td><span class="partial">No — gateway dependency</span></td>
-              <td><span class="partial">No — self-hosting option</span></td>
-            </tr>
-            <tr>
-              <th scope="row">Built for solo devs</th>
-              <td class="col-farol"><span class="check">Yes</span></td>
-              <td><span class="dash">Partial</span></td>
-              <td><span class="dash">Partial</span></td>
-            </tr>
-            <tr>
-              <th scope="row">Output quality scoring</th>
-              <td class="col-farol"><span class="compare-cell-yes">Yes</span></td>
-              <td><span class="dash">No</span></td>
-              <td><span class="dash">No</span></td>
-            </tr>
-            <tr>
-              <th scope="row">Budget alerts</th>
-              <td class="col-farol"><span class="compare-cell-yes">Yes</span></td>
-              <td><span class="dash">No</span></td>
-              <td><span class="dash">No</span></td>
-            </tr>
-            <tr>
-              <th scope="row">Weekly digest email</th>
-              <td class="col-farol"><span class="compare-cell-yes">Yes</span></td>
-              <td><span class="dash">No</span></td>
-              <td><span class="dash">No</span></td>
-            </tr>
-            <tr>
-              <th scope="row">Shared read-only dashboard</th>
-              <td class="col-farol"><span class="compare-cell-yes">Yes</span></td>
-              <td><span class="dash">No</span></td>
-              <td><span class="dash">Partial</span></td>
-            </tr>
-          </tbody>
-        </table>
+    <section class="auto-section" aria-labelledby="auto-heading">
+      <div class="auto-inner">
+        <p class="auto-label">ALWAYS ON</p>
+        <h2 id="auto-heading" class="auto-title">While you focus on building, Farol is watching.</h2>
+        <ul class="auto-list">
+          <li>Tracking every run — cost, tokens, duration, and errors</li>
+          <li>Learning your baseline and alerting on cost spikes before your cloud bill does</li>
+          <li>Detecting when success rate drops week over week</li>
+          <li>Watching output quality and telling you when it degrades</li>
+          <li>Emailing you every Monday with a full health summary</li>
+          <li>Notifying your team via Slack, Discord, or webhook the moment something goes wrong</li>
+        </ul>
+        <p class="auto-footer">No dashboards to check. No logs to grep. Just build.</p>
       </div>
     </section>
 
