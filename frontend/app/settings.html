@@ -956,8 +956,17 @@
     }
 
     function parseJsonObject(raw) {
-      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-      return raw;
+      if (raw == null) return {};
+      let v = raw;
+      if (typeof v === "string") {
+        try {
+          v = JSON.parse(v);
+        } catch (_e) {
+          return {};
+        }
+      }
+      if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+      return v;
     }
 
     function toNumberMap(obj) {
@@ -1082,8 +1091,13 @@
         input.step = "0.01";
         input.min = "0";
         input.className = "budget-input";
-        input.placeholder = "No limit";
-        if (limit != null && limit > 0) input.value = String(limit);
+        if (limit != null && isFinite(Number(limit)) && Number(limit) > 0) {
+          input.value = String(limit);
+          input.placeholder = String(limit);
+        } else {
+          input.value = "";
+          input.placeholder = "No limit";
+        }
         const spendEl = document.createElement("span");
         const limitNum = limit != null && !isNaN(Number(limit)) ? Number(limit) : 0;
         applyBudgetSpendDisplay(spendEl, s, limitNum);
@@ -1470,37 +1484,57 @@
         if (fetchErr) throw fetchErr;
         let fresh = await ensureBudgetPeriodFresh(subRow);
         const limits = toNumberMap(parseJsonObject(fresh.budget_limits));
+        let valueToSave = null;
         if (raw === "") {
           delete limits[agent];
+          valueToSave = "(clear limit)";
         } else {
           const v = parseFloat(raw);
           if (isNaN(v) || v < 0) {
             return;
           }
           limits[agent] = v;
+          valueToSave = v;
         }
-        const { error: upErr } = await client
+        const payload = { budget_limits: Object.assign({}, limits) };
+        console.log("[budget save] before update", {
+          agent: agent,
+          valueToSave: valueToSave,
+          budget_limitsPayload: payload.budget_limits,
+        });
+        const { data: updatedRow, error: upErr } = await client
           .from("subscriptions")
-          .update({ budget_limits: limits })
-          .eq("user_id", settingsUserId);
-        if (upErr) throw upErr;
+          .update(payload)
+          .eq("user_id", settingsUserId)
+          .select("budget_limits, monthly_cost_usd, budget_period_start")
+          .single();
+        if (upErr) {
+          console.log("[budget save] update failed", upErr);
+          throw upErr;
+        }
+        console.log("[budget save] update succeeded", { returnedRow: updatedRow });
         const { data: subNew, error: refetchErr } = await client
           .from("subscriptions")
           .select("budget_limits, monthly_cost_usd, budget_period_start")
           .eq("user_id", settingsUserId)
           .single();
-        if (refetchErr) throw refetchErr;
+        if (refetchErr) {
+          console.log("[budget save] refetch after update failed", refetchErr);
+          throw refetchErr;
+        }
         fresh = await ensureBudgetPeriodFresh(subNew);
-        const limitsAfter = toNumberMap(parseJsonObject(fresh.budget_limits));
+        const limitsRawAfter = parseJsonObject(fresh.budget_limits);
+        console.log("[budget save] budget_limits after refetch", limitsRawAfter);
+        const limitsAfter = toNumberMap(limitsRawAfter);
         const spentAfter = toNumberMap(parseJsonObject(fresh.monthly_cost_usd));
         const lim = limitsAfter[agent];
         const limitAfter = lim != null && !isNaN(Number(lim)) ? Number(lim) : 0;
-        if (raw === "") {
-          input.value = "";
-        } else if (limitAfter > 0) {
+        if (limitAfter > 0) {
           input.value = String(limitAfter);
+          input.placeholder = String(limitAfter);
         } else {
-          input.value = raw;
+          input.value = "";
+          input.placeholder = "No limit";
         }
         const spendEl = row.querySelector(".budget-spend");
         if (spendEl) {
@@ -1517,8 +1551,8 @@
             row._budgetSaveTimer = null;
           }, 2000);
         }
-      } catch (_e) {
-        /* ignore */
+      } catch (err) {
+        console.error("[budget save] error", err);
       } finally {
         btn.disabled = false;
       }
