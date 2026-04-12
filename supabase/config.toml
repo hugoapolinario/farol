@@ -37,3 +37,11 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/lemon-webhook/index.ts"
 
+[functions.share-data]
+verify_jwt = false
+
+[functions.test-webhook]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/test-webhook/index.ts"
+

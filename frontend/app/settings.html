@@ -471,6 +471,30 @@
     .settings-hint a:hover {
       text-decoration: underline;
     }
+
+    .webhook-input-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .webhook-url-input {
+      flex: 1;
+      min-width: 200px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.45rem 0.75rem;
+      color: var(--text);
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .webhook-url-input:focus {
+      border-color: var(--accent);
+    }
   </style>
 </head>
 <body>
@@ -580,6 +604,26 @@
       <p class="status-msg muted" id="share-status" role="status"></p>
     </section>
 
+    <div class="settings-card" id="webhook-section">
+      <div class="settings-card-label">WEBHOOK ALERTS</div>
+      <p class="settings-desc">Receive alerts in Discord, Slack, Google Chat, Zapier, or any HTTP endpoint that accepts POST requests.</p>
+
+      <div id="webhook-form" hidden>
+        <div class="webhook-input-row">
+          <input type="url" id="webhook-url-input" class="webhook-url-input" placeholder="https://hooks.slack.com/..." />
+          <button id="save-webhook-btn" class="btn btn-primary" type="button">Save</button>
+          <button id="test-webhook-btn" class="btn btn-secondary" type="button">Test</button>
+          <button id="remove-webhook-btn" class="btn btn-danger-outline" type="button">Remove</button>
+        </div>
+        <p class="settings-hint" id="webhook-status"></p>
+        <p class="settings-hint" id="webhook-last-fired"></p>
+      </div>
+
+      <p class="settings-hint" id="webhook-upgrade-hint" hidden>
+        Available on Builder and above. <a id="webhook-upgrade-link" href="#">Upgrade →</a>
+      </p>
+    </div>
+
     <section class="card" aria-labelledby="plan-heading">
       <p class="section-label" id="plan-heading">Plan</p>
       <div class="plan-row">
@@ -620,6 +664,7 @@
 
     const ROTATE_KEY_URL = "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/rotate-key";
     const DELETE_ACCOUNT_URL = "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/delete-account";
+    const TEST_WEBHOOK_URL = "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/test-webhook";
 
     const CHECKOUT_URLS = {
       starter: "https://obsfarol.lemonsqueezy.com/checkout/buy/d4c5f967-e228-459c-8619-438e314b786b",
@@ -761,6 +806,55 @@
       el.className = "status-msg " + (className || "muted");
     }
 
+    function updateWebhookLastFiredLine(lastFiredAt, lastStatus) {
+      const el = document.getElementById("webhook-last-fired");
+      const st = lastStatus != null ? String(lastStatus) : "";
+      if (st.toLowerCase().startsWith("failed")) {
+        el.textContent = "Last failed: " + st;
+        return;
+      }
+      if (lastFiredAt) {
+        el.textContent = "Last fired: " + new Date(lastFiredAt).toLocaleString();
+        return;
+      }
+      el.textContent = "";
+    }
+
+    function syncWebhookSection(plan, webhookUrl, lastFiredAt, lastStatus) {
+      const form = document.getElementById("webhook-form");
+      const hint = document.getElementById("webhook-upgrade-hint");
+      const input = document.getElementById("webhook-url-input");
+      const statusEl = document.getElementById("webhook-status");
+
+      if (plan === "free" || plan === "starter") {
+        form.hidden = true;
+        hint.hidden = false;
+        input.value = "";
+        document.getElementById("webhook-last-fired").textContent = "";
+        statusEl.textContent = "";
+        return;
+      }
+
+      form.hidden = false;
+      hint.hidden = true;
+      input.value = webhookUrl && String(webhookUrl).trim() ? String(webhookUrl).trim() : "";
+      updateWebhookLastFiredLine(lastFiredAt, lastStatus);
+    }
+
+    async function refreshWebhookMetaFromDb(userId) {
+      const { data, error } = await client
+        .from("subscriptions")
+        .select("webhook_url, webhook_last_fired_at, webhook_last_status")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (error || !data) return;
+      const input = document.getElementById("webhook-url-input");
+      if (data.webhook_url && String(data.webhook_url).trim()) {
+        input.value = String(data.webhook_url).trim();
+      }
+      updateWebhookLastFiredLine(data.webhook_last_fired_at, data.webhook_last_status);
+    }
+
     function syncShareSectionUI(token) {
       const linkWrap = document.getElementById("share-link-wrap");
       const genBtn = document.getElementById("generate-share-link");
@@ -821,11 +915,15 @@
         "?checkout%5Bcustom%5D%5Buser_id%5D=" + encodeURIComponent(user.id);
       document.getElementById("share-upgrade-link").href = starterUpgradeUrl;
 
+      const builderUpgradeUrl = CHECKOUT_URLS.builder +
+        "?checkout%5Bcustom%5D%5Buser_id%5D=" + encodeURIComponent(user.id);
+      document.getElementById("webhook-upgrade-link").href = builderUpgradeUrl;
+
       // Populate Plan section
       try {
         const { data: sub } = await client
           .from("subscriptions")
-          .select("plan, status")
+          .select("plan, status, webhook_url, webhook_last_fired_at, webhook_last_status")
           .eq("user_id", user.id)
           .single();
 
@@ -846,10 +944,18 @@
           upgradeBtn.textContent = "Upgrade to " + nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1);
           upgradeBtn.hidden = false;
         }
+
+        syncWebhookSection(
+          plan,
+          sub?.webhook_url,
+          sub?.webhook_last_fired_at,
+          sub?.webhook_last_status,
+        );
       } catch (_e) {
         settingsUserPlan = "free";
         document.getElementById("plan-name").textContent = "Free";
         document.getElementById("plan-hint").textContent = PLAN_HINTS.free;
+        syncWebhookSection("free", null, null, null);
       }
 
       await loadShareToken(user.id);
@@ -1015,6 +1121,94 @@
 
     deleteInputEl.addEventListener("input", function () {
       deleteConfirmBtn.disabled = deleteInputEl.value !== "DELETE";
+    });
+
+    document.getElementById("save-webhook-btn").addEventListener("click", async function () {
+      if (!settingsUserId || settingsUserPlan === "free" || settingsUserPlan === "starter") return;
+      const input = document.getElementById("webhook-url-input");
+      const statusEl = document.getElementById("webhook-status");
+      const url = input.value.trim();
+      if (!url) {
+        statusEl.textContent = "Enter a webhook URL.";
+        return;
+      }
+      if (!url.startsWith("https://")) {
+        statusEl.textContent = "URL must use https://";
+        return;
+      }
+      this.disabled = true;
+      statusEl.textContent = "";
+      const { error } = await client
+        .from("subscriptions")
+        .update({ webhook_url: url })
+        .eq("user_id", settingsUserId);
+      this.disabled = false;
+      if (error) {
+        statusEl.textContent = error.message || "Could not save.";
+        return;
+      }
+      statusEl.textContent = "✓ Saved";
+    });
+
+    document.getElementById("test-webhook-btn").addEventListener("click", async function () {
+      if (!settingsUserId || settingsUserPlan === "free" || settingsUserPlan === "starter") return;
+      const input = document.getElementById("webhook-url-input");
+      const statusEl = document.getElementById("webhook-status");
+      const url = input.value.trim();
+      if (!url.startsWith("https://")) {
+        statusEl.textContent = "Enter a valid https:// webhook URL.";
+        return;
+      }
+      this.disabled = true;
+      statusEl.textContent = "";
+      try {
+        const token = await getAccessToken();
+        if (!token) {
+          window.location.href = "/login";
+          return;
+        }
+        const res = await fetch(TEST_WEBHOOK_URL, {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ webhook_url: url, user_id: settingsUserId }),
+        });
+        const body = await res.json().catch(function () {
+          return {};
+        });
+        await refreshWebhookMetaFromDb(settingsUserId);
+        if (body.success) {
+          statusEl.textContent = "✓ Test sent successfully";
+        } else {
+          statusEl.textContent = "✗ Failed: " + (body.error || res.statusText || "Unknown error");
+        }
+      } catch (err) {
+        statusEl.textContent = "✗ Failed: " + (err && err.message ? err.message : String(err));
+      } finally {
+        this.disabled = false;
+      }
+    });
+
+    document.getElementById("remove-webhook-btn").addEventListener("click", async function () {
+      if (!settingsUserId || settingsUserPlan === "free" || settingsUserPlan === "starter") return;
+      const input = document.getElementById("webhook-url-input");
+      const statusEl = document.getElementById("webhook-status");
+      this.disabled = true;
+      statusEl.textContent = "";
+      const { error } = await client
+        .from("subscriptions")
+        .update({ webhook_url: null })
+        .eq("user_id", settingsUserId);
+      this.disabled = false;
+      if (error) {
+        statusEl.textContent = error.message || "Could not remove.";
+        return;
+      }
+      input.value = "";
+      document.getElementById("webhook-last-fired").textContent = "";
+      statusEl.textContent = "Webhook removed";
     });
 
     deleteConfirmBtn.addEventListener("click", async function () {

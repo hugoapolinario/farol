@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
     // ── Fetch subscription ────────────────────────────────────────────
     const { data: sub } = await supabase
       .from("subscriptions")
-      .select("plan, event_count, agent_names, period_start")
+      .select("plan, event_count, agent_names, period_start, webhook_url")
       .eq("user_id", userId)
       .single();
 
@@ -286,6 +286,44 @@ Deno.serve(async (req) => {
       agent_names: updatedAgents,
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
+
+    const webhookUrl =
+      typeof sub?.webhook_url === "string" ? sub.webhook_url.trim() : "";
+    if (webhookUrl && ["builder", "studio"].includes(plan) && run.anomaly) {
+      const tsVal = run.timestamp;
+      const webhookPayload = {
+        event: "cost_anomaly",
+        agent: run.agent,
+        topic: run.topic ?? null,
+        reason: run.anomaly_reason ?? null,
+        cost_usd: run.cost_usd ?? null,
+        timestamp:
+          typeof tsVal === "string" && tsVal
+            ? tsVal
+            : new Date().toISOString(),
+        dashboard: "https://usefarol.dev/app",
+      };
+
+      try {
+        const webhookRes = await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(webhookPayload),
+        });
+
+        await supabase.from("subscriptions").update({
+          webhook_last_fired_at: new Date().toISOString(),
+          webhook_last_status: webhookRes.ok
+            ? "success"
+            : `failed: ${webhookRes.status}`,
+        }).eq("user_id", userId);
+      } catch (err) {
+        await supabase.from("subscriptions").update({
+          webhook_last_fired_at: new Date().toISOString(),
+          webhook_last_status: `failed: ${String(err)}`,
+        }).eq("user_id", userId);
+      }
+    }
 
     return new Response(
       JSON.stringify({ success: true }),
