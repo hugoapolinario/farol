@@ -460,6 +460,70 @@
       font-weight: 600;
     }
 
+    .quality-rating {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg-surface);
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+    }
+
+    .quality-label {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    .quality-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.3rem 0.6rem;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.15s;
+      opacity: 0.5;
+    }
+
+    .quality-btn:hover {
+      opacity: 1;
+      border-color: var(--accent);
+    }
+
+    .quality-btn.active {
+      opacity: 1;
+      border-color: var(--accent);
+      background: rgba(249, 115, 22, 0.1);
+    }
+
+    .quality-btn.active.thumbs-down {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .quality-rated-label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .quality-cell {
+      text-align: center;
+      width: 2.75rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .quality-indicator-good {
+      color: #22c55e;
+    }
+
+    .quality-indicator-bad {
+      color: #ef4444;
+    }
+
     .anomaly-warning {
       display: none;
       margin-bottom: 0.65rem;
@@ -1836,6 +1900,7 @@ def my_agent(task, run=None):
                     <th>Topic</th>
                     <th>Model</th>
                     <th>Status</th>
+                    <th>Quality</th>
                     <th>Anomaly</th>
                     <th>Steps</th>
                     <th>Duration</th>
@@ -1971,6 +2036,12 @@ def my_agent(task, run=None):
           <div class="trace-stat-value" id="trace-tokens">—</div>
         </div>
       </div>
+      <div class="quality-rating" id="quality-rating">
+        <span class="quality-label">Output quality:</span>
+        <button type="button" class="quality-btn thumbs-up" id="quality-up" title="Good output">👍</button>
+        <button type="button" class="quality-btn thumbs-down" id="quality-down" title="Bad output">👎</button>
+        <span class="quality-rated-label" id="quality-rated-label" hidden></span>
+      </div>
       <div class="anomaly-warning" id="trace-anomaly-warning"></div>
       <div class="steps-title" id="trace-detail-title">Execution steps</div>
       <div id="trace-steps"></div>
@@ -2078,6 +2149,7 @@ def my_agent(task, run=None):
     let allRuns = [];
     let displayedRuns = [];
     let activeRow = null;
+    let traceModalRun = null;
     let costChart = null;
     let successChart = null;
     let durationChart = null;
@@ -2100,6 +2172,62 @@ def my_agent(task, run=None):
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
+    }
+
+    function normalizeQualityScore(v) {
+      if (v === 1 || v === "1") return 1;
+      if (v === -1 || v === "-1") return -1;
+      return null;
+    }
+
+    function updateQualityUI(score) {
+      const up = document.getElementById("quality-up");
+      const down = document.getElementById("quality-down");
+      if (!up || !down) return;
+      const q = normalizeQualityScore(score);
+      up.classList.toggle("active", q === 1);
+      down.classList.toggle("active", q === -1);
+      const label = document.getElementById("quality-rated-label");
+      if (!label) return;
+      if (q !== null) {
+        label.textContent = q === 1 ? "Marked as good" : "Marked as bad";
+        label.removeAttribute("hidden");
+      } else {
+        label.setAttribute("hidden", "");
+      }
+    }
+
+    function restoreActiveTraceRow() {
+      if (!traceModalRun || traceModalRun.id == null) return;
+      if (!document.getElementById("trace-overlay").classList.contains("visible")) return;
+      const idx = displayedRuns.findIndex(function (x) {
+        return x.id === traceModalRun.id;
+      });
+      if (idx < 0) return;
+      const rows = runsBody.querySelectorAll("tr.clickable");
+      const tr = rows[idx];
+      if (!tr) return;
+      if (activeRow) activeRow.classList.remove("active");
+      activeRow = tr;
+      tr.classList.add("active");
+    }
+
+    async function rateRun(runId, score) {
+      const { error } = await client
+        .from("runs")
+        .update({ quality_score: score })
+        .eq("id", runId)
+        .eq("user_id", currentUserId);
+
+      if (!error) {
+        const run = allRuns.find(function (r) {
+          return r.id === runId;
+        });
+        if (run) run.quality_score = score;
+        updateQualityUI(score);
+        applyFilterAndRender();
+        restoreActiveTraceRow();
+      }
     }
 
     function sanitizeCssClassSegment(value) {
@@ -3335,7 +3463,7 @@ def my_agent(task, run=None):
         runsEmptyStateEl.hidden = true;
         runsTableBlockEl.hidden = false;
         runsBody.innerHTML =
-          '<tr><td colspan="11" style="color:#8b919d;">No runs match this filter.</td></tr>';
+          '<tr><td colspan="12" style="color:#8b919d;">No runs match this filter.</td></tr>';
         return;
       }
 
@@ -3364,11 +3492,20 @@ def my_agent(task, run=None):
           errorCell = `<span class="error-cell" title="${escapeHtml(full)}">${escapeHtml(truncated)}</span>`;
         }
 
+        const q = normalizeQualityScore(r.quality_score);
+        let qualityCell = '<td class="quality-cell"></td>';
+        if (q === 1) {
+          qualityCell = '<td class="quality-cell"><span class="quality-indicator-good" title="Rated good" aria-label="Rated good">✓</span></td>';
+        } else if (q === -1) {
+          qualityCell = '<td class="quality-cell"><span class="quality-indicator-bad" title="Rated bad" aria-label="Rated bad">✗</span></td>';
+        }
+
         row.innerHTML = `
           <td>${r.agent != null && r.agent !== "" ? escapeHtml(r.agent) : "—"}</td>
           <td>${r.topic != null && r.topic !== "" ? escapeHtml(r.topic) : "—"}</td>
           <td>${modelCell}</td>
           <td><span class="badge ${r.status === "success" ? "success" : "error"}">${escapeHtml(r.status) || "unknown"}</span></td>
+          ${qualityCell}
           <td>${anomalyCell}</td>
           <td>${stepCount}</td>
           <td>${r.duration_ms != null ? (Number(r.duration_ms) / 1000).toFixed(2) + "s" : "—"}</td>
@@ -3387,7 +3524,7 @@ def my_agent(task, run=None):
     async function loadRuns(userId) {
       const { data, error } = await client
         .from("runs")
-        .select("id, agent, topic, model, status, anomaly, anomaly_reason, duration_ms, cost_usd, timestamp, steps, input_tokens, output_tokens, error")
+        .select("id, agent, topic, model, status, anomaly, anomaly_reason, duration_ms, cost_usd, timestamp, steps, input_tokens, output_tokens, error, quality_score")
         .eq("user_id", userId)
         .order("timestamp", { ascending: false });
 
@@ -3420,6 +3557,9 @@ def my_agent(task, run=None):
       overlay.classList.add("visible");
       document.body.classList.add("modal-open");
       document.getElementById("trace-panel").scrollTop = 0;
+
+      traceModalRun = r;
+      updateQualityUI(r.quality_score);
 
       document.getElementById("trace-title").textContent = (r.agent || "—") + " — " + (r.topic || r.id || "—");
       document.getElementById("trace-meta").textContent =
@@ -3477,6 +3617,7 @@ def my_agent(task, run=None):
       }
       if (activeRow) activeRow.classList.remove("active");
       activeRow = null;
+      traceModalRun = null;
     }
 
     function setLastUpdatedNow() {
@@ -3621,6 +3762,20 @@ def my_agent(task, run=None):
     });
 
     document.getElementById("trace-backdrop").addEventListener("click", closeTrace);
+
+    document.getElementById("quality-up").addEventListener("click", function () {
+      if (!traceModalRun || traceModalRun.id == null || !currentUserId) return;
+      const cur = normalizeQualityScore(traceModalRun.quality_score);
+      const next = cur === 1 ? null : 1;
+      void rateRun(traceModalRun.id, next);
+    });
+    document.getElementById("quality-down").addEventListener("click", function () {
+      if (!traceModalRun || traceModalRun.id == null || !currentUserId) return;
+      const cur = normalizeQualityScore(traceModalRun.quality_score);
+      const next = cur === -1 ? null : -1;
+      void rateRun(traceModalRun.id, next);
+    });
+
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") {
         if (document.getElementById("trace-overlay").classList.contains("visible")) {

@@ -988,6 +988,65 @@
 
     .trace-stat-value { font-size: 0.95rem; font-weight: 600; }
 
+    .quality-rating {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg-surface);
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+    }
+
+    .quality-label {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    .quality-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.3rem 0.6rem;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.15s;
+      opacity: 0.5;
+    }
+
+    .quality-btn:hover {
+      opacity: 1;
+      border-color: var(--accent);
+    }
+
+    .quality-btn.active {
+      opacity: 1;
+      border-color: var(--accent);
+      background: rgba(249, 115, 22, 0.1);
+    }
+
+    .quality-btn.active.thumbs-down {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .quality-rated-label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .quality-cell {
+      text-align: center;
+      width: 2.75rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .quality-indicator-good { color: #22c55e; }
+    .quality-indicator-bad { color: #ef4444; }
+
     .anomaly-warning {
       display: none;
       margin-bottom: 0.65rem;
@@ -1523,6 +1582,7 @@ def my_agent(task, run=None):
                   <th>Topic</th>
                   <th>Model</th>
                   <th>Status</th>
+                  <th>Quality</th>
                   <th>Anomaly</th>
                   <th>Steps</th>
                   <th>Duration</th>
@@ -1659,6 +1719,12 @@ def my_agent(task, run=None):
           <div class="trace-stat-value" id="trace-tokens">—</div>
         </div>
       </div>
+      <div class="quality-rating" id="quality-rating">
+        <span class="quality-label">Output quality:</span>
+        <button type="button" class="quality-btn thumbs-up" id="quality-up" title="Good output">👍</button>
+        <button type="button" class="quality-btn thumbs-down" id="quality-down" title="Bad output">👎</button>
+        <span class="quality-rated-label" id="quality-rated-label" hidden></span>
+      </div>
       <div class="anomaly-warning" id="trace-anomaly-warning"></div>
       <div class="steps-title" id="trace-detail-title">Trace timeline</div>
       <div id="trace-steps"></div>
@@ -1790,6 +1856,7 @@ def my_agent(task, run=None):
     const AGENT_NONE_VALUE = "__FAROL_NO_AGENT__";
     let displayedRuns = allRuns.slice();
     let activeRow     = null;
+    let traceModalRun = null;
     let costChart = null, successChart = null, durationChart = null, tokensChart = null;
 
     /* Overview filter state */
@@ -1819,6 +1886,69 @@ def my_agent(task, run=None):
     function escapeHtml(s) {
       if (s == null) return "";
       return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    function normalizeQualityScore(v) {
+      if (v === 1 || v === "1") return 1;
+      if (v === -1 || v === "-1") return -1;
+      return null;
+    }
+
+    function updateQualityUI(score) {
+      const up = document.getElementById("quality-up");
+      const down = document.getElementById("quality-down");
+      if (!up || !down) return;
+      const q = normalizeQualityScore(score);
+      up.classList.toggle("active", q === 1);
+      down.classList.toggle("active", q === -1);
+      const label = document.getElementById("quality-rated-label");
+      if (!label) return;
+      if (q !== null) {
+        label.textContent = q === 1 ? "Marked as good" : "Marked as bad";
+        label.removeAttribute("hidden");
+      } else {
+        label.setAttribute("hidden", "");
+      }
+    }
+
+    function restoreActiveTraceRow() {
+      if (!traceModalRun || traceModalRun.id == null) return;
+      if (!document.getElementById("trace-overlay").classList.contains("visible")) return;
+      const idx = displayedRuns.findIndex(function (x) { return x.id === traceModalRun.id; });
+      if (idx < 0) return;
+      const rows = runsBody.querySelectorAll("tr.clickable");
+      const tr = rows[idx];
+      if (!tr) return;
+      if (activeRow) activeRow.classList.remove("active");
+      activeRow = tr;
+      tr.classList.add("active");
+    }
+
+    function rateRunDemo(runId, score) {
+      const ratings = JSON.parse(sessionStorage.getItem("farol_quality_ratings") || "{}");
+      if (ratings[runId] === score) {
+        delete ratings[runId];
+        score = null;
+      } else {
+        ratings[runId] = score;
+      }
+      sessionStorage.setItem("farol_quality_ratings", JSON.stringify(ratings));
+      const run = allRuns.find(function (r) { return r.id === runId; });
+      if (run) run.quality_score = score;
+      updateQualityUI(score);
+      renderRuns(displayedRuns);
+      restoreActiveTraceRow();
+    }
+
+    function syncDemoQualityFromStorage() {
+      const ratings = JSON.parse(sessionStorage.getItem("farol_quality_ratings") || "{}");
+      allRuns.forEach(function (r) {
+        if (Object.prototype.hasOwnProperty.call(ratings, r.id)) {
+          r.quality_score = ratings[r.id];
+        } else {
+          r.quality_score = null;
+        }
+      });
     }
 
     function formatMetaValue(v) {
@@ -2039,7 +2169,7 @@ def my_agent(task, run=None):
       if (countEl) countEl.textContent = "Showing " + runs.length + " run" + (runs.length !== 1 ? "s" : "");
       runsBody.innerHTML = "";
       if (!runs.length) {
-        runsBody.innerHTML = '<tr><td colspan="11" style="color:#8b919d;padding:1.5rem 0.8rem">No runs match this filter.</td></tr>';
+        runsBody.innerHTML = '<tr><td colspan="12" style="color:#8b919d;padding:1.5rem 0.8rem">No runs match this filter.</td></tr>';
         return;
       }
       runs.forEach(function(r, i) {
@@ -2056,11 +2186,19 @@ def my_agent(task, run=None):
           const full = String(r.error), truncated = full.length > 60 ? full.slice(0,60) + "…" : full;
           errorCell = '<span class="error-cell" title="' + escapeHtml(full) + '">' + escapeHtml(truncated) + "</span>";
         }
+        const q = normalizeQualityScore(r.quality_score);
+        let qualityCell = '<td class="quality-cell"></td>';
+        if (q === 1) {
+          qualityCell = '<td class="quality-cell"><span class="quality-indicator-good" title="Rated good" aria-label="Rated good">✓</span></td>';
+        } else if (q === -1) {
+          qualityCell = '<td class="quality-cell"><span class="quality-indicator-bad" title="Rated bad" aria-label="Rated bad">✗</span></td>';
+        }
         row.innerHTML =
           "<td>" + (r.agent || "—") + "</td>" +
           "<td>" + escapeHtml(r.topic || "—") + "</td>" +
           "<td>" + modelCell + "</td>" +
           '<td><span class="badge ' + (r.status === "success" ? "success" : "error") + '">' + escapeHtml(r.status) + "</span></td>" +
+          qualityCell +
           "<td>" + anomalyCell + "</td>" +
           "<td>" + stepCount + "</td>" +
           "<td>" + (r.duration_ms != null ? (Number(r.duration_ms)/1000).toFixed(2) + "s" : "—") + "</td>" +
@@ -2535,6 +2673,9 @@ def my_agent(task, run=None):
       document.body.classList.add("modal-open");
       document.getElementById("trace-panel").scrollTop = 0;
 
+      traceModalRun = r;
+      updateQualityUI(r.quality_score);
+
       document.getElementById("trace-title").textContent = (r.agent || "—") + " — " + (r.topic || r.id || "—");
       document.getElementById("trace-meta").textContent  = (r.timestamp ? new Date(r.timestamp).toLocaleString() : "—") + " · " + (r.status || "unknown");
       document.getElementById("trace-duration").textContent = r.duration_ms != null ? (Number(r.duration_ms)/1000).toFixed(2) + "s" : "—";
@@ -2565,6 +2706,7 @@ def my_agent(task, run=None):
       }
       if (activeRow) activeRow.classList.remove("active");
       activeRow = null;
+      traceModalRun = null;
     }
 
     /* ─── Agent detail modal ─────────────────────────────────────── */
@@ -2786,6 +2928,16 @@ def my_agent(task, run=None):
     });
 
     document.getElementById("trace-backdrop").addEventListener("click", closeTrace);
+
+    document.getElementById("quality-up").addEventListener("click", function () {
+      if (!traceModalRun || traceModalRun.id == null) return;
+      rateRunDemo(traceModalRun.id, 1);
+    });
+    document.getElementById("quality-down").addEventListener("click", function () {
+      if (!traceModalRun || traceModalRun.id == null) return;
+      rateRunDemo(traceModalRun.id, -1);
+    });
+
     document.addEventListener("keydown", function(e) {
       if (e.key !== "Escape") return;
       if (document.getElementById("trace-overlay").classList.contains("visible")) { closeTrace(); }
@@ -2793,6 +2945,7 @@ def my_agent(task, run=None):
     });
 
     /* ─── Boot ───────────────────────────────────────────────────── */
+    syncDemoQualityFromStorage();
     populateAgentFilter();
     refreshOverview();
     renderRuns(allRuns);
