@@ -1105,6 +1105,48 @@
       margin-bottom: 0.5rem;
     }
 
+    .trace-notes-section {
+      padding: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .trace-notes-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .trace-notes-input {
+      width: 100%;
+      min-height: 72px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.6rem 0.75rem;
+      color: var(--text);
+      font-size: 0.85rem;
+      font-family: inherit;
+      resize: vertical;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .trace-notes-input:focus {
+      border-color: var(--accent);
+    }
+
+    .trace-notes-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .trace-notes-saved {
+      font-size: 0.75rem;
+      color: #4ade80;
+      margin-left: 0.5rem;
+    }
+
     .close-btn {
       display: inline-flex;
       align-items: center;
@@ -1793,6 +1835,11 @@ def my_agent(task, run=None):
       <div class="anomaly-warning" id="trace-anomaly-warning"></div>
       <div class="steps-title" id="trace-detail-title">Trace timeline</div>
       <div id="trace-steps"></div>
+      <div class="trace-notes-section">
+        <div class="trace-notes-label">Notes</div>
+        <textarea id="trace-notes-input" class="trace-notes-input" placeholder="Add a note... (e.g. 'Failed due to external API outage')"></textarea>
+        <span class="trace-notes-saved" id="trace-notes-saved" hidden>✓ Saved</span>
+      </div>
     </div>
   </div>
 
@@ -2012,6 +2059,36 @@ def my_agent(task, run=None):
           r.quality_score = ratings[r.id];
         }
       });
+    }
+
+    function syncDemoNotesFromStorage() {
+      const notes = JSON.parse(sessionStorage.getItem("farol_run_notes") || "{}");
+      allRuns.forEach(function (r) {
+        if (notes[r.id]) {
+          r.notes = notes[r.id];
+        }
+      });
+    }
+
+    function saveDemoNote(runId, note) {
+      const notes = JSON.parse(sessionStorage.getItem("farol_run_notes") || "{}");
+      if (note.trim()) {
+        notes[runId] = note;
+      } else {
+        delete notes[runId];
+      }
+      sessionStorage.setItem("farol_run_notes", JSON.stringify(notes));
+      const run = allRuns.find(function (r) {
+        return r.id === runId;
+      });
+      if (run) run.notes = note;
+      const saved = document.getElementById("trace-notes-saved");
+      saved.removeAttribute("hidden");
+      setTimeout(function () {
+        saved.setAttribute("hidden", "");
+      }, 2000);
+      renderRuns(displayedRuns);
+      restoreActiveTraceRow();
     }
 
     function formatMetaValue(v) {
@@ -2281,9 +2358,15 @@ def my_agent(task, run=None):
         } else if (q === -1) {
           qualityCell = '<td class="quality-cell"><span class="quality-indicator-bad" title="Rated bad" aria-label="Rated bad">✗</span></td>';
         }
+        var topicText = escapeHtml(r.topic || "—");
+        var noteTitle =
+          r.notes != null && String(r.notes).trim() !== "" ? escapeHtml(String(r.notes)) : "";
+        var noteIcon = noteTitle
+          ? ' <span title="' + noteTitle + '" style="cursor:default">📝</span>'
+          : "";
         row.innerHTML =
           "<td>" + (r.agent || "—") + "</td>" +
-          "<td>" + escapeHtml(r.topic || "—") + "</td>" +
+          "<td>" + topicText + noteIcon + "</td>" +
           "<td>" + modelCell + "</td>" +
           '<td><span class="badge ' + (r.status === "success" ? "success" : "error") + '">' + escapeHtml(r.status) + "</span></td>" +
           qualityCell +
@@ -2785,6 +2868,16 @@ def my_agent(task, run=None):
       traceModalRun = r;
       updateQualityUI(r.quality_score);
 
+      var notesSavedEl = document.getElementById("trace-notes-saved");
+      notesSavedEl.setAttribute("hidden", "");
+      var notesInput = document.getElementById("trace-notes-input");
+      notesInput.value = r.notes ?? "";
+      var openRunId = r.id;
+      notesInput.onblur = function () {
+        if (!traceModalRun || traceModalRun.id !== openRunId) return;
+        saveDemoNote(openRunId, notesInput.value);
+      };
+
       document.getElementById("trace-title").textContent = (r.agent || "—") + " — " + (r.topic || r.id || "—");
       document.getElementById("trace-meta").textContent  = (r.timestamp ? new Date(r.timestamp).toLocaleString() : "—") + " · " + (r.status || "unknown");
       document.getElementById("trace-duration").textContent = r.duration_ms != null ? (Number(r.duration_ms)/1000).toFixed(2) + "s" : "—";
@@ -2801,6 +2894,8 @@ def my_agent(task, run=None):
 
       if (spans.length > 0) { titleEl.textContent = "Trace timeline"; renderWaterfall(r, spans, stepsEl); }
       else                   { titleEl.textContent = "Execution steps"; stepsEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">No steps recorded</div>'; }
+
+      notesInput.value = r.notes ?? "";
     }
 
     function openTrace(index, row) {
@@ -3061,6 +3156,7 @@ def my_agent(task, run=None):
 
     /* ─── Boot ───────────────────────────────────────────────────── */
     syncDemoQualityFromStorage();
+    syncDemoNotesFromStorage();
     populateAgentFilter();
     refreshOverview();
     renderRuns(allRuns);

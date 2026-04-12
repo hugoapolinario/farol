@@ -547,6 +547,48 @@
       margin-bottom: 0.5rem;
     }
 
+    .trace-notes-section {
+      padding: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .trace-notes-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .trace-notes-input {
+      width: 100%;
+      min-height: 72px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.6rem 0.75rem;
+      color: var(--text);
+      font-size: 0.85rem;
+      font-family: inherit;
+      resize: vertical;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .trace-notes-input:focus {
+      border-color: var(--accent);
+    }
+
+    .trace-notes-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .trace-notes-saved {
+      font-size: 0.75rem;
+      color: #4ade80;
+      margin-left: 0.5rem;
+    }
+
     .step {
       display: flex;
       gap: 0.75rem;
@@ -2148,6 +2190,11 @@ def my_agent(task, run=None):
       <div class="anomaly-warning" id="trace-anomaly-warning"></div>
       <div class="steps-title" id="trace-detail-title">Execution steps</div>
       <div id="trace-steps"></div>
+      <div class="trace-notes-section">
+        <div class="trace-notes-label">Notes</div>
+        <textarea id="trace-notes-input" class="trace-notes-input" placeholder="Add a note... (e.g. 'Failed due to external API outage')"></textarea>
+        <span class="trace-notes-saved" id="trace-notes-saved" hidden>✓ Saved</span>
+      </div>
     </div>
   </div>
 
@@ -3726,9 +3773,16 @@ def my_agent(task, run=None):
           qualityCell = '<td class="quality-cell"><span class="quality-indicator-bad" title="Rated bad" aria-label="Rated bad">✗</span></td>';
         }
 
+        const topicCellText = r.topic != null && r.topic !== "" ? escapeHtml(r.topic) : "—";
+        const noteTitle =
+          r.notes != null && String(r.notes).trim() !== "" ? escapeHtml(String(r.notes)) : "";
+        const noteIcon = noteTitle
+          ? ` <span title="${noteTitle}" style="cursor:default">📝</span>`
+          : "";
+
         row.innerHTML = `
           <td>${r.agent != null && r.agent !== "" ? escapeHtml(r.agent) : "—"}</td>
-          <td>${r.topic != null && r.topic !== "" ? escapeHtml(r.topic) : "—"}</td>
+          <td>${topicCellText}${noteIcon}</td>
           <td>${modelCell}</td>
           <td><span class="badge ${r.status === "success" ? "success" : "error"}">${escapeHtml(r.status) || "unknown"}</span></td>
           ${qualityCell}
@@ -3750,7 +3804,7 @@ def my_agent(task, run=None):
     async function loadRuns(userId) {
       const { data, error } = await client
         .from("runs")
-        .select("id, agent, topic, model, status, anomaly, anomaly_reason, duration_ms, cost_usd, timestamp, steps, input_tokens, output_tokens, error, quality_score")
+        .select("id, agent, topic, model, status, anomaly, anomaly_reason, duration_ms, cost_usd, timestamp, steps, input_tokens, output_tokens, error, quality_score, notes")
         .eq("user_id", userId)
         .order("timestamp", { ascending: false });
 
@@ -3774,6 +3828,26 @@ def my_agent(task, run=None):
       await openTraceRun(r, row);
     }
 
+    async function saveRunNote(runId, note) {
+      const { error } = await client
+        .from("runs")
+        .update({ notes: note })
+        .eq("id", runId)
+        .eq("user_id", currentUserId);
+      if (!error) {
+        const saved = document.getElementById("trace-notes-saved");
+        saved.removeAttribute("hidden");
+        setTimeout(function () {
+          saved.setAttribute("hidden", "");
+        }, 2000);
+        const run = allRuns.find(function (x) {
+          return x.id === runId;
+        });
+        if (run) run.notes = note;
+        applyFilterAndRender();
+      }
+    }
+
     async function openTraceRun(r, row) {
       if (activeRow) activeRow.classList.remove("active");
       activeRow = row;
@@ -3786,6 +3860,16 @@ def my_agent(task, run=None):
 
       traceModalRun = r;
       updateQualityUI(r.quality_score);
+
+      const notesSavedEl = document.getElementById("trace-notes-saved");
+      notesSavedEl.setAttribute("hidden", "");
+      const notesInput = document.getElementById("trace-notes-input");
+      notesInput.value = r.notes ?? "";
+      const openRunId = r.id;
+      notesInput.onblur = async function () {
+        if (!traceModalRun || traceModalRun.id !== openRunId) return;
+        await saveRunNote(openRunId, notesInput.value);
+      };
 
       document.getElementById("trace-title").textContent = (r.agent || "—") + " — " + (r.topic || r.id || "—");
       document.getElementById("trace-meta").textContent =
@@ -3833,6 +3917,8 @@ def my_agent(task, run=None):
         detailTitleEl.textContent = "Execution steps";
         renderTraceStepsFallback(r, stepsEl);
       }
+
+      notesInput.value = r.notes ?? "";
     }
 
     function closeTrace() {
