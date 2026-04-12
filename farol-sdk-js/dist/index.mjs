@@ -1,0 +1,137 @@
+// src/index.ts
+var DEFAULT_ENDPOINT = "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/ingest";
+var Span = class {
+  constructor(name, options = {}) {
+    this.inputTokens = 0;
+    this.outputTokens = 0;
+    this.costUsd = 0;
+    this.name = name;
+    this.type = options.type ?? "tool";
+    this.metadata = options.metadata ?? {};
+    this.startedAt = (/* @__PURE__ */ new Date()).toISOString();
+    this._startTime = Date.now();
+  }
+  end(error) {
+    this.endedAt = (/* @__PURE__ */ new Date()).toISOString();
+    this.durationMs = Date.now() - this._startTime;
+    if (error) this.error = error.message;
+  }
+  toDict(captureIo) {
+    const d = {
+      name: this.name,
+      type: this.type,
+      metadata: this.metadata,
+      started_at: this.startedAt,
+      ended_at: this.endedAt,
+      duration_ms: this.durationMs,
+      input_tokens: this.inputTokens,
+      output_tokens: this.outputTokens,
+      cost_usd: this.costUsd,
+      error: this.error ?? null
+    };
+    if (captureIo) {
+      d.input = this.input ?? null;
+      d.output = this.output ?? null;
+    }
+    return d;
+  }
+};
+var Run = class {
+  constructor(agentName, model) {
+    this.status = "running";
+    this.steps = [];
+    this.spans = [];
+    this.inputTokens = 0;
+    this.outputTokens = 0;
+    this.costUsd = 0;
+    this.durationMs = 0;
+    this.anomaly = false;
+    this.id = `run_${Date.now()}`;
+    this.agent = agentName;
+    this.model = model;
+    this.timestamp = (/* @__PURE__ */ new Date()).toISOString();
+  }
+  startSpan(name, options = {}) {
+    const span = new Span(name, options);
+    this.spans.push(span);
+    return span;
+  }
+};
+function trace(fn, options) {
+  const {
+    agentName,
+    farolKey,
+    farolEndpoint = DEFAULT_ENDPOINT,
+    model = "unknown",
+    costPer1kInputTokens = 25e-5,
+    costPer1kOutputTokens = 125e-5,
+    captureIo = false
+  } = options;
+  if (captureIo) {
+    console.warn(
+      "[Farol] WARNING: captureIo is enabled \u2014 prompts are being stored in your Farol dashboard"
+    );
+  }
+  return async (...args) => {
+    const run = new Run(agentName, model);
+    const startTime = Date.now();
+    try {
+      const result = await fn(run, ...args);
+      run.status = "success";
+      return result;
+    } catch (err) {
+      run.status = "error";
+      run.error = err instanceof Error ? err.message : String(err);
+      throw err;
+    } finally {
+      run.durationMs = Date.now() - startTime;
+      run.costUsd = parseFloat(
+        (run.inputTokens / 1e3 * costPer1kInputTokens + run.outputTokens / 1e3 * costPer1kOutputTokens).toFixed(6)
+      );
+      for (const span of run.spans) {
+        if (!span.endedAt) span.end();
+      }
+      await sendToFarol(run, farolKey, farolEndpoint, captureIo);
+    }
+  };
+}
+async function sendToFarol(run, farolKey, endpoint, captureIo) {
+  try {
+    const payload = {
+      id: run.id,
+      agent: run.agent,
+      model: run.model,
+      topic: run.topic ?? null,
+      status: run.status,
+      steps: run.steps,
+      spans: run.spans.map((s) => s.toDict(captureIo)),
+      input_tokens: run.inputTokens,
+      output_tokens: run.outputTokens,
+      cost_usd: run.costUsd,
+      duration_ms: run.durationMs,
+      error: run.error ?? null,
+      timestamp: run.timestamp,
+      anomaly: run.anomaly,
+      anomaly_reason: run.anomalyReason ?? null,
+      farol_key: farolKey
+    };
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      console.log("[Farol] Synced to Farol");
+    } else {
+      const body = await res.text();
+      console.error(`[Farol] Ingest failed (${res.status}): ${body}`);
+    }
+  } catch (err) {
+    console.error(`[Farol] Ingest request failed: ${err}`);
+  }
+}
+export {
+  Run,
+  Span,
+  trace
+};

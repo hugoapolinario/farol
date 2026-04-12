@@ -1,0 +1,29 @@
+{
+  "name": "@usefarol/sdk",
+  "version": "0.1.0",
+  "description": "AI agent observability SDK for Node.js — plug-and-play monitoring for your agents",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["ai", "agents", "observability", "monitoring", "llm", "farol"],
+  "author": "Farol",
+  "license": "MIT",
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
