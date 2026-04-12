@@ -2008,10 +2008,8 @@ def my_agent(task, run=None):
     function syncDemoQualityFromStorage() {
       const ratings = JSON.parse(sessionStorage.getItem("farol_quality_ratings") || "{}");
       allRuns.forEach(function (r) {
-        if (Object.prototype.hasOwnProperty.call(ratings, r.id)) {
+        if (ratings[r.id] !== undefined) {
           r.quality_score = ratings[r.id];
-        } else {
-          r.quality_score = null;
         }
       });
     }
