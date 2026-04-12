@@ -567,6 +567,13 @@
       font-size: 0.8rem;
       padding: 0.35rem 0.7rem;
     }
+
+    .budget-saved-msg {
+      font-size: 0.78rem;
+      color: var(--success);
+      font-weight: 600;
+      min-width: 4.5rem;
+    }
   </style>
 </head>
 <body>
@@ -962,6 +969,27 @@
       return out;
     }
 
+    function formatBudgetUsd6(n) {
+      let x = Number(n);
+      if (!isFinite(x)) x = 0;
+      return "$" + x.toFixed(6);
+    }
+
+    function applyBudgetSpendDisplay(spendEl, spent, limitNum) {
+      spendEl.className = "budget-spend";
+      const s = spent != null && isFinite(Number(spent)) ? Number(spent) : 0;
+      if (limitNum > 0) {
+        spendEl.textContent =
+          formatBudgetUsd6(s) + " spent · limit " + formatBudgetUsd6(limitNum);
+        const ratio = s / limitNum;
+        if (ratio < 0.8) spendEl.classList.add("ok");
+        else if (ratio < 1) spendEl.classList.add("warning");
+        else spendEl.classList.add("critical");
+      } else {
+        spendEl.textContent = formatBudgetUsd6(s) + " spent this month";
+      }
+    }
+
     function syncBudgetSection(plan) {
       const form = document.getElementById("budget-form");
       const hint = document.getElementById("budget-upgrade-hint");
@@ -1057,23 +1085,21 @@
         input.placeholder = "No limit";
         if (limit != null && limit > 0) input.value = String(limit);
         const spendEl = document.createElement("span");
-        spendEl.className = "budget-spend";
-        spendEl.textContent = "$" + s.toFixed(2) + " spent this month";
         const limitNum = limit != null && !isNaN(Number(limit)) ? Number(limit) : 0;
-        if (limitNum > 0) {
-          const ratio = s / limitNum;
-          if (ratio < 0.8) spendEl.classList.add("ok");
-          else if (ratio < 1) spendEl.classList.add("warning");
-          else spendEl.classList.add("critical");
-        }
+        applyBudgetSpendDisplay(spendEl, s, limitNum);
         const saveBtn = document.createElement("button");
         saveBtn.type = "button";
         saveBtn.className = "btn btn-secondary budget-save-btn";
         saveBtn.textContent = "Save";
+        const savedMsg = document.createElement("span");
+        savedMsg.className = "budget-saved-msg";
+        savedMsg.setAttribute("aria-live", "polite");
+        savedMsg.hidden = true;
         row.appendChild(label);
         row.appendChild(input);
         row.appendChild(spendEl);
         row.appendChild(saveBtn);
+        row.appendChild(savedMsg);
         list.appendChild(row);
       });
     }
@@ -1465,7 +1491,32 @@
           .single();
         if (refetchErr) throw refetchErr;
         fresh = await ensureBudgetPeriodFresh(subNew);
-        await loadBudgetAgentsUi(fresh);
+        const limitsAfter = toNumberMap(parseJsonObject(fresh.budget_limits));
+        const spentAfter = toNumberMap(parseJsonObject(fresh.monthly_cost_usd));
+        const lim = limitsAfter[agent];
+        const limitAfter = lim != null && !isNaN(Number(lim)) ? Number(lim) : 0;
+        if (raw === "") {
+          input.value = "";
+        } else if (limitAfter > 0) {
+          input.value = String(limitAfter);
+        } else {
+          input.value = raw;
+        }
+        const spendEl = row.querySelector(".budget-spend");
+        if (spendEl) {
+          applyBudgetSpendDisplay(spendEl, spentAfter[agent] != null ? spentAfter[agent] : 0, limitAfter);
+        }
+        const savedMsg = row.querySelector(".budget-saved-msg");
+        if (savedMsg) {
+          if (row._budgetSaveTimer) clearTimeout(row._budgetSaveTimer);
+          savedMsg.textContent = "✓ Saved";
+          savedMsg.hidden = false;
+          row._budgetSaveTimer = setTimeout(function () {
+            savedMsg.textContent = "";
+            savedMsg.hidden = true;
+            row._budgetSaveTimer = null;
+          }, 2000);
+        }
       } catch (_e) {
         /* ignore */
       } finally {
