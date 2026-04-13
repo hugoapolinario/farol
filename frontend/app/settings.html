@@ -774,8 +774,8 @@
     const TEST_WEBHOOK_URL = "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/test-webhook";
 
     const CHECKOUT_URLS = {
-      starter: "https://obsfarol.lemonsqueezy.com/checkout/buy/d4c5f967-e228-459c-8619-438e314b786b",
-      builder: "https://obsfarol.lemonsqueezy.com/checkout/buy/f65e187a-8079-458b-b8c0-56f81d93a656",
+      starter: "https://buy.polar.sh/polar_cl_gyGMib96vYPVleRhQOXWPQZAXN3U3jI1GEgju3yzWKj",
+      builder: "https://buy.polar.sh/polar_cl_1UzOWBHvqUXIMceRcXlhSadqYa7m4xfU4S98v3PHykZ",
       studio:  "https://obsfarol.lemonsqueezy.com/checkout/buy/aaccc073-c9a4-44c4-b753-833f449c0d62",
     };
     const PLAN_HINTS = {
@@ -1320,14 +1320,10 @@
       settingsUserId = user.id;
       userEmailEl.textContent = user.email || "Signed in";
 
-      const starterUpgradeUrl = CHECKOUT_URLS.starter +
-        "?checkout%5Bcustom%5D%5Buser_id%5D=" + encodeURIComponent(user.id);
-      document.getElementById("share-upgrade-link").href = starterUpgradeUrl;
-      document.getElementById("budget-upgrade-link").href = starterUpgradeUrl;
+      document.getElementById("share-upgrade-link").href = CHECKOUT_URLS.starter;
+      document.getElementById("budget-upgrade-link").href = CHECKOUT_URLS.starter;
 
-      const builderUpgradeUrl = CHECKOUT_URLS.builder +
-        "?checkout%5Bcustom%5D%5Buser_id%5D=" + encodeURIComponent(user.id);
-      document.getElementById("webhook-upgrade-link").href = builderUpgradeUrl;
+      document.getElementById("webhook-upgrade-link").href = CHECKOUT_URLS.builder;
 
       // Populate Plan section
       try {
@@ -1350,9 +1346,7 @@
 
         const nextPlan = UPGRADE_NEXT[plan];
         if (nextPlan && CHECKOUT_URLS[nextPlan]) {
-          const upgradeUrl = CHECKOUT_URLS[nextPlan] +
-            "?checkout%5Bcustom%5D%5Buser_id%5D=" + encodeURIComponent(user.id);
-          upgradeBtn.href = upgradeUrl;
+          upgradeBtn.href = CHECKOUT_URLS[nextPlan];
           upgradeBtn.textContent = "Upgrade to " + nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1);
           upgradeBtn.hidden = false;
         }

@@ -2320,7 +2320,7 @@ def my_agent(task, run=None):
       agentsBar.className = "usage-bar-fill" + (agentPct >= 100 ? " critical" : agentPct >= 80 ? " warning" : "");
     }
 
-    const STARTER_CHECKOUT = "https://obsfarol.lemonsqueezy.com/checkout/buy/d4c5f967-e228-459c-8619-438e314b786b";
+    const STARTER_CHECKOUT = "https://buy.polar.sh/polar_cl_gyGMib96vYPVleRhQOXWPQZAXN3U3jI1GEgju3yzWKj";
     let lastRefreshAt = null;
     let refreshIntervalId = null;
     let secondsTickerId = null;
@@ -4146,8 +4146,7 @@ def my_agent(task, run=None):
       const upgradeBannerEl = document.getElementById("upgrade-banner");
       const upgradeLinkEl = document.getElementById("upgrade-link");
       if (userPlan === "free") {
-        const upgradeUrl = STARTER_CHECKOUT + "?checkout%5Bcustom%5D%5Buser_id%5D=" + encodeURIComponent(user.id);
-        upgradeLinkEl.href = upgradeUrl;
+        upgradeLinkEl.href = STARTER_CHECKOUT;
         upgradeBannerEl.hidden = false;
       }
 
