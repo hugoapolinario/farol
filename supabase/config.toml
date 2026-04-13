@@ -55,3 +55,8 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/weekly-digest/index.ts"
 
+[functions.send-feedback]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/send-feedback/index.ts"
+
