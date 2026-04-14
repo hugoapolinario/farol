@@ -964,6 +964,24 @@
     .alert-view-runs { font-size: 0.74rem; font-weight: 600; color: var(--accent); white-space: nowrap; opacity: 0.82; transition: opacity 0.13s ease; cursor: pointer; }
     .alert-item:hover .alert-view-runs { opacity: 1; }
 
+    .alert-item.duration { border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.06); }
+    .alert-item.duration:hover { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.5); }
+    .alert-duration-badge { display: inline-block; font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 999px; background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); margin-right: 0.5rem; }
+    .alert-item-duration-footer {
+      font-size: 0.8rem;
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .alert-item-duration-footer .alert-view-trace {
+      margin-left: auto;
+    }
+    .alert-item:hover .alert-item-duration-footer .alert-view-trace {
+      opacity: 1;
+    }
+
     /* ── Modal overlay ───────────────────────────────────────────── */
     @keyframes modal-backdrop-in {
       from { opacity: 0; }
@@ -1995,7 +2013,10 @@ def my_agent(task, run=None):
       { id:"run_d09", agent:"data-pipeline",   topic:"Daily event batch 2026-01-13",                   model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:7000, cost_usd:0.000146, input_tokens:3290, output_tokens:898, error:null, steps:[], timestamp:ts(68*D),  spans:pipelineSpans(7000,false) },
       { id:"run_r11", agent:"research-agent",  topic:"AI safety alignment techniques survey",           model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:3700, cost_usd:0.000192, input_tokens:1650, output_tokens:562, error:null, steps:[], timestamp:ts(64*D),  spans:researchSpans(3700) },
       { id:"run_b03", agent:"batch-processor", topic:"Nightly export job 2026-01-16",                   model:"claude-haiku-4-5",  status:"error",   anomaly:false, anomaly_reason:null,                                                                           duration_ms:2100, cost_usd:0.000094, input_tokens:1060, output_tokens:0,   error:"Job queue connection refused after 3 retries", steps:[], timestamp:ts(62*D),  spans:batchSpans(2100,true) },
-      { id:"run_d10", agent:"data-pipeline",   topic:"Weekly aggregation pipeline Jan 2026",            model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:6600, cost_usd:0.000139, input_tokens:3180, output_tokens:872, error:null, steps:[], timestamp:ts(61*D),  spans:pipelineSpans(6600,false) }
+      { id:"run_d10", agent:"data-pipeline",   topic:"Weekly aggregation pipeline Jan 2026",            model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:6600, cost_usd:0.000139, input_tokens:3180, output_tokens:872, error:null, steps:[], timestamp:ts(61*D),  spans:pipelineSpans(6600,false) },
+
+      /* research-agent duration alert demo: latest successful run far above median baseline */
+      { id:"run_r_dur", agent:"research-agent", topic:"Duration spike demo — extended literature crawl", model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:22300, cost_usd:0.000252, input_tokens:2400, output_tokens:800, error:null, steps:[], timestamp:ts(1*H), spans:researchSpans(22300) }
     ];
 
     /* ─── State ──────────────────────────────────────────────────── */
@@ -2736,13 +2757,63 @@ def my_agent(task, run=None):
       return alerts;
     }
 
+    function computeDurationAlerts(runs) {
+      var agents = Array.from(new Set(runs.map(function (r) { return r.agent; })));
+      var alerts = [];
+      for (var i = 0; i < agents.length; i++) {
+        var agent = agents[i];
+        var successRuns = runs.filter(function (r) {
+          return r.agent === agent && r.status === "success" && r.duration_ms;
+        });
+        if (successRuns.length < 5) continue;
+
+        var sorted = successRuns.slice().sort(function (a, b) {
+          return Number(a.timestamp) - Number(b.timestamp);
+        });
+        var baselineRuns = sorted.slice(0, -1);
+        var latestRun = sorted[sorted.length - 1];
+
+        var durations = baselineRuns.map(function (r) { return r.duration_ms; }).sort(function (a, b) { return a - b; });
+        var mid = Math.floor(durations.length / 2);
+        var median =
+          durations.length % 2 === 0 ? (durations[mid - 1] + durations[mid]) / 2 : durations[mid];
+
+        if (!median || median === 0) continue;
+
+        var ratio = latestRun.duration_ms / median;
+        if (ratio >= 3) {
+          alerts.push({
+            id: "duration_" + agent + "_" + latestRun.id,
+            agent: agent,
+            type: "duration",
+            runId: latestRun.id,
+            durationMs: latestRun.duration_ms,
+            medianMs: median,
+            ratio: Math.round(ratio * 10) / 10,
+            message:
+              agent +
+              " took " +
+              (latestRun.duration_ms / 1000).toFixed(1) +
+              "s — " +
+              Math.round(ratio) +
+              "× above baseline (" +
+              (median / 1000).toFixed(1) +
+              "s)",
+          });
+        }
+      }
+      return alerts;
+    }
+
     function updateAlertsBadge() {
       var anomalous   = allRuns.filter(function(r) { return r.anomaly; });
       var regressions = computeRegressionAlerts(allRuns);
       var qualities   = computeQualityAlerts(allRuns);
+      var durations   = computeDurationAlerts(allRuns);
       var unread = anomalous.filter(function(r) { return !seenAlerts.has(r.id); }).length
                    + regressions.filter(function(a) { return !seenAlerts.has(a.id); }).length
-                   + qualities.filter(function(a) { return !seenAlerts.has(a.id); }).length;
+                   + qualities.filter(function(a) { return !seenAlerts.has(a.id); }).length
+                   + durations.filter(function(a) { return !seenAlerts.has(a.id); }).length;
       const el = document.getElementById("alerts-count");
       if (unread > 0) {
         el.textContent  = String(unread);
@@ -2761,8 +2832,9 @@ def my_agent(task, run=None):
       const anomalous   = allRuns.filter(function(r) { return r.anomaly; });
       const regressions = computeRegressionAlerts(allRuns);
       const qualities   = computeQualityAlerts(allRuns);
+      const durations   = computeDurationAlerts(allRuns);
 
-      if (!anomalous.length && !regressions.length && !qualities.length) {
+      if (!anomalous.length && !regressions.length && !qualities.length && !durations.length) {
         filterBar.hidden = true;
         el.innerHTML = '<div class="alerts-empty">No anomalies detected in this period.</div>';
         return;
@@ -2774,6 +2846,7 @@ def my_agent(task, run=None):
         ...anomalous.map(function(r) { return r.agent || "—"; }),
         ...regressions.map(function(a) { return a.agent || "—"; }),
         ...qualities.map(function(a) { return a.agent || "—"; }),
+        ...durations.map(function(a) { return a.agent || "—"; }),
       ]);
       const prevSel = alertsAgentFilter;
       filterSel.innerHTML = '<option value="">All agents</option>';
@@ -2794,8 +2867,11 @@ def my_agent(task, run=None):
       const visibleQualities = alertsAgentFilter
         ? qualities.filter(function(a) { return a.agent === alertsAgentFilter; })
         : qualities;
+      const visibleDurations = alertsAgentFilter
+        ? durations.filter(function(a) { return a.agent === alertsAgentFilter; })
+        : durations;
 
-      if (!visibleAnomalous.length && !visibleRegressions.length && !visibleQualities.length) {
+      if (!visibleAnomalous.length && !visibleRegressions.length && !visibleQualities.length && !visibleDurations.length) {
         el.innerHTML = '<div class="alerts-empty">No alerts for this agent.</div>';
         return;
       }
@@ -2853,6 +2929,25 @@ def my_agent(task, run=None):
         );
       });
 
+      const durationCards = visibleDurations.map(function(a) {
+        const run = allRuns.find(function(r) { return String(r.id) === String(a.runId); });
+        const ts = run && run.timestamp ? new Date(run.timestamp).toLocaleString() : "—";
+        const isRead = seenAlerts.has(a.id);
+        return (
+          '<div class="alert-item duration' + (isRead ? " read" : "") + '" data-alert-id="' + escapeHtml(a.id) + '">' +
+          '<div class="alert-item-header">' +
+            '<div class="alert-item-left"><span class="alert-item-agent">⏱ ' + escapeHtml(a.agent) + "</span></div>" +
+            '<div class="alert-item-right"><span class="alert-item-time">' + escapeHtml(ts) + "</span></div>" +
+          "</div>" +
+          '<div class="alert-item-topic">' + escapeHtml(a.message) + "</div>" +
+          '<div class="alert-item-duration-footer">' +
+            '<span class="alert-duration-badge">Duration spike</span>' +
+            '<span class="alert-view-trace">View trace →</span>' +
+          "</div>" +
+          "</div>"
+        );
+      });
+
       const listChunks = [];
       if (visibleAnomalous.length) {
         listChunks.push(
@@ -2862,6 +2957,15 @@ def my_agent(task, run=None):
             "</div>"
         );
         listChunks.push(anomalyCards.join(""));
+      }
+      if (visibleDurations.length) {
+        listChunks.push(
+          '<div class="alert-section-header" id="duration-alerts-header">' +
+            '<span class="alert-section-title">Duration Alerts</span>' +
+            '<span class="alert-section-count">' + visibleDurations.length + "</span>" +
+            "</div>"
+        );
+        listChunks.push(durationCards.join(""));
       }
       if (visibleRegressions.length) {
         listChunks.push(
@@ -2914,8 +3018,8 @@ def my_agent(task, run=None):
         });
       });
 
-      /* Wire regression cards */
-      el.querySelectorAll(".alert-item[data-alert-id]").forEach(function(item) {
+      /* Wire regression & quality cards */
+      el.querySelectorAll(".alert-item.regression[data-alert-id], .alert-item.quality[data-alert-id]").forEach(function(item) {
         const alertId = item.dataset.alertId;
         const agent   = item.dataset.agent;
 
@@ -2936,6 +3040,35 @@ def my_agent(task, run=None):
         item.addEventListener("click", function() {
           markAlertRead(alertId, item);
           openRegressionRuns();
+        });
+      });
+
+      /* Wire duration alert cards (trace modal) */
+      el.querySelectorAll(".alert-item.duration[data-alert-id]").forEach(function(item) {
+        const alertId = item.dataset.alertId;
+        const durAlert = durations.find(function(a) { return a.id === alertId; });
+        const run = durAlert ? allRuns.find(function(r) { return String(r.id) === String(durAlert.runId); }) : null;
+
+        function openDurationTrace() {
+          if (!run) return;
+          navigateTo("runs");
+          agentFilterEl.value = "";
+          displayedRuns = allRuns.slice();
+          renderRuns(displayedRuns);
+          openTraceRun(run, null);
+        }
+
+        const traceLink = item.querySelector(".alert-view-trace");
+        if (traceLink) {
+          traceLink.addEventListener("click", function(e) {
+            e.stopPropagation();
+            markAlertRead(alertId, item);
+            openDurationTrace();
+          });
+        }
+        item.addEventListener("click", function() {
+          markAlertRead(alertId, item);
+          openDurationTrace();
         });
       });
     }

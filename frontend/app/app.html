@@ -1349,6 +1349,24 @@
     .alert-view-runs { font-size: 0.74rem; font-weight: 600; color: var(--accent); white-space: nowrap; opacity: 0.82; transition: opacity 0.13s ease; cursor: pointer; }
     .alert-item:hover .alert-view-runs { opacity: 1; }
 
+    .alert-item.duration { border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.06); }
+    .alert-item.duration:hover { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.5); }
+    .alert-duration-badge { display: inline-block; font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 999px; background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); margin-right: 0.5rem; }
+    .alert-item-duration-footer {
+      font-size: 0.8rem;
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .alert-item-duration-footer .alert-view-trace {
+      margin-left: auto;
+    }
+    .alert-item:hover .alert-item-duration-footer .alert-view-trace {
+      opacity: 1;
+    }
+
     /* ── Agent cards ─────────────────────────────────────────────── */
     .agents-grid {
       display: grid;
@@ -3144,13 +3162,51 @@ def my_agent(task, run=None):
       return alerts;
     }
 
+    function computeDurationAlerts(runs) {
+      const agents = [...new Set(runs.map((r) => r.agent))];
+      const alerts = [];
+
+      for (const agent of agents) {
+        const successRuns = runs.filter((r) => r.agent === agent && r.status === "success" && r.duration_ms);
+        if (successRuns.length < 5) continue;
+
+        const sorted = [...successRuns].sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+        const baselineRuns = sorted.slice(0, -1);
+        const latestRun = sorted[sorted.length - 1];
+
+        const durations = baselineRuns.map((r) => r.duration_ms).sort((a, b) => a - b);
+        const mid = Math.floor(durations.length / 2);
+        const median =
+          durations.length % 2 === 0 ? (durations[mid - 1] + durations[mid]) / 2 : durations[mid];
+
+        if (!median || median === 0) continue;
+
+        const ratio = latestRun.duration_ms / median;
+        if (ratio >= 3) {
+          alerts.push({
+            id: `duration_${agent}_${latestRun.id}`,
+            agent,
+            type: "duration",
+            runId: latestRun.id,
+            durationMs: latestRun.duration_ms,
+            medianMs: median,
+            ratio: Math.round(ratio * 10) / 10,
+            message: `${agent} took ${(latestRun.duration_ms / 1000).toFixed(1)}s — ${Math.round(ratio)}× above baseline (${(median / 1000).toFixed(1)}s)`,
+          });
+        }
+      }
+      return alerts;
+    }
+
     function updateAlertsBadge() {
       const anomalous   = allRuns.filter(function (r) { return r.anomaly; });
       const regressions = computeRegressionAlerts(allRuns);
       const qualities   = computeQualityAlerts(allRuns);
+      const durations   = computeDurationAlerts(allRuns);
       const unread = anomalous.filter(function (r) { return !seenAlerts.has(r.id); }).length
                    + regressions.filter(function (a) { return !seenAlerts.has(a.id); }).length
-                   + qualities.filter(function (a) { return !seenAlerts.has(a.id); }).length;
+                   + qualities.filter(function (a) { return !seenAlerts.has(a.id); }).length
+                   + durations.filter(function (a) { return !seenAlerts.has(a.id); }).length;
       const el = document.getElementById("alerts-count");
       if (!el) return;
       if (unread > 0) {
@@ -3170,8 +3226,9 @@ def my_agent(task, run=None):
       const anomalous   = allRuns.filter(function (r) { return r.anomaly; });
       const regressions = computeRegressionAlerts(allRuns);
       const qualities   = computeQualityAlerts(allRuns);
+      const durations   = computeDurationAlerts(allRuns);
 
-      if (!anomalous.length && !regressions.length && !qualities.length) {
+      if (!anomalous.length && !regressions.length && !qualities.length && !durations.length) {
         if (filterBar) filterBar.hidden = true;
         if (listEl) listEl.innerHTML = '<div class="alerts-empty">No anomalies detected yet.</div>';
         return;
@@ -3183,6 +3240,7 @@ def my_agent(task, run=None):
         ...anomalous.map(function (r) { return r.agent || "—"; }),
         ...regressions.map(function (a) { return a.agent || "—"; }),
         ...qualities.map(function (a) { return a.agent || "—"; }),
+        ...durations.map(function (a) { return a.agent || "—"; }),
       ]);
       const prevSel = alertsAgentFilter;
       if (filterSel) {
@@ -3205,8 +3263,11 @@ def my_agent(task, run=None):
       const visibleQualities = alertsAgentFilter
         ? qualities.filter(function (a) { return a.agent === alertsAgentFilter; })
         : qualities;
+      const visibleDurations = alertsAgentFilter
+        ? durations.filter(function (a) { return a.agent === alertsAgentFilter; })
+        : durations;
 
-      if (!visibleAnomalous.length && !visibleRegressions.length && !visibleQualities.length) {
+      if (!visibleAnomalous.length && !visibleRegressions.length && !visibleQualities.length && !visibleDurations.length) {
         if (listEl) listEl.innerHTML = '<div class="alerts-empty">No alerts for this agent.</div>';
         return;
       }
@@ -3273,6 +3334,27 @@ def my_agent(task, run=None):
         );
       });
 
+      const durationCards = visibleDurations.map(function (a) {
+        const run = allRuns.find(function (r) { return String(r.id) === String(a.runId); });
+        const ts = run && run.timestamp ? new Date(run.timestamp).toLocaleString() : "—";
+        const isRead = seenAlerts.has(a.id);
+        return (
+          '<div class="alert-item duration' + (isRead ? " read" : "") + '" data-alert-id="' + escapeHtml(a.id) + '">' +
+          '<div class="alert-item-header">' +
+            '<div class="alert-item-left"><span class="alert-item-agent">⏱ ' + escapeHtml(a.agent) + '</span></div>' +
+            '<div class="alert-item-right">' +
+              '<span class="alert-item-time">' + escapeHtml(ts) + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="alert-item-topic">' + escapeHtml(a.message) + '</div>' +
+          '<div class="alert-item-duration-footer">' +
+            '<span class="alert-duration-badge">Duration spike</span>' +
+            '<span class="alert-view-trace">View trace →</span>' +
+          '</div>' +
+          '</div>'
+        );
+      });
+
       const listChunks = [];
       if (visibleAnomalous.length) {
         listChunks.push(
@@ -3282,6 +3364,15 @@ def my_agent(task, run=None):
             "</div>"
         );
         listChunks.push(anomalyCards.join(""));
+      }
+      if (visibleDurations.length) {
+        listChunks.push(
+          '<div class="alert-section-header" id="duration-alerts-header">' +
+            '<span class="alert-section-title">Duration Alerts</span>' +
+            '<span class="alert-section-count">' + visibleDurations.length + "</span>" +
+            "</div>"
+        );
+        listChunks.push(durationCards.join(""));
       }
       if (visibleRegressions.length) {
         listChunks.push(
@@ -3334,8 +3425,10 @@ def my_agent(task, run=None):
         });
       });
 
-      /* Wire regression cards */
-      listEl.querySelectorAll(".alert-item[data-alert-id]").forEach(function (item) {
+      /* Wire regression & quality cards */
+      listEl
+        .querySelectorAll(".alert-item.regression[data-alert-id], .alert-item.quality[data-alert-id]")
+        .forEach(function (item) {
         const alertId = item.dataset.alertId;
         const agent   = item.dataset.agent;
 
@@ -3356,6 +3449,36 @@ def my_agent(task, run=None):
         item.addEventListener("click", function () {
           markAlertRead(alertId, item);
           openRegressionRuns();
+        });
+      });
+
+      /* Wire duration alert cards (trace modal) */
+      listEl.querySelectorAll(".alert-item.duration[data-alert-id]").forEach(function (item) {
+        const alertId = item.dataset.alertId;
+        const durAlert = durations.find(function (a) { return a.id === alertId; });
+        const run = durAlert ? allRuns.find(function (r) { return String(r.id) === String(durAlert.runId); }) : null;
+
+        function openDurationTrace() {
+          if (!run) return;
+          const agent = run.agent || "";
+          navigateTo("runs");
+          agentFilterEl.value = agent;
+          displayedRuns = agent ? allRuns.filter(function (r) { return r.agent === agent; }) : allRuns.slice();
+          renderRuns(displayedRuns);
+          void openTraceRun(run, null);
+        }
+
+        const traceLink = item.querySelector(".alert-view-trace");
+        if (traceLink) {
+          traceLink.addEventListener("click", function (e) {
+            e.stopPropagation();
+            markAlertRead(alertId, item);
+            openDurationTrace();
+          });
+        }
+        item.addEventListener("click", function () {
+          markAlertRead(alertId, item);
+          openDurationTrace();
         });
       });
     }
