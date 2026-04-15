@@ -812,12 +812,6 @@
         </div>
         <div id="plan-upgrade-wrap" hidden>
           <a class="btn btn-primary" id="upgrade-btn" href="#">Upgrade</a>
-          <div id="upgrade-studio-soon" hidden>
-            <button class="btn btn-outline" type="button" disabled style="opacity:0.5;cursor:not-allowed">Coming soon</button>
-            <p style="text-align:center;margin-top:0.75rem;font-size:0.8rem;margin-bottom:0">
-              <a href="mailto:support@usefarol.dev?subject=Studio plan interest" style="color:var(--text-muted)">Notify me when available →</a>
-            </p>
-          </div>
         </div>
       </div>
     </section>
@@ -863,7 +857,7 @@
       builder: "Unlimited agents · Unlimited events/month · Slack alerts",
       studio:  "Unlimited agents · 1M events/month · 5 seats · Priority support",
     };
-    const UPGRADE_NEXT = { free: "starter", starter: "builder", builder: "studio" };
+    const UPGRADE_NEXT = { free: "starter", starter: "builder" };
     const SHARE_PAGE_BASE = "https://usefarol.dev/share";
 
     let settingsUserId = null;
@@ -1455,13 +1449,7 @@
 
         const nextPlan = UPGRADE_NEXT[plan];
         const upgradeWrap = document.getElementById("plan-upgrade-wrap");
-        const upgradeStudioSoon = document.getElementById("upgrade-studio-soon");
-        if (nextPlan === "studio") {
-          upgradeWrap.hidden = false;
-          upgradeBtn.hidden = true;
-          upgradeStudioSoon.hidden = false;
-        } else if (nextPlan && CHECKOUT_URLS[nextPlan]) {
-          upgradeStudioSoon.hidden = true;
+        if (nextPlan && CHECKOUT_URLS[nextPlan]) {
           upgradeBtn.hidden = false;
           upgradeBtn.href = CHECKOUT_URLS[nextPlan];
           upgradeBtn.textContent = "Upgrade to " + nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1);
