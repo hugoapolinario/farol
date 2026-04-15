@@ -982,6 +982,25 @@
       opacity: 1;
     }
 
+    .alert-item.latency { border-color: rgba(20,184,166,0.35); background: rgba(20,184,166,0.06); }
+    .alert-item.latency:hover { background: rgba(20,184,166,0.1); border-color: rgba(20,184,166,0.5); }
+    .alert-latency-badge { display: inline-block; font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 999px; background: rgba(20,184,166,0.15); color: #14b8a6; border: 1px solid rgba(20,184,166,0.3); margin-right: 0.5rem; }
+    .alert-item-latency-footer {
+      font-size: 0.8rem;
+      color: #5eead4;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .alert-item-latency-footer .alert-view-runs {
+      margin-left: auto;
+      opacity: 0.75;
+    }
+    .alert-item:hover .alert-item-latency-footer .alert-view-runs {
+      opacity: 1;
+    }
+
     /* ── Modal overlay ───────────────────────────────────────────── */
     @keyframes modal-backdrop-in {
       from { opacity: 0; }
@@ -2016,8 +2035,51 @@ def my_agent(task, run=None):
       { id:"run_d10", agent:"data-pipeline",   topic:"Weekly aggregation pipeline Jan 2026",            model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:6600, cost_usd:0.000139, input_tokens:3180, output_tokens:872, error:null, steps:[], timestamp:ts(61*D),  spans:pipelineSpans(6600,false) },
 
       /* research-agent duration alert demo: latest successful run far above median baseline */
-      { id:"run_r_dur", agent:"research-agent", topic:"Duration spike demo — extended literature crawl", model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:22300, cost_usd:0.000252, input_tokens:2400, output_tokens:800, error:null, steps:[], timestamp:ts(1*H), spans:researchSpans(22300) }
+      { id:"run_r_dur", agent:"research-agent", topic:"Duration spike demo — extended literature crawl", model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:35000, cost_usd:0.000252, input_tokens:2400, output_tokens:800, error:null, steps:[], timestamp:ts(30*60*1000), spans:researchSpans(35000) }
     ];
+    (function latencyP95DemoRuns() {
+      const ref = NOW - 30 * 60 * 1000;
+      for (let i = 0; i < 22; i++) {
+        const d = 8000 + (i % 8) * 900;
+        allRuns.push({
+          id: "run_lat_c_" + i,
+          agent: "research-agent",
+          topic: "Latency p95 demo — current week " + i,
+          model: "claude-sonnet-4-5",
+          status: "success",
+          anomaly: false,
+          anomaly_reason: null,
+          duration_ms: d,
+          cost_usd: 0.00022,
+          input_tokens: 1900,
+          output_tokens: 620,
+          error: null,
+          steps: [],
+          timestamp: ref - 2 * H - i * 3 * H,
+          spans: researchSpans(d),
+        });
+      }
+      for (let i = 0; i < 22; i++) {
+        const d = 2000 + (i % 5) * 400;
+        allRuns.push({
+          id: "run_lat_p_" + i,
+          agent: "research-agent",
+          topic: "Latency p95 demo — prior week " + i,
+          model: "claude-sonnet-4-5",
+          status: "success",
+          anomaly: false,
+          anomaly_reason: null,
+          duration_ms: d,
+          cost_usd: 0.000204,
+          input_tokens: 1820,
+          output_tokens: 598,
+          error: null,
+          steps: [],
+          timestamp: ref - 10 * D - i * 4 * H,
+          spans: researchSpans(d),
+        });
+      }
+    })();
 
     /* ─── State ──────────────────────────────────────────────────── */
     const AGENT_NONE_VALUE = "__FAROL_NO_AGENT__";
@@ -2806,15 +2868,77 @@ def my_agent(task, run=None):
       return alerts;
     }
 
+    function computeP95(durations) {
+      if (!durations.length) return 0;
+      var sorted = durations.slice().sort(function (a, b) { return a - b; });
+      var idx = Math.floor(sorted.length * 0.95);
+      return sorted[Math.min(idx, sorted.length - 1)];
+    }
+
+    function computeLatencyAlerts(runs) {
+      if (!runs.length) return [];
+      var nowRef = Math.max.apply(null, runs.map(function (r) { return Number(r.timestamp); }));
+      if (!isFinite(nowRef)) return [];
+      var WEEK = 7 * 24 * 60 * 60 * 1000;
+      var agents = Array.from(new Set(runs.map(function (r) { return r.agent; })));
+      var alerts = [];
+
+      for (var ai = 0; ai < agents.length; ai++) {
+        var agent = agents[ai];
+        var agentRuns = runs.filter(function (r) {
+          return r.agent === agent && r.status === "success" && r.duration_ms;
+        });
+
+        var current = agentRuns.filter(function (r) {
+          return Number(r.timestamp) >= nowRef - WEEK;
+        });
+        var previous = agentRuns.filter(function (r) {
+          var t = Number(r.timestamp);
+          return t >= nowRef - 2 * WEEK && t < nowRef - WEEK;
+        });
+
+        if (current.length < 20 || previous.length < 20) continue;
+
+        var currentP95 = computeP95(current.map(function (r) { return r.duration_ms; }));
+        var previousP95 = computeP95(previous.map(function (r) { return r.duration_ms; }));
+
+        if (!previousP95 || previousP95 === 0) continue;
+
+        var ratio = currentP95 / previousP95;
+        if (ratio >= 2) {
+          alerts.push({
+            id: "latency_" + agent,
+            agent: agent,
+            type: "latency",
+            currentP95Ms: currentP95,
+            previousP95Ms: previousP95,
+            ratio: Math.round(ratio * 10) / 10,
+            message:
+              agent +
+              " p95 latency is " +
+              ratio.toFixed(1) +
+              "× slower this week (" +
+              (currentP95 / 1000).toFixed(1) +
+              "s vs " +
+              (previousP95 / 1000).toFixed(1) +
+              "s last week)",
+          });
+        }
+      }
+      return alerts;
+    }
+
     function updateAlertsBadge() {
       var anomalous   = allRuns.filter(function(r) { return r.anomaly; });
       var regressions = computeRegressionAlerts(allRuns);
       var qualities   = computeQualityAlerts(allRuns);
       var durations   = computeDurationAlerts(allRuns);
+      var latencies   = computeLatencyAlerts(allRuns);
       var unread = anomalous.filter(function(r) { return !seenAlerts.has(r.id); }).length
                    + regressions.filter(function(a) { return !seenAlerts.has(a.id); }).length
                    + qualities.filter(function(a) { return !seenAlerts.has(a.id); }).length
-                   + durations.filter(function(a) { return !seenAlerts.has(a.id); }).length;
+                   + durations.filter(function(a) { return !seenAlerts.has(a.id); }).length
+                   + latencies.filter(function(a) { return !seenAlerts.has(a.id); }).length;
       const el = document.getElementById("alerts-count");
       if (unread > 0) {
         el.textContent  = String(unread);
@@ -2834,8 +2958,9 @@ def my_agent(task, run=None):
       const regressions = computeRegressionAlerts(allRuns);
       const qualities   = computeQualityAlerts(allRuns);
       const durations   = computeDurationAlerts(allRuns);
+      const latencies   = computeLatencyAlerts(allRuns);
 
-      if (!anomalous.length && !regressions.length && !qualities.length && !durations.length) {
+      if (!anomalous.length && !regressions.length && !qualities.length && !durations.length && !latencies.length) {
         filterBar.hidden = true;
         el.innerHTML = '<div class="alerts-empty">No anomalies detected in this period.</div>';
         return;
@@ -2848,6 +2973,7 @@ def my_agent(task, run=None):
         ...regressions.map(function(a) { return a.agent || "—"; }),
         ...qualities.map(function(a) { return a.agent || "—"; }),
         ...durations.map(function(a) { return a.agent || "—"; }),
+        ...latencies.map(function(a) { return a.agent || "—"; }),
       ]);
       const prevSel = alertsAgentFilter;
       filterSel.innerHTML = '<option value="">All agents</option>';
@@ -2871,8 +2997,11 @@ def my_agent(task, run=None):
       const visibleDurations = alertsAgentFilter
         ? durations.filter(function(a) { return a.agent === alertsAgentFilter; })
         : durations;
+      const visibleLatencies = alertsAgentFilter
+        ? latencies.filter(function(a) { return a.agent === alertsAgentFilter; })
+        : latencies;
 
-      if (!visibleAnomalous.length && !visibleRegressions.length && !visibleQualities.length && !visibleDurations.length) {
+      if (!visibleAnomalous.length && !visibleRegressions.length && !visibleQualities.length && !visibleDurations.length && !visibleLatencies.length) {
         el.innerHTML = '<div class="alerts-empty">No alerts for this agent.</div>';
         return;
       }
@@ -2949,6 +3078,23 @@ def my_agent(task, run=None):
         );
       });
 
+      const latencyCards = visibleLatencies.map(function(a) {
+        const isRead = seenAlerts.has(a.id);
+        return (
+          '<div class="alert-item latency' + (isRead ? " read" : "") + '" data-alert-id="' + escapeHtml(a.id) + '" data-agent="' + escapeHtml(a.agent) + '">' +
+          '<div class="alert-item-header">' +
+            '<div class="alert-item-left"><span class="alert-item-agent">⚡ ' + escapeHtml(a.agent) + "</span></div>" +
+            '<div class="alert-item-right"><span class="alert-item-time">This week</span></div>' +
+          "</div>" +
+          '<div class="alert-item-topic">' + escapeHtml(a.message) + "</div>" +
+          '<div class="alert-item-latency-footer">' +
+            '<span class="alert-latency-badge">Latency spike</span>' +
+            '<span class="alert-view-runs" data-agent="' + escapeHtml(a.agent) + '">View runs →</span>' +
+          "</div>" +
+          "</div>"
+        );
+      });
+
       const listChunks = [];
       if (visibleAnomalous.length) {
         listChunks.push(
@@ -2967,6 +3113,15 @@ def my_agent(task, run=None):
             "</div>"
         );
         listChunks.push(durationCards.join(""));
+      }
+      if (visibleLatencies.length) {
+        listChunks.push(
+          '<div class="alert-section-header" id="latency-alerts-header">' +
+            '<span class="alert-section-title">Latency Alerts</span>' +
+            '<span class="alert-section-count">' + visibleLatencies.length + "</span>" +
+            "</div>"
+        );
+        listChunks.push(latencyCards.join(""));
       }
       if (visibleRegressions.length) {
         listChunks.push(
@@ -3019,8 +3174,8 @@ def my_agent(task, run=None):
         });
       });
 
-      /* Wire regression & quality cards */
-      el.querySelectorAll(".alert-item.regression[data-alert-id], .alert-item.quality[data-alert-id]").forEach(function(item) {
+      /* Wire regression, quality & latency cards */
+      el.querySelectorAll(".alert-item.regression[data-alert-id], .alert-item.quality[data-alert-id], .alert-item.latency[data-alert-id]").forEach(function(item) {
         const alertId = item.dataset.alertId;
         const agent   = item.dataset.agent;
 
