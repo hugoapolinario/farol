@@ -1767,40 +1767,41 @@
     document.getElementById("slack-test-btn").addEventListener("click", async function () {
       if (!settingsUserId || settingsUserPlan === "free" || settingsUserPlan === "starter") return;
       const input = document.getElementById("slack-url-input");
-      const statusEl = document.getElementById("slack-status");
-      const url = input.value.trim();
-      if (!url.startsWith("https://")) {
-        statusEl.textContent = "Enter a valid https:// Slack webhook URL.";
+      const slackStatus = document.getElementById("slack-status");
+      const slackUrl = input.value.trim();
+      if (!slackUrl.startsWith("https://")) {
+        slackStatus.textContent = "Enter a valid https:// Slack webhook URL.";
+        slackStatus.style.color = "";
         return;
       }
       this.disabled = true;
-      statusEl.textContent = "";
+      slackStatus.textContent = "";
+      slackStatus.style.color = "";
       try {
-        const res = await fetch(url, {
+        const res = await fetch(window.SUPABASE_URL + "/functions/v1/test-slack", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            blocks: [
-              {
-                type: "section",
-                text: {
-                  type: "mrkdwn",
-                  text: "*Farol test message* ✓\nYour Slack integration is working.",
-                },
-              },
-            ],
-          }),
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + window.SUPABASE_KEY,
+          },
+          body: JSON.stringify({ slack_url: slackUrl }),
         });
-        const errText = await res.text().catch(function () {
-          return "";
-        });
+        let data = {};
+        try {
+          data = await res.json();
+        } catch (_e) {
+          data = {};
+        }
         if (res.ok) {
-          statusEl.textContent = "Test sent!";
+          slackStatus.textContent = "Test sent!";
+          slackStatus.style.color = "#4ade80";
         } else {
-          statusEl.textContent = "Error: " + res.status + (errText ? " — " + errText.slice(0, 200) : "");
+          slackStatus.textContent = data.error ?? "Failed to send test";
+          slackStatus.style.color = "#ef4444";
         }
       } catch (err) {
-        statusEl.textContent = "Error: " + (err && err.message ? err.message : String(err));
+        slackStatus.textContent = err && err.message ? err.message : String(err);
+        slackStatus.style.color = "#ef4444";
       } finally {
         this.disabled = false;
       }

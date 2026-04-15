@@ -60,3 +60,8 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/send-feedback/index.ts"
 
+[functions.test-slack]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/test-slack/index.ts"
+
