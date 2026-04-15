@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
     const { data: sub } = await supabase
       .from("subscriptions")
       .select(
-        "plan, event_count, agent_names, period_start, webhook_url, budget_limits, monthly_cost_usd, budget_period_start, budget_alerted",
+        "plan, event_count, agent_names, period_start, webhook_url, slack_webhook_url, budget_limits, monthly_cost_usd, budget_period_start, budget_alerted",
       )
       .eq("user_id", userId)
       .single();
@@ -411,6 +411,43 @@ Deno.serve(async (req) => {
           }
         }
 
+        const slackHookBudget =
+          typeof sub?.slack_webhook_url === "string"
+            ? sub.slack_webhook_url.trim()
+            : "";
+        if (slackHookBudget && ["builder", "studio"].includes(plan)) {
+          try {
+            await fetch(slackHookBudget, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                blocks: [
+                  {
+                    type: "section",
+                    text: {
+                      type: "mrkdwn",
+                      text:
+                        `*${agentName}* budget exceeded\nMonthly limit: $${agentBudget}\nSpent: $${newMonthlyCost.toFixed(6)}`,
+                    },
+                  },
+                  {
+                    type: "actions",
+                    elements: [
+                      {
+                        type: "button",
+                        text: { type: "plain_text", text: "View dashboard" },
+                        url: "https://usefarol.dev/app",
+                      },
+                    ],
+                  },
+                ],
+              }),
+            });
+          } catch (e) {
+            console.error("[budget alert] slack fetch error:", e);
+          }
+        }
+
         budgetAlertedMap[agentName] = true;
       }
 
@@ -456,6 +493,52 @@ Deno.serve(async (req) => {
           webhook_last_fired_at: new Date().toISOString(),
           webhook_last_status: `failed: ${String(err)}`,
         }).eq("user_id", userId);
+      }
+    }
+
+    const slackHook =
+      typeof sub?.slack_webhook_url === "string"
+        ? sub.slack_webhook_url.trim()
+        : "";
+    const isCostAnomaly = Boolean(run.anomaly);
+    if (slackHook && ["builder", "studio"].includes(plan) && isCostAnomaly) {
+      const costUsd =
+        typeof run.cost_usd === "number"
+          ? run.cost_usd
+          : Number(run.cost_usd) || 0;
+      const anomalyReason =
+        typeof run.anomaly_reason === "string" && run.anomaly_reason
+          ? run.anomaly_reason
+          : "Cost anomaly";
+      try {
+        await fetch(slackHook, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            blocks: [
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text:
+                    `*${agentName || "Agent"}* cost spike detected\n${anomalyReason}\nCost: $${costUsd.toFixed(6)}`,
+                },
+              },
+              {
+                type: "actions",
+                elements: [
+                  {
+                    type: "button",
+                    text: { type: "plain_text", text: "View dashboard" },
+                    url: "https://usefarol.dev/app",
+                  },
+                ],
+              },
+            ],
+          }),
+        });
+      } catch (e) {
+        console.error("[slack] cost anomaly fetch error:", e);
       }
     }
 
