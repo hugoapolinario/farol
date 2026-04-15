@@ -934,6 +934,29 @@
       box-shadow: 0 0 0 3px var(--accent-dim);
     }
 
+    .alerts-filter-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .alerts-filter-btn {
+      font-size: 0.78rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .alerts-filter-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
     .runs-search-wrap { display: flex; align-items: center; }
     .runs-search-input { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.45rem 0.75rem; color: var(--text); font-size: 0.85rem; width: 220px; outline: none; transition: border-color 0.15s; font-family: inherit; }
     .runs-search-input:focus { border-color: var(--accent); }
@@ -2144,6 +2167,10 @@ def my_agent(task, run=None):
             <option value="">All agents</option>
           </select>
         </div>
+        <div class="alerts-filter-row" id="alerts-read-filter" hidden>
+          <button type="button" class="alerts-filter-btn active" data-filter="all">All</button>
+          <button type="button" class="alerts-filter-btn" data-filter="unread">Unread</button>
+        </div>
         <div id="alerts-list"></div>
       </div>
 
@@ -2378,8 +2405,31 @@ def my_agent(task, run=None):
     let ovDays = 7;
     let ovAgent = "";
     let alertsAgentFilter = "";
-    const storedSeen = localStorage.getItem("farol_seen_alerts");
-    const seenAlerts = new Set(storedSeen ? JSON.parse(storedSeen) : []);
+    let alertsFilter = "all";
+
+    let seenAlerts = new Set();
+
+    function getSeenStorageKey() {
+      return currentUserId ? "farol_seen_alerts_" + currentUserId : null;
+    }
+
+    function loadSeenAlertsForCurrentUser() {
+      seenAlerts = new Set();
+      const key = getSeenStorageKey();
+      if (!key) return;
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) seenAlerts = new Set(JSON.parse(raw));
+      } catch (_e) {
+        seenAlerts = new Set();
+      }
+    }
+
+    function persistSeenAlerts() {
+      const key = getSeenStorageKey();
+      if (!key) return;
+      localStorage.setItem(key, JSON.stringify([...seenAlerts]));
+    }
     let agentModalName = null;
     let agentModalDays = 7;
     let agentCostChart = null;
@@ -3290,6 +3340,7 @@ def my_agent(task, run=None):
     function renderAlerts() {
       const listEl    = document.getElementById("alerts-list");
       const filterBar = document.getElementById("alerts-filter-bar");
+      const readFilterEl = document.getElementById("alerts-read-filter");
       const filterSel = document.getElementById("alerts-agent-filter");
       const anomalous   = allRuns.filter(function (r) { return r.anomaly; });
       const regressions = computeRegressionAlerts(allRuns);
@@ -3297,14 +3348,20 @@ def my_agent(task, run=None):
       const durations   = computeDurationAlerts(allRuns);
       const latencies   = computeLatencyAlerts(allRuns);
 
+      document.querySelectorAll(".alerts-filter-btn").forEach(function (b) {
+        b.classList.toggle("active", b.dataset.filter === alertsFilter);
+      });
+
       if (!anomalous.length && !regressions.length && !qualities.length && !durations.length && !latencies.length) {
         if (filterBar) filterBar.hidden = true;
+        if (readFilterEl) readFilterEl.hidden = true;
         if (listEl) listEl.innerHTML = '<div class="alerts-empty">No anomalies detected yet.</div>';
         return;
       }
 
       /* Build agent dropdown from the union of all alert types */
       if (filterBar) filterBar.hidden = false;
+      if (readFilterEl) readFilterEl.hidden = false;
       const agentSet = new Set([
         ...anomalous.map(function (r) { return r.agent || "—"; }),
         ...regressions.map(function (a) { return a.agent || "—"; }),
@@ -3345,15 +3402,45 @@ def my_agent(task, run=None):
         return;
       }
 
+      const filterUnread = alertsFilter === "unread";
+      const displayAnomalous = filterUnread
+        ? visibleAnomalous.filter(function (r) { return !seenAlerts.has(r.id); })
+        : visibleAnomalous;
+      const displayRegressions = filterUnread
+        ? visibleRegressions.filter(function (a) { return !seenAlerts.has(a.id); })
+        : visibleRegressions;
+      const displayQualities = filterUnread
+        ? visibleQualities.filter(function (a) { return !seenAlerts.has(a.id); })
+        : visibleQualities;
+      const displayDurations = filterUnread
+        ? visibleDurations.filter(function (a) { return !seenAlerts.has(a.id); })
+        : visibleDurations;
+      const displayLatencies = filterUnread
+        ? visibleLatencies.filter(function (a) { return !seenAlerts.has(a.id); })
+        : visibleLatencies;
+
+      if (
+        filterUnread &&
+        !displayAnomalous.length &&
+        !displayRegressions.length &&
+        !displayQualities.length &&
+        !displayDurations.length &&
+        !displayLatencies.length
+      ) {
+        if (listEl) listEl.innerHTML = '<div class="alerts-empty">No unread alerts — you\'re all caught up.</div>';
+        return;
+      }
+
       function markAlertRead(alertId, cardEl) {
         if (seenAlerts.has(alertId)) return;
         seenAlerts.add(alertId);
-        localStorage.setItem("farol_seen_alerts", JSON.stringify([...seenAlerts]));
+        persistSeenAlerts();
         updateAlertsBadge();
         if (cardEl) cardEl.classList.add("read");
+        if (alertsFilter === "unread") renderAlerts();
       }
 
-      const anomalyCards = visibleAnomalous.map(function (r) {
+      const anomalyCards = displayAnomalous.map(function (r) {
         const isRead = seenAlerts.has(r.id);
         return (
           '<div class="alert-item' + (isRead ? " read" : "") + '" data-run-id="' + escapeHtml(String(r.id)) + '">' +
@@ -3370,7 +3457,7 @@ def my_agent(task, run=None):
         );
       });
 
-      const regressionCards = visibleRegressions.map(function (a) {
+      const regressionCards = displayRegressions.map(function (a) {
         const isRead = seenAlerts.has(a.id);
         return (
           '<div class="alert-item regression' + (isRead ? " read" : "") + '" data-alert-id="' + escapeHtml(a.id) + '" data-agent="' + escapeHtml(a.agent) + '">' +
@@ -3387,7 +3474,7 @@ def my_agent(task, run=None):
         );
       });
 
-      const qualityCards = visibleQualities.map(function (a) {
+      const qualityCards = displayQualities.map(function (a) {
         const isRead = seenAlerts.has(a.id);
         return (
           '<div class="alert-item quality' + (isRead ? " read" : "") + '" data-alert-id="' + escapeHtml(a.id) + '" data-agent="' + escapeHtml(a.agent) + '">' +
@@ -3407,7 +3494,7 @@ def my_agent(task, run=None):
         );
       });
 
-      const durationCards = visibleDurations.map(function (a) {
+      const durationCards = displayDurations.map(function (a) {
         const run = allRuns.find(function (r) { return String(r.id) === String(a.runId); });
         const ts = run && run.timestamp ? new Date(run.timestamp).toLocaleString() : "—";
         const isRead = seenAlerts.has(a.id);
@@ -3428,7 +3515,7 @@ def my_agent(task, run=None):
         );
       });
 
-      const latencyCards = visibleLatencies.map(function (a) {
+      const latencyCards = displayLatencies.map(function (a) {
         const isRead = seenAlerts.has(a.id);
         return (
           '<div class="alert-item latency' + (isRead ? " read" : "") + '" data-alert-id="' + escapeHtml(a.id) + '" data-agent="' + escapeHtml(a.agent) + '">' +
@@ -3448,47 +3535,47 @@ def my_agent(task, run=None):
       });
 
       const listChunks = [];
-      if (visibleAnomalous.length) {
+      if (displayAnomalous.length) {
         listChunks.push(
           '<div class="alert-section-header" id="cost-alerts-header">' +
             '<span class="alert-section-title">Cost Anomalies</span>' +
-            '<span class="alert-section-count">' + visibleAnomalous.length + "</span>" +
+            '<span class="alert-section-count">' + displayAnomalous.length + "</span>" +
             "</div>"
         );
         listChunks.push(anomalyCards.join(""));
       }
-      if (visibleDurations.length) {
+      if (displayDurations.length) {
         listChunks.push(
           '<div class="alert-section-header" id="duration-alerts-header">' +
             '<span class="alert-section-title">Duration Alerts</span>' +
-            '<span class="alert-section-count">' + visibleDurations.length + "</span>" +
+            '<span class="alert-section-count">' + displayDurations.length + "</span>" +
             "</div>"
         );
         listChunks.push(durationCards.join(""));
       }
-      if (visibleLatencies.length) {
+      if (displayLatencies.length) {
         listChunks.push(
           '<div class="alert-section-header" id="latency-alerts-header">' +
             '<span class="alert-section-title">Latency Alerts</span>' +
-            '<span class="alert-section-count">' + visibleLatencies.length + "</span>" +
+            '<span class="alert-section-count">' + displayLatencies.length + "</span>" +
             "</div>"
         );
         listChunks.push(latencyCards.join(""));
       }
-      if (visibleRegressions.length) {
+      if (displayRegressions.length) {
         listChunks.push(
           '<div class="alert-section-header" id="regression-alerts-header">' +
             '<span class="alert-section-title">Performance Regressions</span>' +
-            '<span class="alert-section-count">' + visibleRegressions.length + "</span>" +
+            '<span class="alert-section-count">' + displayRegressions.length + "</span>" +
             "</div>"
         );
         listChunks.push(regressionCards.join(""));
       }
-      if (visibleQualities.length) {
+      if (displayQualities.length) {
         listChunks.push(
           '<div class="alert-section-header" id="quality-alerts-header">' +
             '<span class="alert-section-title">Quality Alerts</span>' +
-            '<span class="alert-section-count">' + visibleQualities.length + "</span>" +
+            '<span class="alert-section-count">' + displayQualities.length + "</span>" +
             "</div>",
         );
         listChunks.push(qualityCards.join(""));
@@ -4356,6 +4443,7 @@ def my_agent(task, run=None):
 
       const user = data.user;
       currentUserId = user.id;
+      loadSeenAlertsForCurrentUser();
       userEmailEl.textContent = user.email || "Signed in";
 
       // Fetch subscription plan and usage
@@ -4397,7 +4485,6 @@ def my_agent(task, run=None):
     }
 
     logoutBtn.addEventListener("click", async function () {
-      localStorage.removeItem("farol_seen_alerts");
       await client.auth.signOut();
       window.location.href = "/login";
     });
@@ -4428,6 +4515,13 @@ def my_agent(task, run=None):
     document.getElementById("alerts-agent-filter").addEventListener("change", function () {
       alertsAgentFilter = this.value;
       renderAlerts();
+    });
+
+    document.querySelectorAll(".alerts-filter-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        alertsFilter = btn.dataset.filter === "unread" ? "unread" : "all";
+        renderAlerts();
+      });
     });
 
     document.getElementById("agent-modal-close-btn").addEventListener("click", closeAgentModal);
