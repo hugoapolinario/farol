@@ -1717,7 +1717,7 @@ def my_agent(task, run=None):
             <option value="">All agents</option>
           </select>
           <div class="runs-search-wrap">
-            <input type="text" id="runs-search" placeholder="Search by topic or error..." class="runs-search-input" />
+            <input type="text" id="runs-search" placeholder="Search by agent, topic or error..." class="runs-search-input" />
           </div>
         </div>
         <p id="runs-count-label" class="section-note runs-count">Showing — runs</p>
@@ -2164,7 +2164,8 @@ def my_agent(task, run=None):
       else runs = allRuns.filter(function(r) { return r.agent === v; });
       if (q) {
         runs = runs.filter(function(r) {
-          return (r.topic ?? "").toLowerCase().includes(q) ||
+          return (r.agent ?? "").toLowerCase().includes(q) ||
+            (r.topic ?? "").toLowerCase().includes(q) ||
             (r.error ?? "").toLowerCase().includes(q);
         });
       }
