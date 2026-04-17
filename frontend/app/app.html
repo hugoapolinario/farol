@@ -2091,8 +2091,15 @@
         <h1 class="section-title">Runs</h1>
         <section class="card filter-bar" aria-label="Filter runs by agent">
           <label for="agent-filter">Agent</label>
-          <select id="agent-filter">
+          <select id="agent-filter" class="filter-select">
             <option value="">All agents</option>
+          </select>
+          <select id="runs-period-filter" class="filter-select" aria-label="Date range for runs">
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="1">Today</option>
+            <option value="0">All time</option>
           </select>
           <div class="runs-search-wrap">
             <input type="text" id="runs-search" placeholder="Search by agent, topic or error..." class="runs-search-input" />
@@ -2312,6 +2319,7 @@ def my_agent(task, run=None):
     const lastUpdatedEl = document.getElementById("last-updated");
     const agentFilterEl = document.getElementById("agent-filter");
     let runsSearchQuery = "";
+    let runsPeriodDays = 7;
 
     const AGENT_NONE_VALUE = "__FAROL_NO_AGENT__";
 
@@ -2729,6 +2737,15 @@ def my_agent(task, run=None):
       renderHealthBanner();
     }
 
+    function getRunsPeriodCountSuffix() {
+      if (runsPeriodDays === 0) return "";
+      if (runsPeriodDays === 1) return "Today";
+      if (runsPeriodDays === 7) return "Last 7 days";
+      if (runsPeriodDays === 30) return "Last 30 days";
+      if (runsPeriodDays === 90) return "Last 90 days";
+      return "Last " + runsPeriodDays + " days";
+    }
+
     function getFilteredRuns() {
       const v = agentFilterEl.value;
       const q = runsSearchQuery.toLowerCase();
@@ -2742,6 +2759,10 @@ def my_agent(task, run=None):
             (r.topic ?? "").toLowerCase().includes(q) ||
             (r.error ?? "").toLowerCase().includes(q);
         });
+      }
+      if (runsPeriodDays > 0) {
+        const cutoff = Date.now() - runsPeriodDays * 24 * 60 * 60 * 1000;
+        runs = runs.filter(function (r) { return Number(r.timestamp) >= cutoff; });
       }
       return runs;
     }
@@ -3592,10 +3613,7 @@ def my_agent(task, run=None):
           const agent = run.agent || "";
           navigateTo("runs");
           agentFilterEl.value = agent;
-          displayedRuns = agent
-            ? allRuns.filter(function (r) { return r.agent === agent; })
-            : allRuns.slice();
-          renderRuns(displayedRuns);
+          applyFilterAndRender();
           void openTraceRun(run, null);
         }
 
@@ -3653,8 +3671,7 @@ def my_agent(task, run=None):
           const agent = run.agent || "";
           navigateTo("runs");
           agentFilterEl.value = agent;
-          displayedRuns = agent ? allRuns.filter(function (r) { return r.agent === agent; }) : allRuns.slice();
-          renderRuns(displayedRuns);
+          applyFilterAndRender();
           void openTraceRun(run, null);
         }
 
@@ -4171,7 +4188,12 @@ def my_agent(task, run=None):
     function renderRuns(runs) {
       const countLabel = document.getElementById("runs-count-label");
       if (countLabel) {
-        countLabel.textContent = "Showing " + runs.length + " run" + (runs.length !== 1 ? "s" : "");
+        const n = runs.length;
+        let text = "Showing " + n + " run" + (n !== 1 ? "s" : "");
+        if (runsPeriodDays > 0) {
+          text += " · " + getRunsPeriodCountSuffix();
+        }
+        countLabel.textContent = text;
       }
       runsBody.innerHTML = "";
 
@@ -4500,6 +4522,13 @@ def my_agent(task, run=None):
     });
 
     agentFilterEl.addEventListener("change", function () {
+      closeTrace();
+      applyFilterAndRender();
+    });
+
+    document.getElementById("runs-period-filter").addEventListener("change", function (e) {
+      runsPeriodDays = parseInt(e.target.value, 10);
+      if (Number.isNaN(runsPeriodDays)) runsPeriodDays = 7;
       closeTrace();
       applyFilterAndRender();
     });

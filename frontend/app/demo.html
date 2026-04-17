@@ -1732,8 +1732,15 @@ def my_agent(task, run=None):
         <h1 class="section-title">Runs</h1>
         <div class="filter-bar" aria-label="Filter runs by agent">
           <label for="agent-filter">Agent</label>
-          <select id="agent-filter">
+          <select id="agent-filter" class="filter-select">
             <option value="">All agents</option>
+          </select>
+          <select id="runs-period-filter" class="filter-select" aria-label="Date range for runs">
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="1">Today</option>
+            <option value="0">All time</option>
           </select>
           <div class="runs-search-wrap">
             <input type="text" id="runs-search" placeholder="Search by agent, topic or error..." class="runs-search-input" />
@@ -2108,6 +2115,7 @@ def my_agent(task, run=None):
     const runsBody      = document.getElementById("runs-body");
     const agentFilterEl = document.getElementById("agent-filter");
     let runsSearchQuery = "";
+    let runsPeriodDays = 7;
     const ovDateEl      = document.getElementById("ov-date-filter");
     const ovAgentEl     = document.getElementById("ov-agent-filter");
 
@@ -2217,6 +2225,15 @@ def my_agent(task, run=None):
     function agentGroupKey(r) { return (r.agent != null && r.agent !== "") ? r.agent : AGENT_NONE_VALUE; }
     function agentOptionLabel(k) { return k === AGENT_NONE_VALUE ? "—" : k; }
 
+    function getRunsPeriodCountSuffix() {
+      if (runsPeriodDays === 0) return "";
+      if (runsPeriodDays === 1) return "Today";
+      if (runsPeriodDays === 7) return "Last 7 days";
+      if (runsPeriodDays === 30) return "Last 30 days";
+      if (runsPeriodDays === 90) return "Last 90 days";
+      return "Last " + runsPeriodDays + " days";
+    }
+
     function getFilteredRuns() {
       const v = agentFilterEl.value;
       const q = runsSearchQuery.toLowerCase();
@@ -2230,6 +2247,10 @@ def my_agent(task, run=None):
             (r.topic ?? "").toLowerCase().includes(q) ||
             (r.error ?? "").toLowerCase().includes(q);
         });
+      }
+      if (runsPeriodDays > 0) {
+        const cutoff = Date.now() - runsPeriodDays * 24 * 60 * 60 * 1000;
+        runs = runs.filter(function (r) { return Number(r.timestamp) >= cutoff; });
       }
       return runs;
     }
@@ -2449,7 +2470,14 @@ def my_agent(task, run=None):
     /* ─── Runs table ─────────────────────────────────────────────── */
     function renderRuns(runs) {
       const countEl = document.getElementById("runs-count-label");
-      if (countEl) countEl.textContent = "Showing " + runs.length + " run" + (runs.length !== 1 ? "s" : "");
+      if (countEl) {
+        const n = runs.length;
+        let text = "Showing " + n + " run" + (n !== 1 ? "s" : "");
+        if (runsPeriodDays > 0) {
+          text += " · " + getRunsPeriodCountSuffix();
+        }
+        countEl.textContent = text;
+      }
       runsBody.innerHTML = "";
       if (!runs.length) {
         runsBody.innerHTML = '<tr><td colspan="12" style="color:#8b919d;padding:1.5rem 0.8rem">No runs match this filter.</td></tr>';
@@ -3156,8 +3184,7 @@ def my_agent(task, run=None):
             if (!run) return;
             navigateTo("runs");
             agentFilterEl.value = "";
-            displayedRuns = allRuns.slice();
-            renderRuns(displayedRuns);
+            applyFilterAndRender();
             openTraceRun(run, null);
           });
         }
@@ -3168,8 +3195,7 @@ def my_agent(task, run=None):
           if (!run) return;
           navigateTo("runs");
           agentFilterEl.value = "";
-          displayedRuns = allRuns.slice();
-          renderRuns(displayedRuns);
+          applyFilterAndRender();
           openTraceRun(run, null);
         });
       });
@@ -3209,8 +3235,7 @@ def my_agent(task, run=None):
           if (!run) return;
           navigateTo("runs");
           agentFilterEl.value = "";
-          displayedRuns = allRuns.slice();
-          renderRuns(displayedRuns);
+          applyFilterAndRender();
           openTraceRun(run, null);
         }
 
@@ -3536,6 +3561,13 @@ def my_agent(task, run=None):
 
     agentFilterEl.addEventListener("change", function() { closeTrace(); applyFilterAndRender(); });
 
+    document.getElementById("runs-period-filter").addEventListener("change", function (e) {
+      runsPeriodDays = parseInt(e.target.value, 10);
+      if (Number.isNaN(runsPeriodDays)) runsPeriodDays = 7;
+      closeTrace();
+      applyFilterAndRender();
+    });
+
     document.getElementById("runs-search").addEventListener("input", function() {
       runsSearchQuery = this.value.trim();
       closeTrace();
@@ -3581,7 +3613,7 @@ def my_agent(task, run=None):
     syncDemoNotesFromStorage();
     populateAgentFilter();
     refreshOverview();
-    renderRuns(allRuns);
+    applyFilterAndRender();
     renderAgentCards();
     updateAlertsBadge();
     renderAlerts();
