@@ -2250,7 +2250,7 @@ def my_agent(task, run=None):
       }
       if (runsPeriodDays > 0) {
         const cutoff = Date.now() - runsPeriodDays * 24 * 60 * 60 * 1000;
-        runs = runs.filter(function (r) { return Number(r.timestamp) >= cutoff; });
+        runs = runs.filter(function (r) { return new Date(r.timestamp).getTime() >= cutoff; });
       }
       return runs;
     }
