@@ -3822,12 +3822,11 @@ def my_agent(task, run=None):
           ? " · " + (score.delta >= 0 ? "↑" : "↓") + Math.abs(score.delta) + " vs last week"
           : "";
         el.innerHTML =
-          "Health score: <strong style=\"color:" + color + "\">" + score.total + "/100</strong>" + deltaText;
-        el.title =
-          "Success: " + score.breakdown.successScore +
-          " · Cost: " + score.breakdown.costScore +
-          " · Quality: " + score.breakdown.qualityScore +
-          " · Latency: " + score.breakdown.latencyScore;
+          `Health score: <strong style="color:${color}">${score.total}/100</strong>${deltaText}
+  <button onclick="this.nextElementSibling.hidden=!this.nextElementSibling.hidden" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.75rem;padding:0 0.25rem">(?)</button>
+  <span hidden style="display:block;font-size:0.78rem;color:var(--text-muted);margin-top:0.25rem">
+    Success: ${score.breakdown.successScore} · Cost: ${score.breakdown.costScore} · Quality: ${score.breakdown.qualityScore} · Latency: ${score.breakdown.latencyScore}
+  </span>`;
       } else {
         el.innerHTML = "";
         el.removeAttribute("title");
