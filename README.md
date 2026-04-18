@@ -4,7 +4,7 @@
 
 AI agents fail silently and bill loudly. Farol tells you first.
 
-→ [usefarol.dev](https://usefarol.dev) · [Docs](https://usefarol.dev/docs) · [Live demo](https://usefarol.dev/demo)
+→ [usefarol.dev](https://usefarol.dev) · [Docs](https://usefarol.dev/docs) · [Live demo](https://usefarol.dev/demo) · [Changelog](https://usefarol.dev/changelog) · [Security](https://usefarol.dev/security) · [GitHub](https://github.com/hugoapolinario/farol)
 
 ---
 
@@ -12,14 +12,18 @@ AI agents fail silently and bill loudly. Farol tells you first.
 
 Farol is a monitoring tool for AI agents. Add one decorator to your agent function and instantly get:
 
-- **Cost tracking** — token spend per run, anomaly detection when costs spike
-- **Trace inspector** — every tool call, LLM call, duration, and error reconstructed end to end
-- **Quality scoring** — rate outputs thumbs up/down, get alerted when quality degrades
-- **Regression alerts** — automatic detection when success rate drops week over week
-- **Budget alerts** — set monthly spend limits per agent, get notified when crossed
-- **Weekly digest** — every Monday, a summary of your agents' health, cost, and quality
-- **Slack + webhook alerts** — send alerts to Discord, Slack, Google Chat, or any HTTP endpoint
-- **Shared dashboards** — generate a read-only link to share with clients or investors
+- Cost anomaly detection
+- Duration & p95 latency anomaly alerts
+- Regression alerts — success rate drops week over week
+- Quality scoring & quality trend alerts
+- Budget alerts per agent
+- Agent Health Score (0-100)
+- Full trace inspector
+- Native Slack + webhook alerts
+- Weekly digest email
+- Shared read-only dashboards
+- CSV export
+- Run notes & annotations
 
 ## Install
 
@@ -122,8 +126,8 @@ Sign up free at [usefarol.dev](https://usefarol.dev) — no credit card required
 
 | Plan | Price | Agents | Events |
 | --- | --- | --- | --- |
-| Free | €0 | 1 | 50k/mo |
-| Starter | €29 | 3 | 300k/mo |
+| Free | €0 | 1 agent | 50k/mo |
+| Starter | €29 | 3 agents | 300k/mo |
 | Builder | €69 | Unlimited | Unlimited |
 
 ## Architecture
