@@ -1213,6 +1213,10 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
           <p>No — by default Farol only stores run metadata: timing, tokens, cost, and errors. Prompt inputs and outputs are never stored unless you explicitly set <code style="font-family:var(--font-mono);font-size:0.88em">capture_io=True</code> in the <code style="font-family:var(--font-mono);font-size:0.88em">@trace</code> decorator. Even with <code style="font-family:var(--font-mono);font-size:0.88em">capture_io=True</code>, inputs and outputs are truncated at 50,000 characters.</p>
         </div>
         <div class="faq-item">
+          <h3>Is Farol secure?</h3>
+          <p>Yes. All data is encrypted in transit (TLS 1.3) and at rest (AES-256). Prompts are never stored by default — only run metadata is tracked. Data is hosted in EU infrastructure (AWS Paris). See our <a class="inline" href="/security">Security page</a> for full details.</p>
+        </div>
+        <div class="faq-item">
           <h3>How do I track multiple steps in my agent?</h3>
           <p>Use <code style="font-family:var(--font-mono);font-size:0.88em">run.span()</code> as a context manager inside your traced function. Each span appears as a step in the trace timeline. See the <a class="inline" href="#spans-tracking">Spans</a> section above for full details.</p>
         </div>
