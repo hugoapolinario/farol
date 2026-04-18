@@ -2237,6 +2237,13 @@ def my_agent(task, run=None):
       return "Last " + runsPeriodDays + " days";
     }
 
+    /* Runs filtered by period only (not by agent or search) — for agent dropdown counts */
+    function getRunsForPeriod() {
+      if (runsPeriodDays === 0) return allRuns;
+      const cutoff = Date.now() - runsPeriodDays * 24 * 60 * 60 * 1000;
+      return allRuns.filter(function (r) { return new Date(r.timestamp).getTime() >= cutoff; });
+    }
+
     function getFilteredRuns() {
       const v = agentFilterEl.value;
       const q = runsSearchQuery.toLowerCase();
@@ -2328,8 +2335,9 @@ def my_agent(task, run=None):
       allOpt.value = ""; allOpt.textContent = "All agents";
       agentFilterEl.appendChild(allOpt);
 
+      const periodRuns = getRunsForPeriod();
       const counts = new Map();
-      allRuns.forEach(function(r) {
+      periodRuns.forEach(function(r) {
         const k = agentGroupKey(r);
         counts.set(k, (counts.get(k) || 0) + 1);
       });
@@ -3698,6 +3706,7 @@ def my_agent(task, run=None):
       runsPeriodDays = parseInt(e.target.value, 10);
       if (Number.isNaN(runsPeriodDays)) runsPeriodDays = 7;
       closeTrace();
+      populateAgentFilter();
       applyFilterAndRender();
     });
 
