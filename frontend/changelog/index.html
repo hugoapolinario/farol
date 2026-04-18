@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Changelog — Farol</title>
+  <meta name="description" content="Everything new, improved, and fixed in Farol." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #0a0b0d;
+      --bg-surface: #111318;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8eaef;
+      --text-muted: #8b919d;
+      --accent: #f97316;
+      --accent-glow: rgba(249, 115, 22, 0.35);
+      --font-display: "Fraunces", Georgia, serif;
+      --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+      --radius-sm: 8px;
+      --max: 1120px;
+      --nav-h: 72px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--text);
+      background-color: var(--bg-deep);
+      color-scheme: dark;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249, 115, 22, 0.12), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 40%, rgba(249, 115, 22, 0.06), transparent 50%),
+        var(--bg-deep);
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 1rem;
+      top: -100px;
+      z-index: 9999;
+      padding: 0.65rem 1rem;
+      background: var(--accent);
+      color: #0a0b0d;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+    }
+
+    .skip-link:focus { top: 1rem; outline: 2px solid var(--text); outline-offset: 2px; }
+
+    .wrap {
+      width: min(100% - 2rem, var(--max));
+      margin-inline: auto;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: var(--nav-h);
+      border-bottom: 1px solid var(--border);
+      background: rgba(10, 11, 13, 0.78);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: var(--nav-h);
+      gap: 1rem;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 600;
+      font-size: 1.125rem;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), #ea580c);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 24px var(--accent-glow);
+    }
+
+    .logo-mark svg { width: 18px; height: 18px; color: #0a0b0d; }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .nav-link {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    .nav-link:hover { color: var(--text); }
+
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.65rem 1.25rem;
+      font-family: var(--font-sans);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      text-decoration: none;
+      background: var(--accent);
+      color: #0a0b0d;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    }
+
+    .nav-cta:hover {
+      background: #fb923c;
+      box-shadow: 0 4px 24px var(--accent-glow);
+    }
+
+    .nav-cta:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.65rem 1.25rem;
+      font-family: var(--font-sans);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      background: var(--accent);
+      color: #0a0b0d;
+      border: 1px solid transparent;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      background: #fb923c;
+      box-shadow: 0 4px 24px var(--accent-glow);
+    }
+
+    main {
+      padding: clamp(2rem, 5vw, 3.5rem) 0 clamp(3rem, 8vw, 5rem);
+    }
+
+    .changelog-hero {
+      margin-bottom: 2.5rem;
+      max-width: 40rem;
+    }
+
+    .changelog-hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin: 0 0 0.5rem;
+      line-height: 1.15;
+    }
+
+    .changelog-sub {
+      margin: 0;
+      font-size: 1.05rem;
+      color: var(--text-muted);
+    }
+
+    .changelog-timeline { position: relative; padding-left: 2rem; }
+    .changelog-timeline::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+
+    .changelog-entry {
+      position: relative;
+      margin-bottom: 3rem;
+    }
+
+    .changelog-entry::before {
+      content: '';
+      position: absolute;
+      left: -2.4rem;
+      top: 0.35rem;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--bg-deep);
+    }
+
+    .changelog-date {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .changelog-version {
+      font-size: 0.72rem;
+      background: rgba(249,115,22,0.1);
+      color: var(--accent);
+      border: 1px solid rgba(249,115,22,0.2);
+      border-radius: 999px;
+      padding: 0.1rem 0.5rem;
+      margin-left: 0.5rem;
+    }
+
+    .changelog-entry h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0 0 0.75rem;
+    }
+
+    .changelog-entry > .changelog-items {
+      min-width: 0;
+    }
+
+    .changelog-items {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .changelog-items li {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .tag {
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 0.15rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .tag-new { background: rgba(74,222,128,0.1); color: #4ade80; border: 1px solid rgba(74,222,128,0.2); }
+    .tag-improved { background: rgba(96,165,250,0.1); color: #60a5fa; border: 1px solid rgba(96,165,250,0.2); }
+    .tag-fixed { background: rgba(249,115,22,0.1); color: #f97316; border: 1px solid rgba(249,115,22,0.2); }
+
+    @media (max-width: 639px) {
+      .changelog-meta {
+        margin-bottom: 0.75rem;
+      }
+    }
+
+    @media (min-width: 640px) {
+      .changelog-entry {
+        display: grid;
+        grid-template-columns: minmax(120px, 170px) 1fr;
+        gap: 0.5rem 1.75rem;
+        align-items: start;
+      }
+    }
+
+    .changelog-meta .changelog-date { margin-top: 0; }
+
+    .site-footer {
+      border-top: 1px solid var(--border);
+      padding: 1.5rem 0 2rem;
+      margin-top: 2rem;
+    }
+
+    .site-footer p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .site-footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    .site-footer a:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="page-bg" aria-hidden="true"></div>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="wrap nav-inner">
+      <a class="logo" href="/" aria-label="Farol home">
+        <span class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <path d="M12 3L4 9v12h16V9l-8-6z" />
+            <path d="M9 21V12h6v9" />
+            <circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none" />
+          </svg>
+        </span>
+        Farol
+      </a>
+      <div class="nav-links">
+        <a href="/docs" class="nav-link">Docs</a>
+        <a href="https://github.com/hugoapolinario/farol" class="nav-link" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="/demo" class="nav-link">View demo</a>
+        <a href="/login" class="nav-link">Log in</a>
+        <a href="/signup" class="nav-cta">Get started</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="wrap">
+      <header class="changelog-hero">
+        <h1>Changelog</h1>
+        <p class="changelog-sub">Everything new, improved, and fixed in Farol.</p>
+      </header>
+
+      <div class="changelog-timeline">
+        <article class="changelog-entry">
+          <div class="changelog-meta">
+            <p class="changelog-date">April 18, 2026 <span class="changelog-version">Latest</span></p>
+          </div>
+          <ul class="changelog-items">
+            <li><span class="tag tag-new">New</span><span>Agent Health Score — one number (0-100) combining success rate, cost, quality, and latency for each agent</span></li>
+            <li><span class="tag tag-new">New</span><span>Date range filter on runs table — filter by Today, Last 7 days, Last 30 days, Last 90 days, All time</span></li>
+            <li><span class="tag tag-new">New</span><span>Run search now includes agent name alongside topic and error</span></li>
+            <li><span class="tag tag-new">New</span><span>p95 latency anomaly alerts — get alerted when tail latency worsens week over week</span></li>
+            <li><span class="tag tag-new">New</span><span>Duration anomaly alerts — get alerted when a run takes 3× longer than your baseline</span></li>
+            <li><span class="tag tag-new">New</span><span>All/Unread filter on alerts — see only what you haven’t actioned yet</span></li>
+            <li><span class="tag tag-improved">Improved</span><span>Alerts persist per user across logout/login</span></li>
+          </ul>
+        </article>
+
+        <article class="changelog-entry">
+          <div class="changelog-meta">
+            <p class="changelog-date">April 15, 2026</p>
+          </div>
+          <ul class="changelog-items">
+            <li><span class="tag tag-new">New</span><span>Native Slack integration — send alerts directly to any Slack channel</span></li>
+            <li><span class="tag tag-new">New</span><span>Feedback page — share bugs, feature requests, and general feedback at /feedback</span></li>
+            <li><span class="tag tag-new">New</span><span>Studio plan — Coming Soon with notify me link</span></li>
+            <li><span class="tag tag-improved">Improved</span><span>Builder plan — €69/mo with unlimited events</span></li>
+            <li><span class="tag tag-improved">Improved</span><span>Pricing cards show specific features per tier</span></li>
+          </ul>
+        </article>
+
+        <article class="changelog-entry">
+          <div class="changelog-meta">
+            <p class="changelog-date">April 14, 2026</p>
+          </div>
+          <ul class="changelog-items">
+            <li><span class="tag tag-new">New</span><span>Polar.sh billing — cleaner checkout, better developer experience</span></li>
+            <li><span class="tag tag-new">New</span><span>Quality trend alerts — get alerted when output quality drops week over week</span></li>
+            <li><span class="tag tag-new">New</span><span>Run notes — annotate any run with context directly from the trace modal</span></li>
+            <li><span class="tag tag-new">New</span><span>Error message search — search runs by topic, agent name, or error message</span></li>
+          </ul>
+        </article>
+
+        <article class="changelog-entry">
+          <div class="changelog-meta">
+            <p class="changelog-date">April 12, 2026</p>
+          </div>
+          <ul class="changelog-items">
+            <li><span class="tag tag-new">New</span><span>Budget alerts — set monthly spend limits per agent, get notified when crossed</span></li>
+            <li><span class="tag tag-new">New</span><span>Weekly digest email — every Monday, a summary of your agents’ health and cost</span></li>
+            <li><span class="tag tag-new">New</span><span>Shared read-only dashboards — share a link with clients or investors, no login required</span></li>
+            <li><span class="tag tag-new">New</span><span>CSV export — download your runs filtered by agent and date</span></li>
+            <li><span class="tag tag-new">New</span><span>Quality scoring — rate agent outputs thumbs up/down, track trends over time</span></li>
+          </ul>
+        </article>
+
+        <article class="changelog-entry">
+          <div class="changelog-meta">
+            <p class="changelog-date">April 10, 2026</p>
+          </div>
+          <ul class="changelog-items">
+            <li><span class="tag tag-new">New</span><span>Node.js SDK — npm install @usefarol/sdk, full TypeScript support</span></li>
+            <li><span class="tag tag-new">New</span><span>Sampling support — send only a fraction of runs to reduce noise and costs</span></li>
+            <li><span class="tag tag-new">New</span><span>Webhook alerts — send alerts to Discord, Google Chat, Zapier, or any HTTP endpoint</span></li>
+            <li><span class="tag tag-improved">Improved</span><span>Docs — spans reference, updated SDK examples, FAQ expanded</span></li>
+          </ul>
+        </article>
+
+        <article class="changelog-entry">
+          <div class="changelog-meta">
+            <p class="changelog-date">April 7, 2026</p>
+          </div>
+          <ul class="changelog-items">
+            <li><span class="tag tag-new">New</span><span>Regression alerts — automatic detection when success rate drops week over week</span></li>
+            <li><span class="tag tag-new">New</span><span>p95 / p99 latency tracking — see your slowest runs, not just averages</span></li>
+            <li><span class="tag tag-new">New</span><span>Cost anomaly detection — baseline learning per agent, alerts on spikes</span></li>
+            <li><span class="tag tag-new">New</span><span>Full trace inspector — every tool call, LLM call, and error reconstructed end to end</span></li>
+            <li><span class="tag tag-new">New</span><span>Python SDK — pip install farol-sdk, one decorator to get started</span></li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>© <span translate="no">2026</span> Farol · <a href="/">Home</a></p>
+    </div>
+  </footer>
+
+  <script src="/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    (async () => {
+      if (!window.SUPABASE_URL || !window.SUPABASE_KEY || typeof supabase === "undefined") return;
+      const { createClient } = supabase;
+      const client = createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+      const { data: { session } } = await client.auth.getSession();
+
+      if (!session) return;
+
+      const email = session.user.email;
+
+      const navLogin = document.querySelector('a[href="/login"]');
+      const navGetStarted = document.querySelector('a[href="/signup"]');
+      if (navLogin) navLogin.style.display = "none";
+      if (navGetStarted) navGetStarted.style.display = "none";
+
+      const nav = document.querySelector(".nav-links") ?? document.querySelector("nav");
+      if (nav) {
+        const dashBtn = document.createElement("a");
+        dashBtn.href = "/app";
+        dashBtn.className = "btn-primary";
+        dashBtn.textContent = "Dashboard →";
+        dashBtn.style.marginLeft = "0.5rem";
+
+        const emailSpan = document.createElement("span");
+        emailSpan.textContent = email;
+        emailSpan.style.cssText = "font-size:0.8rem;color:var(--text-muted);margin-right:0.5rem";
+
+        nav.appendChild(emailSpan);
+        nav.appendChild(dashBtn);
+      }
+    })();
+  </script>
+</body>
+</html>

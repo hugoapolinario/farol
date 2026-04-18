@@ -28,6 +28,7 @@
     { "source": "/privacy", "destination": "/frontend/legal/privacy.html" },
     { "source": "/terms", "destination": "/frontend/legal/terms.html" },
     { "source": "/feedback", "destination": "/frontend/feedback/index.html" },
+    { "source": "/changelog", "destination": "/frontend/changelog/index.html" },
     { "source": "/update-password", "destination": "/frontend/auth/update-password.html" },
     { "source": "/confirmed", "destination": "/frontend/auth/confirmed.html" }
   ]
