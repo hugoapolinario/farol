@@ -132,6 +132,15 @@ Deno.serve(async (req) => {
           </tr>`;
         }).join("");
 
+        // Compute health score per agent
+        const agentHealthRows = Object.entries(agents).map(([name, stats]) => {
+          const agentSuccessScore = Math.round(stats.success / stats.runs * 100);
+          const costScore = Math.max(0, 100 - stats.anomalies * 20);
+          const healthTotal = Math.round(agentSuccessScore * 0.55 + costScore * 0.45);
+          const color = healthTotal >= 80 ? "#4ade80" : healthTotal >= 50 ? "#f97316" : "#ef4444";
+          return `<tr><td style="padding:6px 0;color:#e2e8f0;font-family:monospace">${name}</td><td style="padding:6px 12px;color:${color};font-weight:700">${healthTotal}/100</td></tr>`;
+        }).join("");
+
         const successDiffText = successDiff !== null
           ? `<span style="color:${successDiff >= 0 ? "#4ade80" : "#f97316"}">${successDiff >= 0 ? "↑" : "↓"}${Math.abs(successDiff)}pts vs last week</span>`
           : "";
@@ -196,6 +205,17 @@ Deno.serve(async (req) => {
           <th style="text-align:left;padding:0 12px 8px;color:#64748b;font-size:11px;font-weight:500">COST</th>
         </tr>
         ${agentRows}
+      </table>
+    </div>
+
+    <div style="background:#111318;border-radius:10px;padding:20px;margin-bottom:16px">
+      <div style="color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">Agent health scores</div>
+      <table style="width:100%;border-collapse:collapse">
+        <tr style="border-bottom:1px solid #1e2530">
+          <th style="text-align:left;padding:0 0 8px;color:#64748b;font-size:11px;font-weight:500">AGENT</th>
+          <th style="text-align:left;padding:0 12px 8px;color:#64748b;font-size:11px;font-weight:500">HEALTH</th>
+        </tr>
+        ${agentHealthRows}
       </table>
     </div>
 

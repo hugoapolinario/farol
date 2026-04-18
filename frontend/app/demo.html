@@ -706,6 +706,8 @@
     .agent-card-dot.warning  { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
     .agent-card-dot.critical { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
 
+    .agent-health-score { font-size: 1.6rem; font-weight: 700; line-height: 1; display: flex; align-items: baseline; gap: 0.25rem; }
+
     .agent-card-name {
       font-size: 0.95rem;
       font-weight: 600;
@@ -1804,6 +1806,7 @@ def my_agent(task, run=None):
           <span class="agent-card-dot" id="agent-modal-dot"></span>
           <div class="agent-modal-title-text">
             <h2 class="agent-modal-name" id="agent-modal-name">—</h2>
+            <div id="modal-health-score" style="font-size:0.85rem;margin-top:0.25rem;color:var(--text-muted)"></div>
             <div class="agent-modal-signals" id="agent-modal-signals">
               <span class="signal-pill reliability healthy" id="agent-modal-reliability-pill">✓ —% reliable</span>
               <span class="signal-pill cost warning" id="agent-modal-cost-pill" hidden>↑ 0 cost spikes</span>
@@ -2570,6 +2573,119 @@ def my_agent(task, run=None):
       return computeReliabilityHealth(getDemoHealthRecentRuns(runs)).health;
     }
 
+    function computeHealthScore(agentName, runs) {
+      var now = Date.now();
+      var WEEK = 7 * 24 * 60 * 60 * 1000;
+
+      function getTime(r) {
+        return r.timestamp instanceof Date
+          ? r.timestamp.getTime()
+          : typeof r.timestamp === "number"
+            ? r.timestamp
+            : new Date(r.timestamp).getTime();
+      }
+
+      function agentMatch(r) {
+        return (r.agent || "—") === agentName;
+      }
+
+      var thisWeek = runs.filter(function (r) {
+        return agentMatch(r) && getTime(r) >= now - WEEK;
+      });
+      var lastWeek = runs.filter(function (r) {
+        return agentMatch(r) && getTime(r) >= now - 2 * WEEK && getTime(r) < now - WEEK;
+      });
+
+      if (thisWeek.length === 0) return null;
+
+      var successScore = Math.round(
+        thisWeek.filter(function (r) { return r.status === "success"; }).length / thisWeek.length * 100
+      );
+
+      var anomalyCount = thisWeek.filter(function (r) { return r.anomaly; }).length;
+      var costScore = Math.max(0, 100 - anomalyCount * 20);
+
+      var ratedRuns = thisWeek.filter(function (r) {
+        return r.quality_score === 1 || r.quality_score === -1;
+      });
+      var qualityScore = ratedRuns.length > 0
+        ? Math.round(ratedRuns.filter(function (r) { return r.quality_score === 1; }).length / ratedRuns.length * 100)
+        : 75;
+
+      var successRuns = thisWeek.filter(function (r) {
+        return r.status === "success" && r.duration_ms;
+      });
+      var latencyScore = 100;
+      if (successRuns.length > 0) {
+        var sorted = successRuns.map(function (r) { return r.duration_ms; }).sort(function (a, b) { return a - b; });
+        var p95 = sorted[Math.min(Math.floor(sorted.length * 0.95), sorted.length - 1)];
+        var p95s = p95 / 1000;
+        latencyScore = p95s <= 5 ? 100 : p95s >= 30 ? 0 : Math.round((30 - p95s) / 25 * 100);
+      }
+
+      var total = Math.round(
+        successScore * 0.40 +
+        costScore * 0.25 +
+        qualityScore * 0.20 +
+        latencyScore * 0.15
+      );
+
+      var lastWeekScore = null;
+      if (lastWeek.length > 0) {
+        var lwSuccess = Math.round(lastWeek.filter(function (r) { return r.status === "success"; }).length / lastWeek.length * 100);
+        var lwAnomalies = lastWeek.filter(function (r) { return r.anomaly; }).length;
+        var lwCost = Math.max(0, 100 - lwAnomalies * 20);
+        var lwRated = lastWeek.filter(function (r) { return r.quality_score === 1 || r.quality_score === -1; });
+        var lwQuality = lwRated.length > 0
+          ? Math.round(lwRated.filter(function (r) { return r.quality_score === 1; }).length / lwRated.length * 100)
+          : 75;
+        var lwSuccessRuns = lastWeek.filter(function (r) { return r.status === "success" && r.duration_ms; });
+        var lwLatency = 100;
+        if (lwSuccessRuns.length > 0) {
+          var lwSorted = lwSuccessRuns.map(function (r) { return r.duration_ms; }).sort(function (a, b) { return a - b; });
+          var lwP95 = lwSorted[Math.min(Math.floor(lwSorted.length * 0.95), lwSorted.length - 1)];
+          var lwP95s = lwP95 / 1000;
+          lwLatency = lwP95s <= 5 ? 100 : lwP95s >= 30 ? 0 : Math.round((30 - lwP95s) / 25 * 100);
+        }
+        lastWeekScore = Math.round(lwSuccess * 0.40 + lwCost * 0.25 + lwQuality * 0.20 + lwLatency * 0.15);
+      }
+
+      return {
+        total: total,
+        lastWeekScore: lastWeekScore,
+        delta: lastWeekScore !== null ? total - lastWeekScore : null,
+        breakdown: { successScore: successScore, costScore: costScore, qualityScore: qualityScore, latencyScore: latencyScore }
+      };
+    }
+
+    function healthScoreColor(score) {
+      if (score >= 80) return "#4ade80";
+      if (score >= 50) return "#f97316";
+      return "#ef4444";
+    }
+
+    function renderAgentModalHealthScore() {
+      var el = document.getElementById("modal-health-score");
+      if (!el) return;
+      var score = computeHealthScore(agentModalName, allRuns);
+      if (score) {
+        var color = healthScoreColor(score.total);
+        var deltaText = score.delta !== null
+          ? " · " + (score.delta >= 0 ? "↑" : "↓") + Math.abs(score.delta) + " vs last week"
+          : "";
+        el.innerHTML =
+          "Health score: <strong style=\"color:" + color + "\">" + score.total + "/100</strong>" + deltaText;
+        el.title =
+          "Success: " + score.breakdown.successScore +
+          " · Cost: " + score.breakdown.costScore +
+          " · Quality: " + score.breakdown.qualityScore +
+          " · Latency: " + score.breakdown.latencyScore;
+      } else {
+        el.innerHTML = "";
+        el.removeAttribute("title");
+      }
+    }
+
     /* Reliability dot + KPI use recent-window rate; agent card success % uses rate >= 80 (inclusive) for green vs warn. */
     function agentHealthStats(runs) {
       var recent = getDemoHealthRecentRuns(runs);
@@ -2691,11 +2807,28 @@ def my_agent(task, run=None):
           "| rate:", hs.rate + "%",
           "| errors:", hs.errors,
           "| anomalies:", hs.anomalyCount);
-        const dotClass  = "agent-card-dot " + hs.reliabilityHealth;
+        const score = computeHealthScore(name, allRuns);
+        var healthBlock;
+        if (score) {
+          const color = healthScoreColor(score.total);
+          const deltaPart = score.delta !== null
+            ? '<span style="font-size:0.72rem;color:' + (score.delta >= 0 ? "#4ade80" : "#ef4444") + '">' +
+              (score.delta >= 0 ? "↑" : "↓") + Math.abs(score.delta) + "</span>"
+            : "";
+          healthBlock =
+            '<div class="agent-health-score" style="color:' + color + '">' +
+            score.total +
+            '<span style="font-size:0.7rem;font-weight:400;color:var(--text-muted);">/100</span>' +
+            deltaPart +
+            "</div>";
+        } else {
+          healthBlock =
+            '<div class="agent-health-score" style="color:var(--text-muted);font-size:1rem;font-weight:600">—</div>';
+        }
 
         html.push(
           '<div class="agent-card" data-agent="' + escapeHtml(name) + '" title="Click to view details">' +
-          '<div class="agent-card-header"><span class="' + dotClass + '"></span><span class="agent-card-name">' + escapeHtml(name) + "</span></div>" +
+          '<div class="agent-card-header">' + healthBlock + '<span class="agent-card-name">' + escapeHtml(name) + "</span></div>" +
           '<div class="agent-card-stats">' +
           '<div><div class="agent-stat-label">Total runs</div><div class="agent-stat-value">' + n + "</div></div>" +
           '<div><div class="agent-stat-label">Success rate</div><div class="agent-stat-value ' + rateClass + '">' + rate + "%</div></div>" +
@@ -3501,6 +3634,7 @@ def my_agent(task, run=None):
     }
 
     function refreshAgentModal() {
+      renderAgentModalHealthScore();
       const modalRuns = getAgentModalRuns();
       const emptyEl  = document.getElementById("agent-modal-empty");
       const chartsEl = document.getElementById("agent-modal-charts-grid");
