@@ -7,35 +7,47 @@ const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const STARTER_PRODUCT_ID = "b7ba9826-6409-4788-8798-1e941efa6d6a";
 const BUILDER_PRODUCT_ID = "7c8c17c9-7089-434a-92ea-7af1ebc367ff";
 
-async function verifyWebhook(req: Request): Promise<{ valid: boolean; body: string }> {
-  const body = await req.text();
-  const signature = req.headers.get("webhook-signature") ?? "";
-  
+async function verifyWebhook(req: Request, body: string): Promise<boolean> {
+  const webhookId = req.headers.get("webhook-id");
+  const webhookTimestamp = req.headers.get("webhook-timestamp");
+  const webhookSignature = req.headers.get("webhook-signature");
+
+  if (!webhookId || !webhookTimestamp || !webhookSignature) {
+    console.error("[polar-webhook] Missing webhook headers");
+    return false;
+  }
+
+  const signedContent = `${webhookId}.${webhookTimestamp}.${body}`;
+
+  const secretBytes = Uint8Array.from(atob(POLAR_WEBHOOK_SECRET), (c) => c.charCodeAt(0));
+
   const key = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(POLAR_WEBHOOK_SECRET),
+    secretBytes,
     { name: "HMAC", hash: "SHA-256" },
     false,
-    ["verify"]
+    ["sign"],
   );
 
-  const sigBytes = hexToBytes(signature.replace("sha256=", ""));
-  const valid = await crypto.subtle.verify(
+  const signature = await crypto.subtle.sign(
     "HMAC",
     key,
-    sigBytes,
-    new TextEncoder().encode(body)
+    new TextEncoder().encode(signedContent),
   );
 
-  return { valid, body };
-}
+  const expectedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
-function hexToBytes(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+  const signatures = webhookSignature.split(" ");
+  for (const sig of signatures) {
+    if (sig.startsWith("v1,")) {
+      const providedSignature = sig.slice(3);
+      if (providedSignature === expectedSignature) {
+        return true;
+      }
+    }
   }
-  return bytes;
+
+  return false;
 }
 
 function getPlan(productId: string): string {
@@ -50,11 +62,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { valid, body } = await verifyWebhook(req);
+    const body = await req.text();
+    const valid = await verifyWebhook(req, body);
     if (!valid) {
       return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401 });
     }
-
     const event = JSON.parse(body);
     const eventType = event.type;
     const data = event.data;
