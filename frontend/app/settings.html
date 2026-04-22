@@ -731,6 +731,7 @@
           <button type="button" id="copy-share-link" class="btn btn-secondary">Copy</button>
           <button type="button" id="revoke-share-link" class="btn btn-danger-outline">Revoke</button>
         </div>
+        <p class="settings-hint" id="share-expiry" hidden></p>
       </div>
       <div id="share-generate-wrap">
         <button type="button" id="generate-share-link" class="btn btn-primary">Generate share link</button>
@@ -1366,17 +1367,22 @@
       await loadBudgetAgentsUi(fresh);
     }
 
-    function syncShareSectionUI(token) {
+    function syncShareSectionUI(token, expiresAtIso) {
       const linkWrap = document.getElementById("share-link-wrap");
       const genBtn = document.getElementById("generate-share-link");
       const hint = document.getElementById("share-plan-hint");
       const input = document.getElementById("share-link-input");
+      const expiryEl = document.getElementById("share-expiry");
 
       if (settingsUserPlan === "free") {
         linkWrap.hidden = true;
         genBtn.hidden = true;
         hint.hidden = false;
         input.value = "";
+        if (expiryEl) {
+          expiryEl.textContent = "";
+          expiryEl.hidden = true;
+        }
         return;
       }
 
@@ -1386,17 +1392,36 @@
         input.value = SHARE_PAGE_BASE + "?token=" + encodeURIComponent(token);
         linkWrap.hidden = false;
         genBtn.hidden = true;
+        if (expiryEl) {
+          if (expiresAtIso) {
+            expiryEl.hidden = false;
+            expiryEl.textContent =
+              "This link expires on " +
+              new Date(expiresAtIso).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              });
+          } else {
+            expiryEl.textContent = "";
+            expiryEl.hidden = true;
+          }
+        }
       } else {
         input.value = "";
         linkWrap.hidden = true;
         genBtn.hidden = false;
+        if (expiryEl) {
+          expiryEl.textContent = "";
+          expiryEl.hidden = true;
+        }
       }
     }
 
     async function loadShareToken(userId) {
       const { data, error } = await client
         .from("share_tokens")
-        .select("token")
+        .select("token, expires_at")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -1407,7 +1432,7 @@
       }
 
       setShareStatus("", "muted");
-      syncShareSectionUI(data && data.token ? data.token : null);
+      syncShareSectionUI(data && data.token ? data.token : null, data && data.expires_at ? data.expires_at : null);
     }
 
     async function init() {
@@ -1531,22 +1556,26 @@
       btn.disabled = true;
       setShareStatus("", "muted");
       const newToken = crypto.randomUUID().replace(/-/g, "") + randomString(24);
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 90);
+      const expiresIso = expiresAt.toISOString();
       let err = null;
       const { error: insertError } = await client.from("share_tokens").insert({
         user_id: settingsUserId,
-        token: newToken
+        token: newToken,
+        expires_at: expiresIso,
       });
       if (insertError) {
         const { error: updateError } = await client
           .from("share_tokens")
-          .update({ token: newToken })
+          .update({ token: newToken, expires_at: expiresIso })
           .eq("user_id", settingsUserId);
         err = updateError;
       }
       if (err) {
         setShareStatus(err.message || "Could not create share link.", "error");
       } else {
-        syncShareSectionUI(newToken);
+        syncShareSectionUI(newToken, expiresIso);
         setShareStatus("Share link created. Anyone with the link can view this dashboard (read-only).", "success");
       }
       btn.disabled = false;

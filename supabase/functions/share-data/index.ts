@@ -46,19 +46,25 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
     // Validate token and get user_id
-    const { data: shareToken, error: tokenError } = await supabase
+    const { data: tokenRow, error: tokenError } = await supabase
       .from("share_tokens")
-      .select("user_id")
+      .select("user_id, expires_at")
       .eq("token", token)
       .single();
 
-    if (tokenError || !shareToken) {
+    if (tokenError || !tokenRow) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
 
-    const userId = shareToken.user_id;
+    if (tokenRow.expires_at && new Date(tokenRow.expires_at) < new Date()) {
+      return new Response(JSON.stringify({ error: "Share link has expired" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    const userId = tokenRow.user_id;
 
     // Fetch runs (last 90 days, max 500)
     const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
