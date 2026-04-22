@@ -165,7 +165,7 @@ const myAgent = trace(fn, {
 |--------|-------------|
 | `agentName` | Display name in the Farol dashboard |
 | `farolKey` | API key (`frl_…`) |
-| `farolEndpoint` | Override ingest URL (default: hosted Farol ingest) |
+| `farolEndpoint` | Override ingest URL (default: hosted Farol ingest). Only change this if self-hosting. Never point to an untrusted URL — run data will be sent there. |
 | `model` | Model label on the run |
 | `costPer1kInputTokens` / `costPer1kOutputTokens` | USD per 1k tokens for cost estimates |
 | `captureIo` | When `true`, include span `input`/`output` if set |
