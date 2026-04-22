@@ -6,6 +6,20 @@ const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const rateLimitMap = new Map<string, number[]>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const windowMs = 60 * 60 * 1000; // 1 hour
+  const maxRequests = 10; // max 10 feedback submissions per hour per IP
+
+  const timestamps = (rateLimitMap.get(ip) ?? []).filter((t) => now - t < windowMs);
+  if (timestamps.length >= maxRequests) return true;
+  timestamps.push(now);
+  rateLimitMap.set(ip, timestamps);
+  return false;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -29,6 +43,17 @@ Deno.serve(async (req) => {
     });
   }
 
+  const ip = req.headers.get("x-forwarded-for") ??
+    req.headers.get("cf-connecting-ip") ??
+    "unknown";
+
+  if (isRateLimited(ip)) {
+    return new Response(JSON.stringify({ error: "Too many requests" }), {
+      status: 429,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const { category, subject, message, email } = await req.json();
 
@@ -46,6 +71,12 @@ Deno.serve(async (req) => {
       : "Feedback";
     const emailSubject = `[${categoryLabel}] ${subject}`;
 
+    const confirmationBody = category === "bug"
+      ? `Hi,\n\nThanks for the report — we'll look into it and fix it as soon as possible.\n\n— Farol`
+      : category === "feature"
+      ? `Hi,\n\nThanks for the suggestion! We read every request and use them to shape what we build next.\n\n— Farol`
+      : `Hi,\n\nThanks for taking the time to share your thoughts — it genuinely helps us improve Farol.\n\n— Farol`;
+
     const supportRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -54,7 +85,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: "Farol <alerts@usefarol.dev>",
-        to: ["support@usefarol.dev"],
+        to: ["hfaworkz@gmail.com"],
         reply_to: email || undefined,
         subject: emailSubject,
         text:
@@ -82,8 +113,7 @@ Deno.serve(async (req) => {
           from: "Farol <alerts@usefarol.dev>",
           to: [email],
           subject: "We got your feedback",
-          text:
-            `Hi,\n\nThanks for reaching out — we've received your message and will get back to you soon.\n\nYour message:\n"${subject}"\n\n— Farol`,
+          text: confirmationBody,
         }),
       });
       if (!confirmRes.ok) {
