@@ -374,6 +374,9 @@
         <div>
           <label for="email">Email</label>
           <input id="email" name="email" type="email" autocomplete="email" required>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem">
+            Already have an account? <a href="/login" style="color:var(--accent)">Sign in →</a>
+          </p>
         </div>
         <div>
           <label for="password">Password</label>
@@ -421,6 +424,16 @@
     const errorMessage = document.getElementById("error-message");
     const submitButton = document.getElementById("signup-btn");
 
+    function showError(msg) {
+      errorMessage.textContent = msg;
+      errorMessage.classList.add("visible");
+    }
+
+    function clearError() {
+      errorMessage.textContent = "";
+      errorMessage.classList.remove("visible");
+    }
+
     document.getElementById('google-btn').addEventListener('click', async () => {
       await client.auth.signInWithOAuth({
         provider: 'google',
@@ -438,24 +451,21 @@
     form.addEventListener("submit", async function (event) {
       event.preventDefault();
 
-      errorMessage.textContent = "";
-      errorMessage.classList.remove("visible");
+      clearError();
 
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
       const confirmPassword = document.getElementById("confirm-password").value;
 
       if (password !== confirmPassword) {
-        errorMessage.textContent = "Passwords do not match.";
-        errorMessage.classList.add("visible");
+        showError("Passwords do not match.");
         return;
       }
 
       const captchaToken =
         typeof hcaptcha !== "undefined" ? hcaptcha.getResponse() : "";
       if (!captchaToken) {
-        errorMessage.textContent = "Please complete the captcha";
-        errorMessage.classList.add("visible");
+        showError("Please complete the captcha");
         return;
       }
 
@@ -473,8 +483,13 @@
       submitButton.disabled = false;
 
       if (error) {
-        errorMessage.textContent = error.message;
-        errorMessage.classList.add("visible");
+        if (error.message?.toLowerCase().includes("already") || error.code === "email_exists") {
+          showError(
+            "An account with this email already exists. Try signing in instead, or use Google/GitHub login if you signed up that way."
+          );
+        } else {
+          showError(error.message || "Something went wrong. Please try again.");
+        }
         return;
       }
 
