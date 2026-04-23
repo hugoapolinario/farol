@@ -127,8 +127,8 @@ Sign up free at [usefarol.dev](https://usefarol.dev) — no credit card required
 | Plan | Price | Agents | Events |
 | --- | --- | --- | --- |
 | Free | €0 | 1 agent | 50k/mo |
-| Starter | €29 | 3 agents | 300k/mo |
-| Builder | €69 | Unlimited | Unlimited |
+| Starter | €20 | 3 agents | 300k/mo |
+| Builder | €50 | Unlimited | Unlimited |
 
 ## Architecture
 
