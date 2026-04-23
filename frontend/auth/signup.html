@@ -434,6 +434,19 @@
       errorMessage.classList.remove("visible");
     }
 
+    function showSuccess(message, email) {
+      successLeadText.innerHTML = "";
+      successLeadText.appendChild(document.createTextNode(message + " Sent to "));
+      const emailSpan = document.createElement("span");
+      emailSpan.className = "success-email";
+      emailSpan.textContent = email;
+      successLeadText.appendChild(emailSpan);
+      successLeadText.appendChild(document.createTextNode("."));
+      signupPhase.hidden = true;
+      signupAuthLink.hidden = true;
+      successPanel.hidden = false;
+    }
+
     document.getElementById('google-btn').addEventListener('click', async () => {
       await client.auth.signInWithOAuth({
         provider: 'google',
@@ -471,7 +484,7 @@
 
       submitButton.disabled = true;
 
-      const { error } = await client.auth.signUp({
+      const { data, error } = await client.auth.signUp({
         email: email,
         password: password,
         options: {
@@ -493,26 +506,15 @@
         return;
       }
 
-      successLeadText.innerHTML = "";
-      const strong = document.createElement("strong");
-      strong.textContent = "Check your email";
-      successLeadText.appendChild(strong);
-      successLeadText.appendChild(
-        document.createTextNode(
-          " — We've sent a confirmation link to "
-        )
-      );
-      const emailSpan = document.createElement("span");
-      emailSpan.className = "success-email";
-      emailSpan.textContent = email;
-      successLeadText.appendChild(emailSpan);
-      successLeadText.appendChild(
-        document.createTextNode(". Click it to activate your account.")
-      );
+      if (data?.user?.identities?.length === 0) {
+        showError(
+          "An account with this email already exists. Try signing in instead, or use Google/GitHub login if you signed up that way."
+        );
+        if (typeof hcaptcha !== "undefined") hcaptcha.reset();
+        return;
+      }
 
-      signupPhase.hidden = true;
-      signupAuthLink.hidden = true;
-      successPanel.hidden = false;
+      showSuccess("Check your email for a confirmation link.", email);
     });
   </script>
 </body>
