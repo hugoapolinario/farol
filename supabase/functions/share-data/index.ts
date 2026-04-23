@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
     const { data: runs } = await supabase
       .from("runs")
-      .select("id, agent, model, topic, status, anomaly, anomaly_reason, duration_ms, input_tokens, output_tokens, cost_usd, error, timestamp, steps")
+      .select("id, agent, model, topic, status, anomaly, anomaly_reason, duration_ms, input_tokens, output_tokens, cost_usd, error, timestamp, steps, prompt_version")
       .eq("user_id", userId)
       .gte("timestamp", since)
       .order("timestamp", { ascending: false })

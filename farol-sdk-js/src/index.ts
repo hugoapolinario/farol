@@ -11,6 +11,7 @@ export interface TraceOptions {
   captureIo?: boolean;
   /** 0.0 to 1.0, default 1.0 */
   sampleRate?: number;
+  promptVersion?: string;
 }
 
 export interface SpanOptions {
@@ -84,6 +85,7 @@ export class Run {
   timestamp: string;
   anomaly = false;
   anomalyReason?: string;
+  promptVersion?: string;
 
   constructor(agentName: string, model: string) {
     this.id = `run_${Date.now()}`;
@@ -112,7 +114,9 @@ export function trace<T extends unknown[], R>(
     costPer1kOutputTokens = 0.00125,
     captureIo = false,
     sampleRate = 1.0,
+    promptVersion,
   } = options;
+  const safePromptVersion = promptVersion ? promptVersion.slice(0, 50) : undefined;
 
   if (captureIo) {
     console.warn(
@@ -133,6 +137,7 @@ export function trace<T extends unknown[], R>(
       run.error = err instanceof Error ? err.message : String(err);
       throw err;
     } finally {
+      if (safePromptVersion) run.promptVersion = safePromptVersion;
       run.durationMs = Date.now() - startTime;
       run.costUsd = parseFloat(
         (
@@ -179,6 +184,7 @@ async function sendToFarol(
       timestamp: run.timestamp,
       anomaly: run.anomaly,
       anomaly_reason: run.anomalyReason ?? null,
+      prompt_version: run.promptVersion ?? null,
       farol_key: farolKey,
     };
 

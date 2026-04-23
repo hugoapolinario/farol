@@ -1108,6 +1108,10 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
               <td>Optional. Set <code style="font-family:var(--font-mono);font-size:0.9em">True</code> to store prompt inputs and outputs in the dashboard. Default <code style="font-family:var(--font-mono);font-size:0.9em">False</code>. Handle with care — prompts may contain sensitive data.</td>
             </tr>
             <tr>
+              <th scope="row">prompt_version</th>
+              <td>Optional. Tag this run with a prompt version label (e.g. <code style="font-family:var(--font-mono);font-size:0.9em">"v2"</code>, <code style="font-family:var(--font-mono);font-size:0.9em">"after_refactor"</code>). Max 50 characters. Shown in the runs table and trace modal.</td>
+            </tr>
+            <tr>
               <th scope="row">sample_rate</th>
               <td>Optional. Fraction of successful runs to send (<code style="font-family:var(--font-mono);font-size:0.9em">0.0</code>–<code style="font-family:var(--font-mono);font-size:0.9em">1.0</code>). Errors always sent. Default <code style="font-family:var(--font-mono);font-size:0.9em">1.0</code>.</td>
             </tr>
@@ -1123,6 +1127,10 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
             <tr>
               <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">sampleRate</code></th>
               <td>Fraction of successful runs to send (<code style="font-family:var(--font-mono);font-size:0.9em">0.0</code>–<code style="font-family:var(--font-mono);font-size:0.9em">1.0</code>). Errors always sent. Default <code style="font-family:var(--font-mono);font-size:0.9em">1.0</code>.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">promptVersion</code></th>
+              <td>Optional. Tag this run with a prompt version label (e.g. <code style="font-family:var(--font-mono);font-size:0.9em">"v2"</code>). Max 50 characters. Shown in the runs table and trace modal.</td>
             </tr>
           </tbody>
         </table>

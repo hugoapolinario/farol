@@ -1068,6 +1068,47 @@
     .trace-title { font-size: 0.98rem; font-weight: 600; margin-bottom: 0.2rem; }
     .trace-meta  { font-size: 0.77rem; color: var(--text-muted); }
 
+    .version-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      background: rgba(96, 165, 250, 0.1);
+      color: #60a5fa;
+      border: 1px solid rgba(96, 165, 250, 0.2);
+      margin-left: 0.35rem;
+      font-family: var(--font-mono);
+    }
+
+    .version-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    .version-table th {
+      text-align: left;
+      padding: 0.3rem 0.5rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .version-table td {
+      padding: 0.4rem 0.5rem;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .modal-section { margin-top: 0.65rem; }
+    .modal-section-title {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.35rem;
+    }
+
     .trace-stats {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1667,6 +1708,7 @@
             <select class="ov-select" id="ov-agent-filter">
               <option value="">All agents</option>
               <option value="research-agent">research-agent</option>
+              <option value="market-agent">market-agent</option>
               <option value="support-agent">support-agent</option>
               <option value="data-pipeline">data-pipeline</option>
               <option value="batch-processor">batch-processor</option>
@@ -1726,7 +1768,7 @@ def my_agent(task, run=None):
             <a class="btn btn-primary sdk-cta" href="/signup">Sign up free →</a>
           </div>
         </div>
-        <p class="section-note">Demo data · 4 agents · 41 runs total</p>
+        <p class="section-note">Demo data · 5 agents · sample runs</p>
       </div>
 
       <!-- Runs ─────────────────────────────────────────────────── -->
@@ -1841,6 +1883,7 @@ def my_agent(task, run=None):
         <span class="latency-chip">p95 <strong id="agent-p95">—</strong></span>
         <span class="latency-chip">p99 <strong id="agent-p99">—</strong></span>
       </div>
+      <div id="agent-modal-version-section"></div>
       <div class="ov-empty" id="agent-modal-empty" hidden aria-live="polite">No runs in this period.</div>
       <div class="agent-modal-charts" id="agent-modal-charts-grid">
         <div class="agent-chart-card">
@@ -1883,6 +1926,7 @@ def my_agent(task, run=None):
       <div class="trace-header">
         <div>
           <div class="trace-title" id="trace-title">—</div>
+          <span id="trace-prompt-version" class="version-badge" hidden></span>
           <div class="trace-meta" id="trace-meta">—</div>
         </div>
         <button class="close-btn" type="button" onclick="closeTrace()" aria-label="Close">&#x2715;</button>
@@ -1978,14 +2022,19 @@ def my_agent(task, run=None):
     }
 
     const allRuns = [
-      { id:"run_r01", agent:"research-agent", topic:"Impact of GPT-4 on scientific research",        model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4200, cost_usd:0.000210, input_tokens:1840, output_tokens:612, error:null, steps:[], quality_score:-1, timestamp:ts(6.8*D), spans:researchSpans(4200) },
-      { id:"run_r02", agent:"research-agent", topic:"Climate change mitigation strategies 2025",      model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:3800, cost_usd:0.000195, input_tokens:1680, output_tokens:574, error:null, steps:[], quality_score:-1, timestamp:ts(6.3*D), spans:researchSpans(3800) },
-      { id:"run_r03", agent:"research-agent", topic:"Quantum computing breakthroughs 2025",           model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:5100, cost_usd:0.000228, input_tokens:2010, output_tokens:648, error:null, steps:[], quality_score:-1, timestamp:ts(5.5*D), spans:researchSpans(5100) },
-      { id:"run_r04", agent:"research-agent", topic:"Renewable energy investment trends Q1 2026",     model:"claude-sonnet-4-5", status:"success", anomaly:true,  anomaly_reason:"Cost 3.2× above median baseline (median: $0.000078, actual: $0.000248)",       duration_ms:8500, cost_usd:0.000248, input_tokens:2280, output_tokens:741, error:null, steps:[], timestamp:ts(4.4*D), spans:researchSpans(8500) },
-      { id:"run_r05", agent:"research-agent", topic:"LLM fine-tuning techniques comparison",          model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4600, cost_usd:0.000218, input_tokens:1920, output_tokens:630, error:null, steps:[], quality_score:1, timestamp:ts(3.5*D), spans:researchSpans(4600) },
-      { id:"run_r06", agent:"research-agent", topic:"Agentic AI frameworks landscape Q1 2026",        model:"claude-sonnet-4-5", status:"success", anomaly:true,  anomaly_reason:"Cost 3.1× above median baseline (median: $0.000079, actual: $0.000244)",       duration_ms:7800, cost_usd:0.000244, input_tokens:2180, output_tokens:712, error:null, steps:[], timestamp:ts(2.1*D), spans:researchSpans(7800) },
-      { id:"run_r07", agent:"research-agent", topic:"Multi-agent coordination protocols",             model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:3900, cost_usd:0.000199, input_tokens:1760, output_tokens:589, error:null, steps:[], timestamp:ts(23*H),  spans:researchSpans(3900) },
-      { id:"run_r08", agent:"research-agent", topic:"Vector database performance benchmarks",         model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4800, cost_usd:0.000223, input_tokens:1980, output_tokens:644, error:null, steps:[], timestamp:ts(12*H),  spans:researchSpans(4800) },
+      { id:"run_r01", agent:"research-agent", topic:"Impact of GPT-4 on scientific research",        model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4200, cost_usd:0.000210, input_tokens:1840, output_tokens:612, error:null, steps:[], quality_score:1,  prompt_version:"v2", timestamp:ts(6.8*D), spans:researchSpans(4200) },
+      { id:"run_r02", agent:"research-agent", topic:"Climate change mitigation strategies 2025",      model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:3800, cost_usd:0.000195, input_tokens:1680, output_tokens:574, error:null, steps:[], quality_score:-1, prompt_version:"v3", timestamp:ts(6.3*D), spans:researchSpans(3800) },
+      { id:"run_r03", agent:"research-agent", topic:"Quantum computing breakthroughs 2025",           model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:5100, cost_usd:0.000228, input_tokens:2010, output_tokens:648, error:null, steps:[], quality_score:1,  prompt_version:"v2", timestamp:ts(5.5*D), spans:researchSpans(5100) },
+      { id:"run_r04", agent:"research-agent", topic:"Renewable energy investment trends Q1 2026",     model:"claude-sonnet-4-5", status:"success", anomaly:true,  anomaly_reason:"Cost 3.2× above median baseline (median: $0.000078, actual: $0.000248)",       duration_ms:8500, cost_usd:0.000248, input_tokens:2280, output_tokens:741, error:null, steps:[], quality_score:-1, prompt_version:"v3", timestamp:ts(4.4*D), spans:researchSpans(8500) },
+      { id:"run_r05", agent:"research-agent", topic:"LLM fine-tuning techniques comparison",          model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4600, cost_usd:0.000218, input_tokens:1920, output_tokens:630, error:null, steps:[], quality_score:1,  prompt_version:"v2", timestamp:ts(3.5*D), spans:researchSpans(4600) },
+      { id:"run_r06", agent:"research-agent", topic:"Agentic AI frameworks landscape Q1 2026",        model:"claude-sonnet-4-5", status:"success", anomaly:true,  anomaly_reason:"Cost 3.1× above median baseline (median: $0.000079, actual: $0.000244)",       duration_ms:7800, cost_usd:0.000244, input_tokens:2180, output_tokens:712, error:null, steps:[], quality_score:-1, prompt_version:"v3", timestamp:ts(2.1*D), spans:researchSpans(7800) },
+      { id:"run_r07", agent:"research-agent", topic:"Multi-agent coordination protocols",             model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:3900, cost_usd:0.000199, input_tokens:1760, output_tokens:589, error:null, steps:[], quality_score:1,  prompt_version:"v2", timestamp:ts(23*H),  spans:researchSpans(3900) },
+      { id:"run_r08", agent:"research-agent", topic:"Vector database performance benchmarks",         model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4800, cost_usd:0.000223, input_tokens:1980, output_tokens:644, error:null, steps:[], quality_score:-1, prompt_version:"v3", timestamp:ts(12*H),  spans:researchSpans(4800) },
+
+      { id:"run_m01", agent:"market-agent",   topic:"Weekly macro briefing — ECB & Fed signals",      model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:2400, cost_usd:0.000092, input_tokens:910,  output_tokens:298, error:null, steps:[], quality_score:1,  prompt_version:"v1", timestamp:ts(6.2*D), spans:supportSpans(2400,false) },
+      { id:"run_m02", agent:"market-agent",   topic:"Competitor pricing scrape — EU SaaS tier-1",     model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:2100, cost_usd:0.000089, input_tokens:880,  output_tokens:285, error:null, steps:[], quality_score:1,  prompt_version:"v1", timestamp:ts(5.0*D), spans:supportSpans(2100,false) },
+      { id:"run_m03", agent:"market-agent",   topic:"Commodities watchlist refresh — energy metals", model:"claude-haiku-4-5",  status:"error",   anomaly:false, anomaly_reason:null,                                                                           duration_ms:1800, cost_usd:0.000085, input_tokens:850,  output_tokens:0,   error:"Market data vendor timeout — no quote batch returned", steps:[], prompt_version:"v1", timestamp:ts(3.8*D), spans:supportSpans(1800,true) },
+      { id:"run_m04", agent:"market-agent",   topic:"Sector sentiment digest — tech & healthcare",    model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:2600, cost_usd:0.000094, input_tokens:940,  output_tokens:312, error:null, steps:[], quality_score:-1, prompt_version:"v1", timestamp:ts(1.9*D), spans:supportSpans(2600,false) },
 
       { id:"run_s01", agent:"support-agent",  topic:"Customer refund request for order #44291",       model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:2100, cost_usd:0.000088, input_tokens:820,  output_tokens:284, error:null, steps:[], quality_score:1, timestamp:ts(6.5*D), spans:supportSpans(2100,false) },
       { id:"run_s02", agent:"support-agent",  topic:"Billing inquiry account #88234",                 model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:1800, cost_usd:0.000083, input_tokens:780,  output_tokens:261, error:null, steps:[], timestamp:ts(5.2*D), spans:supportSpans(1800,false) },
@@ -2026,10 +2075,10 @@ def my_agent(task, run=None):
       { id:"run_s16", agent:"support-agent",  topic:"Charge dispute for invoice INV-44921",               model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:2110, cost_usd:0.000088, input_tokens:818,  output_tokens:279, error:null, steps:[], timestamp:ts(7.6*D + 6*H), spans:supportSpans(2110,false) },
 
       /* research-agent quality alert demo: prior week (7–14d) — 75% thumbs-up on rated runs */
-      { id:"run_rq1", agent:"research-agent", topic:"Prior-week literature review batch A",            model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4100, cost_usd:0.000205, input_tokens:1810, output_tokens:605, error:null, steps:[], quality_score:1, timestamp:ts(10*D), spans:researchSpans(4100) },
-      { id:"run_rq2", agent:"research-agent", topic:"Prior-week citation graph analysis",               model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4300, cost_usd:0.000212, input_tokens:1860, output_tokens:618, error:null, steps:[], quality_score:1, timestamp:ts(9.2*D), spans:researchSpans(4300) },
-      { id:"run_rq3", agent:"research-agent", topic:"Prior-week summarization benchmark",               model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4000, cost_usd:0.000202, input_tokens:1790, output_tokens:598, error:null, steps:[], quality_score:1, timestamp:ts(8.4*D), spans:researchSpans(4000) },
-      { id:"run_rq4", agent:"research-agent", topic:"Prior-week RAG evaluation run",                    model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4500, cost_usd:0.000218, input_tokens:1900, output_tokens:625, error:null, steps:[], quality_score:-1, timestamp:ts(7.7*D), spans:researchSpans(4500) },
+      { id:"run_rq1", agent:"research-agent", topic:"Prior-week literature review batch A",            model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4100, cost_usd:0.000205, input_tokens:1810, output_tokens:605, error:null, steps:[], quality_score:1,  prompt_version:"v2", timestamp:ts(10*D), spans:researchSpans(4100) },
+      { id:"run_rq2", agent:"research-agent", topic:"Prior-week citation graph analysis",               model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4300, cost_usd:0.000212, input_tokens:1860, output_tokens:618, error:null, steps:[], quality_score:1,  prompt_version:"v2", timestamp:ts(9.2*D), spans:researchSpans(4300) },
+      { id:"run_rq3", agent:"research-agent", topic:"Prior-week summarization benchmark",               model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4000, cost_usd:0.000202, input_tokens:1790, output_tokens:598, error:null, steps:[], quality_score:-1, prompt_version:"v3", timestamp:ts(8.4*D), spans:researchSpans(4000) },
+      { id:"run_rq4", agent:"research-agent", topic:"Prior-week RAG evaluation run",                    model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4500, cost_usd:0.000218, input_tokens:1900, output_tokens:625, error:null, steps:[], quality_score:-1, prompt_version:"v3", timestamp:ts(7.7*D), spans:researchSpans(4500) },
 
       /* ── 60–90 days ago (Jan 10 – Feb 10, 2026) ─────────────────── */
       { id:"run_r09", agent:"research-agent",  topic:"Transformer architecture efficiency study",       model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4100, cost_usd:0.000208, input_tokens:1820, output_tokens:608, error:null, steps:[], timestamp:ts(87*D),  spans:researchSpans(4100) },
@@ -2045,7 +2094,7 @@ def my_agent(task, run=None):
       { id:"run_d10", agent:"data-pipeline",   topic:"Weekly aggregation pipeline Jan 2026",            model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:6600, cost_usd:0.000139, input_tokens:3180, output_tokens:872, error:null, steps:[], timestamp:ts(61*D),  spans:pipelineSpans(6600,false) },
 
       /* research-agent duration alert demo: latest successful run far above median baseline */
-      { id:"run_r_dur", agent:"research-agent", topic:"Duration spike demo — extended literature crawl", model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:35000, cost_usd:0.000252, input_tokens:2400, output_tokens:800, error:null, steps:[], timestamp:ts(30*60*1000), spans:researchSpans(35000) }
+      { id:"run_r_dur", agent:"research-agent", topic:"Duration spike demo — extended literature crawl", model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:35000, cost_usd:0.000252, input_tokens:2400, output_tokens:800, error:null, steps:[], prompt_version:"v2", timestamp:ts(30*60*1000), spans:researchSpans(35000) }
     ];
     (function latencyP95DemoRuns() {
       const ref = NOW - 30 * 60 * 1000;
@@ -2065,6 +2114,8 @@ def my_agent(task, run=None):
           output_tokens: 620,
           error: null,
           steps: [],
+          prompt_version: i % 2 === 0 ? "v2" : "v3",
+          quality_score: i % 2 === 0 ? 1 : -1,
           timestamp: ref - 2 * H - i * 3 * H,
           spans: researchSpans(d),
         });
@@ -2085,6 +2136,8 @@ def my_agent(task, run=None):
           output_tokens: 598,
           error: null,
           steps: [],
+          prompt_version: i % 2 === 0 ? "v2" : "v3",
+          quality_score: i % 2 === 0 ? 1 : -1,
           timestamp: ref - 10 * D - i * 4 * H,
           spans: researchSpans(d),
         });
@@ -2516,14 +2569,17 @@ def my_agent(task, run=None):
           qualityCell = '<td class="quality-cell"><span class="quality-indicator-bad" title="Rated bad" aria-label="Rated bad">✗</span></td>';
         }
         var topicText = escapeHtml(r.topic || "—");
+        var versionBadge = r.prompt_version
+          ? '<span class="version-badge">' + escapeHtml(r.prompt_version) + "</span>"
+          : "";
         var noteTitle =
           r.notes != null && String(r.notes).trim() !== "" ? escapeHtml(String(r.notes)) : "";
         var noteIcon = noteTitle
           ? ' <span title="' + noteTitle + '" style="cursor:default">📝</span>'
           : "";
         row.innerHTML =
-          "<td>" + (r.agent || "—") + "</td>" +
-          "<td>" + topicText + noteIcon + "</td>" +
+          "<td>" + escapeHtml(r.agent || "—") + "</td>" +
+          "<td>" + topicText + versionBadge + noteIcon + "</td>" +
           "<td>" + modelCell + "</td>" +
           '<td><span class="badge ' + (r.status === "success" ? "success" : "error") + '">' + escapeHtml(r.status) + "</span></td>" +
           qualityCell +
@@ -3466,6 +3522,14 @@ def my_agent(task, run=None):
       };
 
       document.getElementById("trace-title").textContent = (r.agent || "—") + " — " + (r.topic || r.id || "—");
+      var tracePromptVerEl = document.getElementById("trace-prompt-version");
+      if (r.prompt_version) {
+        tracePromptVerEl.textContent = "v: " + String(r.prompt_version);
+        tracePromptVerEl.hidden = false;
+      } else {
+        tracePromptVerEl.textContent = "";
+        tracePromptVerEl.hidden = true;
+      }
       document.getElementById("trace-meta").textContent  = (r.timestamp ? new Date(r.timestamp).toLocaleString() : "—") + " · " + (r.status || "unknown");
       document.getElementById("trace-duration").textContent = r.duration_ms != null ? (Number(r.duration_ms)/1000).toFixed(2) + "s" : "—";
       document.getElementById("trace-cost").textContent     = r.cost_usd    != null ? "$" + Number(r.cost_usd).toFixed(6) : "—";
@@ -3565,6 +3629,46 @@ def my_agent(task, run=None):
       costEl.textContent = "$" + avgCost.toFixed(6);
     }
 
+    function renderVersionComparison(agentRuns) {
+      var versioned = agentRuns.filter(function (r) { return r.prompt_version; });
+      if (versioned.length === 0) return "";
+
+      var versions = {};
+      versioned.forEach(function (r) {
+        var v = r.prompt_version;
+        if (!versions[v]) versions[v] = { runs: 0, success: 0, cost: 0, quality: [] };
+        versions[v].runs++;
+        if (r.status === "success") versions[v].success++;
+        versions[v].cost += r.cost_usd != null ? Number(r.cost_usd) : 0;
+        if (r.quality_score === 1 || r.quality_score === -1) versions[v].quality.push(r.quality_score);
+      });
+
+      var rows = Object.keys(versions).map(function (v) {
+        var s = versions[v];
+        var successRate = Math.round(s.success / s.runs * 100);
+        var avgCost = (s.cost / s.runs).toFixed(6);
+        var quality = s.quality.length > 0
+          ? Math.round(s.quality.filter(function (q) { return q === 1; }).length / s.quality.length * 100) + "%"
+          : "—";
+        return "<tr>" +
+          '<td><span class="version-badge">' + escapeHtml(v) + "</span></td>" +
+          "<td>" + s.runs + "</td>" +
+          '<td style="color:' + (successRate >= 80 ? "#4ade80" : "#f97316") + '">' + successRate + "%</td>" +
+          "<td>$" + avgCost + "</td>" +
+          "<td>" + quality + "</td>" +
+          "</tr>";
+      }).join("");
+
+      return (
+        '<div class="modal-section">' +
+        '<div class="modal-section-title">Version comparison</div>' +
+        '<table class="version-table">' +
+        "<tr><th>Version</th><th>Runs</th><th>Success</th><th>Avg cost</th><th>Quality</th></tr>" +
+        rows +
+        "</table></div>"
+      );
+    }
+
     function renderAgentModalCharts(runs) {
       if (typeof Chart === "undefined") return;
       const costCanvas = document.getElementById("agent-cost-chart");
@@ -3646,10 +3750,12 @@ def my_agent(task, run=None):
       const emptyEl  = document.getElementById("agent-modal-empty");
       const chartsEl = document.getElementById("agent-modal-charts-grid");
       const tableEl  = document.getElementById("agent-modal-table-section");
+      const verSec   = document.getElementById("agent-modal-version-section");
 
       renderAgentModalKpis(modalRuns);
       renderAgentModalSignals(modalRuns);
       renderAgentModalCostPill(modalRuns);
+      if (verSec) verSec.innerHTML = renderVersionComparison(modalRuns);
 
       if (!modalRuns.length) {
         if (agentCostChart) { agentCostChart.destroy(); agentCostChart = null; }
@@ -3657,6 +3763,7 @@ def my_agent(task, run=None):
         if (emptyEl)  emptyEl.hidden  = false;
         if (chartsEl) chartsEl.hidden = true;
         if (tableEl)  tableEl.hidden  = true;
+        if (verSec) verSec.innerHTML = "";
         var dotEl = document.getElementById("agent-modal-dot");
         if (dotEl) dotEl.className = "agent-card-dot healthy";
         return;

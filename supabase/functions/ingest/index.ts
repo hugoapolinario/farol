@@ -97,12 +97,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { farol_key, spans: rawSpans, ...run } = body as {
+    const { farol_key, spans: rawSpans, prompt_version: rawPromptVersion, ...run } = body as {
       farol_key?: string;
       spans?: unknown;
+      prompt_version?: unknown;
       [key: string]: unknown;
     };
     const spans = Array.isArray(rawSpans) ? rawSpans : [];
+    const promptVersion = typeof rawPromptVersion === "string"
+      ? rawPromptVersion.slice(0, 50).replace(/[<>'"]/g, "").trim() || null
+      : null;
 
     if (!farol_key) {
       return new Response(
@@ -236,7 +240,7 @@ Deno.serve(async (req) => {
     // ── Insert run ────────────────────────────────────────────────────
     const { error: insertError } = await supabase
       .from("runs")
-      .insert({ ...run, user_id: userId });
+      .insert({ ...run, user_id: userId, prompt_version: promptVersion });
 
     if (insertError) {
       return new Response(

@@ -433,6 +433,50 @@
       color: var(--text-muted);
     }
 
+    .version-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      background: rgba(96, 165, 250, 0.1);
+      color: #60a5fa;
+      border: 1px solid rgba(96, 165, 250, 0.2);
+      margin-left: 0.35rem;
+      font-family: var(--font-mono);
+    }
+
+    .version-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    .version-table th {
+      text-align: left;
+      padding: 0.3rem 0.5rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .version-table td {
+      padding: 0.4rem 0.5rem;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .modal-section {
+      margin-top: 0.65rem;
+    }
+
+    .modal-section-title {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.35rem;
+    }
+
     .trace-stats {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2236,6 +2280,7 @@ def my_agent(task, run=None):
         <span class="latency-chip">p95 <strong id="agent-p95">—</strong></span>
         <span class="latency-chip">p99 <strong id="agent-p99">—</strong></span>
       </div>
+      <div id="agent-modal-version-section"></div>
       <div class="ov-empty" id="agent-modal-empty" hidden aria-live="polite">No runs in this period.</div>
       <div class="agent-modal-charts" id="agent-modal-charts-grid">
         <div class="agent-chart-card">
@@ -2277,6 +2322,7 @@ def my_agent(task, run=None):
       <div class="trace-header">
         <div>
           <div class="trace-title" id="trace-title">—</div>
+          <span id="trace-prompt-version" class="version-badge" hidden></span>
           <div class="trace-meta" id="trace-meta">—</div>
         </div>
         <button class="close-btn" type="button" onclick="closeTrace()" aria-label="Close">&#x2715;</button>
@@ -4097,6 +4143,47 @@ def my_agent(task, run=None):
       costEl.textContent = "$" + avgCost.toFixed(6);
     }
 
+    function renderVersionComparison(agentRuns) {
+      const versioned = agentRuns.filter(function (r) { return r.prompt_version; });
+      if (versioned.length === 0) return "";
+
+      const versions = {};
+      versioned.forEach(function (r) {
+        const v = r.prompt_version;
+        if (!versions[v]) versions[v] = { runs: 0, success: 0, cost: 0, quality: [] };
+        versions[v].runs++;
+        if (r.status === "success") versions[v].success++;
+        versions[v].cost += r.cost_usd ?? 0;
+        if (r.quality_score === 1 || r.quality_score === -1) versions[v].quality.push(r.quality_score);
+      });
+
+      const rows = Object.entries(versions).map(function (entry) {
+        const v = entry[0];
+        const s = entry[1];
+        const successRate = Math.round(s.success / s.runs * 100);
+        const avgCost = (s.cost / s.runs).toFixed(6);
+        const quality = s.quality.length > 0
+          ? Math.round(s.quality.filter(function (q) { return q === 1; }).length / s.quality.length * 100) + "%"
+          : "—";
+        return "<tr>" +
+          '<td><span class="version-badge">' + escapeHtml(v) + "</span></td>" +
+          "<td>" + s.runs + "</td>" +
+          '<td style="color:' + (successRate >= 80 ? "#4ade80" : "#f97316") + '">' + successRate + "%</td>" +
+          "<td>$" + avgCost + "</td>" +
+          "<td>" + quality + "</td>" +
+          "</tr>";
+      }).join("");
+
+      return (
+        '<div class="modal-section">' +
+        '<div class="modal-section-title">Version comparison</div>' +
+        '<table class="version-table">' +
+        "<tr><th>Version</th><th>Runs</th><th>Success</th><th>Avg cost</th><th>Quality</th></tr>" +
+        rows +
+        "</table></div>"
+      );
+    }
+
     function renderAgentModalCharts(runs) {
       if (typeof Chart === "undefined") return;
       const costCanvas = document.getElementById("agent-cost-chart");
@@ -4213,10 +4300,12 @@ def my_agent(task, run=None):
       const emptyEl  = document.getElementById("agent-modal-empty");
       const chartsEl = document.getElementById("agent-modal-charts-grid");
       const tableEl  = document.getElementById("agent-modal-table-section");
+      const verSec   = document.getElementById("agent-modal-version-section");
 
       renderAgentModalKpis(modalRuns);
       renderAgentModalSignals(modalRuns);
       renderAgentModalCostPill(modalRuns);
+      if (verSec) verSec.innerHTML = renderVersionComparison(modalRuns);
 
       if (!modalRuns.length) {
         if (agentCostChart) { agentCostChart.destroy(); agentCostChart = null; }
@@ -4224,6 +4313,7 @@ def my_agent(task, run=None):
         if (emptyEl)  emptyEl.hidden  = false;
         if (chartsEl) chartsEl.hidden = true;
         if (tableEl)  tableEl.hidden  = true;
+        if (verSec) verSec.innerHTML = "";
         var dotEl = document.getElementById("agent-modal-dot");
         if (dotEl) dotEl.className = "agent-card-dot healthy";
         return;
@@ -4390,6 +4480,9 @@ def my_agent(task, run=None):
         }
 
         const topicCellText = r.topic != null && r.topic !== "" ? escapeHtml(r.topic) : "—";
+        const versionBadge = r.prompt_version
+          ? `<span class="version-badge">${escapeHtml(r.prompt_version)}</span>`
+          : "";
         const noteTitle =
           r.notes != null && String(r.notes).trim() !== "" ? escapeHtml(String(r.notes)) : "";
         const noteIcon = noteTitle
@@ -4398,7 +4491,7 @@ def my_agent(task, run=None):
 
         row.innerHTML = `
           <td>${r.agent != null && r.agent !== "" ? escapeHtml(r.agent) : "—"}</td>
-          <td>${topicCellText}${noteIcon}</td>
+          <td>${topicCellText}${versionBadge}${noteIcon}</td>
           <td>${modelCell}</td>
           <td><span class="badge ${r.status === "success" ? "success" : "error"}">${escapeHtml(r.status) || "unknown"}</span></td>
           ${qualityCell}
@@ -4420,7 +4513,7 @@ def my_agent(task, run=None):
     async function loadRuns(userId) {
       const { data, error } = await client
         .from("runs")
-        .select("id, agent, topic, model, status, anomaly, anomaly_reason, duration_ms, cost_usd, timestamp, steps, input_tokens, output_tokens, error, quality_score, notes")
+        .select("id, agent, topic, model, status, anomaly, anomaly_reason, duration_ms, cost_usd, timestamp, steps, input_tokens, output_tokens, error, quality_score, notes, prompt_version")
         .eq("user_id", userId)
         .order("timestamp", { ascending: false });
 
@@ -4488,6 +4581,14 @@ def my_agent(task, run=None):
       };
 
       document.getElementById("trace-title").textContent = (r.agent || "—") + " — " + (r.topic || r.id || "—");
+      const tracePromptVerEl = document.getElementById("trace-prompt-version");
+      if (r.prompt_version) {
+        tracePromptVerEl.textContent = "v: " + String(r.prompt_version);
+        tracePromptVerEl.hidden = false;
+      } else {
+        tracePromptVerEl.textContent = "";
+        tracePromptVerEl.hidden = true;
+      }
       document.getElementById("trace-meta").textContent =
         (r.timestamp ? new Date(r.timestamp).toLocaleString() : "—") + " · " + (r.status || "unknown");
       document.getElementById("trace-duration").textContent =

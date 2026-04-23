@@ -205,6 +205,7 @@ def save_run(run: dict) -> None:
             "steps": run["steps"],
             "error": run.get("error"),
             "timestamp": run["timestamp"],
+            "prompt_version": run.get("prompt_version"),
         }
         if user_id is not None:
             payload["user_id"] = user_id
@@ -224,6 +225,7 @@ def trace(
     cost_per_1k_input_tokens: float = 0.00025,
     cost_per_1k_output_tokens: float = 0.00125,
     sample_rate: float = 1.0,  # 1.0 = 100%, 0.1 = 10%
+    prompt_version: Optional[str] = None,
 ) -> Callable[[F], F]:
     def decorator(func: F) -> F:
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -241,6 +243,7 @@ def trace(
                 "error": None,
                 "anomaly": False,
                 "anomaly_reason": None,
+                "prompt_version": prompt_version[:50] if prompt_version else None,
             }
             if farol_key:
                 run["farol_key"] = farol_key

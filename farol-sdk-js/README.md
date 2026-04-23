@@ -170,6 +170,7 @@ const myAgent = trace(fn, {
 | `costPer1kInputTokens` / `costPer1kOutputTokens` | USD per 1k tokens for cost estimates |
 | `captureIo` | When `true`, include span `input`/`output` if set |
 | `sampleRate` | Fraction of successful runs to send (`0.0`–`1.0`). Errors always sent. Default `1.0`. |
+| `promptVersion` | Optional. Prompt version label (e.g. `v2`). Max 50 characters. Shown in the dashboard runs table and trace modal. |
 
 ## Build (from source)
 
