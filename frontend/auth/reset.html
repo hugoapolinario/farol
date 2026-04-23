@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Farol — Reset password</title>
-  <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <style>
     :root {
       --bg-deep: #0a0b0d;
@@ -276,7 +276,7 @@
         <input id="email" name="email" type="email" autocomplete="email" required>
       </div>
 
-      <div class="h-captcha" data-sitekey="8190d258-7764-4c3e-b62e-317a0a64738e" data-theme="dark"></div>
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAADB5sIzpoi_ulz7Y"></div>
 
       <button class="btn" type="submit" id="reset-btn">Send reset link</button>
       <p id="error-message" class="error" role="alert" aria-live="polite"></p>
@@ -309,7 +309,7 @@
       const email = document.getElementById("email").value.trim();
 
       const captchaToken =
-        typeof hcaptcha !== "undefined" ? hcaptcha.getResponse() : "";
+        typeof turnstile !== "undefined" ? turnstile.getResponse() : "";
       if (!captchaToken) {
         errorMessage.textContent = "Please complete the captcha";
         errorMessage.classList.add("visible");
@@ -319,13 +319,13 @@
       submitButton.disabled = true;
 
       const { error } = await client.auth.resetPasswordForEmail(email, {
-        captchaToken: captchaToken,
         redirectTo: "https://usefarol.dev/update-password.html"
       });
 
       submitButton.disabled = false;
 
       if (error) {
+        if (typeof turnstile !== "undefined") turnstile.reset();
         errorMessage.textContent = error.message;
         errorMessage.classList.add("visible");
         return;

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Farol — Login</title>
-  <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <style>
     :root {
       --bg-deep: #0a0b0d;
@@ -284,7 +284,7 @@
         <input id="password" name="password" type="password" autocomplete="current-password" required>
       </div>
 
-      <div class="h-captcha" data-sitekey="8190d258-7764-4c3e-b62e-317a0a64738e" data-theme="dark"></div>
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAADB5sIzpoi_ulz7Y"></div>
 
       <button class="btn" type="submit" id="login-btn">Log in</button>
       <a href="/reset" style="font-size:0.8rem;color:#666;text-decoration:none;display:block;text-align:center;margin-top:0.75rem;">Forgot password?</a>
@@ -329,7 +329,7 @@
       const password = document.getElementById("password").value;
 
       const captchaToken =
-        typeof hcaptcha !== "undefined" ? hcaptcha.getResponse() : "";
+        typeof turnstile !== "undefined" ? turnstile.getResponse() : "";
       if (!captchaToken) {
         errorMessage.textContent = "Please complete the captcha";
         errorMessage.classList.add("visible");
@@ -340,15 +340,13 @@
 
       const { error } = await client.auth.signInWithPassword({
         email: email,
-        password: password,
-        options: {
-          captchaToken: captchaToken
-        }
+        password: password
       });
 
       submitButton.disabled = false;
 
       if (error) {
+        if (typeof turnstile !== "undefined") turnstile.reset();
         errorMessage.textContent = error.message;
         errorMessage.classList.add("visible");
         return;
