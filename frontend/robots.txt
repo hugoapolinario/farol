@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /settings
+Disallow: /share
+
+Sitemap: https://usefarol.dev/sitemap.xml
