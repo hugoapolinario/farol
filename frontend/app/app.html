@@ -17,8 +17,10 @@
       --accent-glow: rgba(249, 115, 22, 0.35);
       --success: #4ade80;
       --radius: 12px;
+      --radius-lg: 14px;
       --radius-sm: 8px;
       --max: 1120px;
+      --bg-card: #111318;
     }
 
     * { box-sizing: border-box; }
@@ -190,6 +192,17 @@
 
     .btn-primary { background: var(--accent); color: #0a0b0d; }
     .btn-primary:hover { background: #fb923c; }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .btn-outline:hover {
+      border-color: rgba(249, 115, 22, 0.4);
+      background: var(--accent-dim);
+    }
 
     /* ── Content area ────────────────────────────────────────────── */
     .content-area {
@@ -1732,6 +1745,82 @@
       border-bottom: 1px solid var(--border);
     }
 
+    .empty-state-card {
+      max-width: 520px;
+      margin: 4rem auto;
+      text-align: center;
+      padding: 2.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+
+    .empty-state-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+
+    .empty-state-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0 0 0.5rem;
+    }
+
+    .empty-state-body {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin: 0 0 2rem;
+    }
+
+    .empty-state-steps {
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+
+    .empty-state-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .empty-state-step code {
+      font-family: ui-monospace, "IBM Plex Mono", monospace;
+      font-size: 0.8rem;
+      background: var(--bg-elevated);
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+      color: var(--text);
+    }
+
+    .step-num {
+      background: var(--accent);
+      color: #fff;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    .empty-state-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .inline-link { color: var(--accent); text-decoration: none; }
+
+    .inline-link:hover { text-decoration: underline; }
+
     /* ── Mobile nav ──────────────────────────────────────────────── */
     .mobile-topbar {
       display: none;
@@ -2077,6 +2166,38 @@
       <div id="section-overview" class="content-section active">
         <h1 class="section-title">Overview</h1>
 
+        <div id="empty-state" hidden>
+          <div class="empty-state-card">
+            <div class="empty-state-icon">🔦</div>
+            <h2 class="empty-state-title">Welcome to Farol</h2>
+            <p class="empty-state-body">You're one decorator away from monitoring your first agent.</p>
+            <div class="empty-state-steps">
+              <div class="empty-state-step">
+                <span class="step-num">1</span>
+                <span>Copy your API key from <a href="/settings" class="inline-link">Account settings</a></span>
+              </div>
+              <div class="empty-state-step">
+                <span class="step-num">2</span>
+                <span>Install the SDK: <code>pip install farol-sdk</code></span>
+              </div>
+              <div class="empty-state-step">
+                <span class="step-num">3</span>
+                <span>Add <code>@trace</code> to your agent function</span>
+              </div>
+              <div class="empty-state-step">
+                <span class="step-num">4</span>
+                <span>Run your agent — data appears here automatically</span>
+              </div>
+            </div>
+            <div class="empty-state-actions">
+              <a href="/settings" class="btn btn-primary">Get your API key →</a>
+              <a href="/docs" class="btn btn-outline">View docs</a>
+              <a href="/demo" class="btn btn-outline">View demo</a>
+            </div>
+          </div>
+        </div>
+
+        <div id="overview-dashboard-body">
         <!-- Filter bar -->
         <div class="ov-filter-bar">
           <div class="ov-filter-group">
@@ -2134,6 +2255,7 @@
             </div>
           </div>
         </section>
+        </div>
         <p class="last-updated" id="last-updated">Last updated: —</p>
         <p class="status" id="status-message"></p>
       </div>
@@ -2782,6 +2904,19 @@ def my_agent(task, run=None):
       } else {
         ovAgentEl.value = "";
         ovAgent = "";
+      }
+    }
+
+    function updateOverviewEmptyState() {
+      const emptyEl = document.getElementById("empty-state");
+      const dashEl = document.getElementById("overview-dashboard-body");
+      if (!emptyEl || !dashEl) return;
+      if (allRuns.length === 0) {
+        emptyEl.hidden = false;
+        dashEl.hidden = true;
+      } else {
+        emptyEl.hidden = true;
+        dashEl.hidden = false;
       }
     }
 
@@ -4524,6 +4659,7 @@ def my_agent(task, run=None):
       allRuns = data || [];
       populateAgentFilter();
       populateOvAgentFilter();
+      updateOverviewEmptyState();
       refreshOverview();
       applyFilterAndRender();
       renderAgentCards();
