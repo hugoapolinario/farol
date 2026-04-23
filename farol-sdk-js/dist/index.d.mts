@@ -8,6 +8,7 @@ interface TraceOptions {
     captureIo?: boolean;
     /** 0.0 to 1.0, default 1.0 */
     sampleRate?: number;
+    promptVersion?: string;
 }
 interface SpanOptions {
     type?: "tool" | "llm";
@@ -47,6 +48,7 @@ declare class Run {
     timestamp: string;
     anomaly: boolean;
     anomalyReason?: string;
+    promptVersion?: string;
     constructor(agentName: string, model: string);
     startSpan(name: string, options?: SpanOptions): Span;
 }

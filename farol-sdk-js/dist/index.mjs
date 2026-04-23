@@ -66,8 +66,10 @@ function trace(fn, options) {
     costPer1kInputTokens = 25e-5,
     costPer1kOutputTokens = 125e-5,
     captureIo = false,
-    sampleRate = 1
+    sampleRate = 1,
+    promptVersion
   } = options;
+  const safePromptVersion = promptVersion ? promptVersion.slice(0, 50) : void 0;
   if (captureIo) {
     console.warn(
       "[Farol] WARNING: captureIo is enabled \u2014 prompts are being stored in your Farol dashboard"
@@ -85,6 +87,7 @@ function trace(fn, options) {
       run.error = err instanceof Error ? err.message : String(err);
       throw err;
     } finally {
+      if (safePromptVersion) run.promptVersion = safePromptVersion;
       run.durationMs = Date.now() - startTime;
       run.costUsd = parseFloat(
         (run.inputTokens / 1e3 * costPer1kInputTokens + run.outputTokens / 1e3 * costPer1kOutputTokens).toFixed(6)
@@ -119,6 +122,7 @@ async function sendToFarol(run, farolKey, endpoint, captureIo) {
       timestamp: run.timestamp,
       anomaly: run.anomaly,
       anomaly_reason: run.anomalyReason ?? null,
+      prompt_version: run.promptVersion ?? null,
       farol_key: farolKey
     };
     const res = await fetch(endpoint, {
