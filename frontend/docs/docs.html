@@ -1209,6 +1209,30 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
         <p style="margin-top:1rem;font-size:0.875rem;color:var(--text-muted)">
           <strong>Note:</strong> Farol currently supports sequential spans only. Parallel or concurrent spans (e.g. multiple tool calls firing simultaneously) will be recorded but may not display in the correct order in the trace timeline. Full parallel span support is on the roadmap.
         </p>
+
+        <h3 id="multi-agent-tracing">Multi-agent tracing</h3>
+        <p>Link child agent runs to their parent using <code style="font-family:var(--font-mono);font-size:0.88em">parent_trace_id</code>. Pass the parent run's ID when calling a child agent to reconstruct the full pipeline in Farol.</p>
+        <div class="code-panel" translate="no" style="margin-top:0.75rem">
+          <div class="code-header">example — parent and child agents</div>
+          <pre class="code-body"><code><span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"research-agent"</span>, farol_key=<span style="color:#86efac">"frl_..."</span>)
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">research_agent</span>(topic, run=<span style="color:#c084fc">None</span>):
+    run[<span style="color:#86efac">"topic"</span>] = topic
+    <span style="color:#8b919d"># do research work...</span>
+
+    <span style="color:#8b919d"># call child agent, passing this run's ID</span>
+    result = market_agent(topic, parent_trace_id=run[<span style="color:#86efac">"id"</span>])
+    <span style="color:#c084fc">return</span> result
+
+
+<span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"market-agent"</span>, farol_key=<span style="color:#86efac">"frl_..."</span>)
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">market_agent</span>(topic, run=<span style="color:#c084fc">None</span>, parent_trace_id=<span style="color:#c084fc">None</span>):
+    run[<span style="color:#86efac">"topic"</span>] = topic
+    run[<span style="color:#86efac">"parent_trace_id"</span>] = parent_trace_id  <span style="color:#8b919d"># links to parent</span>
+    <span style="color:#8b919d"># do market analysis...</span></code></pre>
+        </div>
+        <p style="margin-top:1rem;font-size:0.875rem;color:var(--text-muted)">
+          In the dashboard, parent runs show their spawned children and total pipeline cost. Child runs show a link back to the parent. Automatic trace propagation without manual ID passing is on the roadmap.
+        </p>
       </section>
 
       <section id="dashboard" class="doc-section" aria-labelledby="dashboard-heading">
