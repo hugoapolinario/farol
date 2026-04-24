@@ -1,0 +1,3 @@
+# verify_jwt = false: invoked by pg_cron (net.http_post) with project anon key, no user JWT.
+[functions.onboarding-email]
+verify_jwt = false

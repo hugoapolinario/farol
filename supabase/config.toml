@@ -55,6 +55,11 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/weekly-digest/index.ts"
 
+[functions.onboarding-email]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/onboarding-email/index.ts"
+
 [functions.send-feedback]
 enabled = true
 verify_jwt = false
