@@ -1,6 +1,6 @@
 {
   "name": "@usefarol/sdk",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "AI agent observability SDK for Node.js — plug-and-play monitoring for your agents",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
