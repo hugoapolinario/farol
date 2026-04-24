@@ -662,6 +662,7 @@
       <a href="#quick-start">Quick start</a>
       <a href="#webhook-integrations">Webhook integrations</a>
       <a href="#sdk-reference">SDK reference</a>
+      <a href="#framework-integrations" class="nav-link">Framework integrations</a>
       <a href="#dashboard">Dashboard</a>
       <a href="#faq">FAQ</a>
     </nav>
@@ -1233,6 +1234,83 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
         <p style="margin-top:1rem;font-size:0.875rem;color:var(--text-muted)">
           In the dashboard, parent runs show their spawned children and total pipeline cost. Child runs show a link back to the parent. Automatic trace propagation without manual ID passing is on the roadmap.
         </p>
+      </section>
+
+      <section class="doc-section" id="framework-integrations" aria-labelledby="framework-integrations-heading">
+        <h2 id="framework-integrations-heading">Framework integrations</h2>
+        <p>Farol works with any Python or Node.js framework — wrap your agent’s entrypoint function with <code style="font-family:var(--font-mono);font-size:0.88em">@trace</code> and Farol tracks everything automatically. No special integration required.</p>
+
+        <h3>LangChain observability</h3>
+        <p>Wrap the function that invokes your LangChain chain or agent:</p>
+        <div class="code-panel" translate="no" style="margin-top:0.75rem">
+          <div class="code-header">python — langchain</div>
+          <pre class="code-body"><code><span style="color:#c084fc">from</span> farol <span style="color:#c084fc">import</span> trace
+<span style="color:#c084fc">from</span> langchain.chains <span style="color:#c084fc">import</span> LLMChain
+
+<span style="color:#fb923c">@trace</span>(agent_name=<span style="color:#86efac">"langchain-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">run_chain</span>(query, run=<span style="color:#c084fc">None</span>):
+    run[<span style="color:#86efac">"topic"</span>] = query
+
+    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"chain_invoke"</span>, type=<span style="color:#86efac">"tool"</span>) <span style="color:#c084fc">as</span> span:
+        result = chain.invoke({<span style="color:#86efac">"query"</span>: query})
+
+    <span style="color:#c084fc">return</span> result
+
+result = run_chain(<span style="color:#86efac">"summarise last quarter earnings"</span>)</code></pre>
+        </div>
+
+        <h3>CrewAI monitoring</h3>
+        <p>Wrap the crew kickoff to track the entire crew run as one traced agent:</p>
+        <div class="code-panel" translate="no" style="margin-top:0.75rem">
+          <div class="code-header">python — crewai</div>
+          <pre class="code-body"><code><span style="color:#c084fc">from</span> farol <span style="color:#c084fc">import</span> trace
+<span style="color:#c084fc">from</span> crewai <span style="color:#c084fc">import</span> Crew
+
+<span style="color:#fb923c">@trace</span>(agent_name=<span style="color:#86efac">"crewai-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">run_crew</span>(topic, run=<span style="color:#c084fc">None</span>):
+    run[<span style="color:#86efac">"topic"</span>] = topic
+
+    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"crew_kickoff"</span>, type=<span style="color:#86efac">"tool"</span>) <span style="color:#c084fc">as</span> span:
+        result = crew.kickoff(inputs={<span style="color:#86efac">"topic"</span>: topic})
+
+    <span style="color:#c084fc">return</span> result
+
+result = run_crew(<span style="color:#86efac">"market analysis for Q2 2026"</span>)</code></pre>
+        </div>
+
+        <h3>Vercel AI SDK (Node.js)</h3>
+        <p>Wrap the function that calls <code style="font-family:var(--font-mono);font-size:0.88em">generateText</code> or <code style="font-family:var(--font-mono);font-size:0.88em">streamText</code>:</p>
+        <div class="code-panel" translate="no" style="margin-top:0.75rem">
+          <div class="code-header">typescript — vercel ai sdk</div>
+          <pre class="code-body"><code><span style="color:#c084fc">import</span> { trace } <span style="color:#c084fc">from</span> <span style="color:#86efac">'@usefarol/sdk'</span>;
+<span style="color:#c084fc">import</span> { generateText } <span style="color:#c084fc">from</span> <span style="color:#86efac">'ai'</span>;
+<span style="color:#c084fc">import</span> { anthropic } <span style="color:#c084fc">from</span> <span style="color:#86efac">'@ai-sdk/anthropic'</span>;
+
+<span style="color:#c084fc">const</span> runAgent = <span style="color:#fb923c">trace</span>(
+  <span style="color:#c084fc">async</span> (run, prompt: <span style="color:#7dd3fc">string</span>) =&gt; {
+    run.topic = prompt;
+
+    <span style="color:#c084fc">const</span> span = run.startSpan(<span style="color:#86efac">'generate'</span>, { type: <span style="color:#86efac">'llm'</span> });
+    <span style="color:#c084fc">try</span> {
+      <span style="color:#c084fc">const</span> { text, usage } = <span style="color:#c084fc">await</span> generateText({
+        model: anthropic(<span style="color:#86efac">'claude-haiku-4-5'</span>),
+        prompt,
+      });
+      span.inputTokens = usage.promptTokens;
+      span.outputTokens = usage.completionTokens;
+      span.end();
+      <span style="color:#c084fc">return</span> text;
+    } <span style="color:#c084fc">catch</span> (e) {
+      span.end(e <span style="color:#c084fc">instanceof</span> Error ? e : <span style="color:#c084fc">new</span> Error(String(e)));
+      <span style="color:#c084fc">throw</span> e;
+    }
+  },
+  { agentName: <span style="color:#86efac">'vercel-ai-agent'</span>, farolKey: <span style="color:#86efac">'frl_your_key_here'</span> }
+);</code></pre>
+        </div>
+
+        <h3>Works with any framework</h3>
+        <p>If your agent is a Python or Node.js function, <code style="font-family:var(--font-mono);font-size:0.88em">@trace</code> wraps it. This includes AutoGen, Haystack, LlamaIndex, smolagents, and any custom agent loop. Wrap the top-level entrypoint function and add <code style="font-family:var(--font-mono);font-size:0.88em">run.span()</code> calls inside for step-level visibility.</p>
       </section>
 
       <section id="dashboard" class="doc-section" aria-labelledby="dashboard-heading">
