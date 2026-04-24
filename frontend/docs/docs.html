@@ -1373,6 +1373,10 @@ result = run_crew(<span style="color:#86efac">"market analysis for Q2 2026"</spa
           <p>Any Python code path: the SDK is a decorator. LangChain, CrewAI, custom loops—wrap the entrypoint and update <code style="font-family:var(--font-mono);font-size:0.88em">run</code> with token counts (and optional steps) however your stack exposes them.</p>
         </div>
         <div class="faq-item">
+          <h3>Does Farol support OpenTelemetry?</h3>
+          <p>Not yet — but an OpenTelemetry compatibility bridge is on the roadmap. This will allow Farol to receive traces from any OTEL-compatible tool and work alongside existing observability stacks. For now, Farol's SDK works with any Python or Node.js framework directly. <a class="inline" href="/roadmap">View the roadmap →</a></p>
+        </div>
+        <div class="faq-item">
           <h3>What counts as an event for billing?</h3>
           <p>Each span inside a run counts as one event. A run with 3 spans (e.g. 2 tool calls + 1 LLM call) counts as 3 events. A run with no spans counts as 1 event.</p>
         </div>
