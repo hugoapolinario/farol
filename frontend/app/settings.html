@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="/frontend/assets/favicon.svg">
+  <link rel="icon" type="image/png" href="/frontend/assets/favicon.png">
   <title>Farol — Account settings</title>
   <style>
     :root {
@@ -64,7 +66,7 @@
       min-width: 0;
     }
 
-    .logo {
+    .nav-logo {
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
@@ -636,15 +638,8 @@
   <header class="navbar">
     <div class="wrap nav-inner">
       <div class="nav-left">
-        <a class="logo" href="/app" aria-label="Farol app">
-          <span class="logo-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-              <path d="M12 3L4 9v12h16V9l-8-6z"></path>
-              <path d="M9 21V12h6v9"></path>
-              <circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none"></circle>
-            </svg>
-          </span>
-          Farol
+        <a href="/app" class="nav-logo" aria-label="Farol app">
+          <img src="/frontend/assets/logo.svg" alt="Farol" height="28" style="display:block;">
         </a>
         <a class="nav-link nav-back" href="/app">← Dashboard</a>
       </div>

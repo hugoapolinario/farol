@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="/frontend/assets/favicon.svg">
+  <link rel="icon" type="image/png" href="/frontend/assets/favicon.png">
   <title>Farol — App</title>
   <style>
     :root {
@@ -72,7 +74,7 @@
       position: relative;
     }
 
-    .logo {
+    .nav-logo {
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
@@ -2129,15 +2131,8 @@
 <body>
   <!-- ── Mobile top bar ──────────────────────────────────────────── -->
   <div class="mobile-topbar" aria-label="Mobile navigation bar">
-    <a class="logo" href="/" aria-label="Farol home">
-      <span class="logo-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-          <path d="M12 3L4 9v12h16V9l-8-6z"></path>
-          <path d="M9 21V12h6v9"></path>
-          <circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none"></circle>
-        </svg>
-      </span>
-      Farol
+    <a href="/" class="nav-logo" aria-label="Farol home">
+      <img src="/frontend/assets/logo.svg" alt="Farol" height="28" style="display:block;">
     </a>
     <button class="mobile-hamburger" id="mobile-hamburger-btn" aria-label="Open navigation" aria-expanded="false">&#9776;</button>
   </div>
@@ -2150,15 +2145,8 @@
     <!-- ── Sidebar ──────────────────────────────────────────────── -->
     <aside class="sidebar">
       <div class="sidebar-brand">
-        <a class="logo" href="/" aria-label="Farol home">
-          <span class="logo-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-              <path d="M12 3L4 9v12h16V9l-8-6z"></path>
-              <path d="M9 21V12h6v9"></path>
-              <circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none"></circle>
-            </svg>
-          </span>
-          Farol
+        <a href="/" class="nav-logo" aria-label="Farol home">
+          <img src="/frontend/assets/logo.svg" alt="Farol" height="28" style="display:block;">
         </a>
         <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Close navigation">&#x2715;</button>
       </div>

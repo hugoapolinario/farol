@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/svg+xml" href="/frontend/assets/favicon.svg">
+  <link rel="icon" type="image/png" href="/frontend/assets/favicon.png">
   <title>Farol — Agent observability for indie devs &amp; small teams</title>
   <meta name="description" content="AI agents fail silently and bill loudly. Farol tells you first—live runs, cost anomalies, full traces. Three lines to start." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -130,7 +132,7 @@
       gap: 1rem;
     }
 
-    .logo {
+    .nav-logo {
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
@@ -767,15 +769,8 @@
 
   <header class="site-header">
     <div class="wrap nav-inner">
-      <a class="logo" href="#" aria-label="Farol home">
-        <span class="logo-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-            <path d="M12 3L4 9v12h16V9l-8-6z" />
-            <path d="M9 21V12h6v9" />
-            <circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none" />
-          </svg>
-        </span>
-        Farol
+      <a href="/" class="nav-logo" aria-label="Farol home">
+        <img src="/frontend/assets/logo.svg" alt="Farol" height="28" style="display:block;">
       </a>
       <div class="nav-links" style="display:flex;align-items:center;gap:1.5rem;">
         <a href="/docs" class="nav-link">Docs</a>
