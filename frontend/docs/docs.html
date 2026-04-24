@@ -96,6 +96,12 @@
       gap: 1rem;
     }
 
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
     .logo {
       display: inline-flex;
       align-items: center;
@@ -650,8 +656,9 @@
         </span>
         Farol
       </a>
-      <div style="display:flex;align-items:center;gap:1rem;">
-        <a href="https://github.com/hugoapolinario/farol" target="_blank">GitHub</a>
+      <div class="nav-links">
+        <a href="https://github.com/hugoapolinario/farol" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="/login">Log in</a>
         <a class="btn btn-primary" href="/signup">Get started</a>
       </div>
     </div>
@@ -1130,16 +1137,44 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
           </thead>
           <tbody>
             <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">agentName</code></th>
+              <td>Required. Display name for this agent in the dashboard.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">farolKey</code></th>
+              <td>Required. API key from the dashboard; ties runs to your account.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">model</code></th>
+              <td>Optional. Model label for display. Default <code style="font-family:var(--font-mono);font-size:0.9em">"unknown"</code>.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">costPer1kInputTokens</code></th>
+              <td>Optional. USD per 1k input tokens. Default <code style="font-family:var(--font-mono);font-size:0.9em">0.00025</code> (Claude Haiku).</td>
+            </tr>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">costPer1kOutputTokens</code></th>
+              <td>Optional. USD per 1k output tokens. Default <code style="font-family:var(--font-mono);font-size:0.9em">0.00125</code> (Claude Haiku).</td>
+            </tr>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">farolEndpoint</code></th>
+              <td>Optional. Custom ingest URL. Only change if self-hosting. Never point to an untrusted URL.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">captureIo</code></th>
+              <td>Optional. Store prompt inputs and outputs. Default <code style="font-family:var(--font-mono);font-size:0.9em">false</code>. Handle with care.</td>
+            </tr>
+            <tr>
               <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">sampleRate</code></th>
-              <td>Fraction of successful runs to send (<code style="font-family:var(--font-mono);font-size:0.9em">0.0</code>–<code style="font-family:var(--font-mono);font-size:0.9em">1.0</code>). Errors always sent. Default <code style="font-family:var(--font-mono);font-size:0.9em">1.0</code>.</td>
+              <td>Optional. Fraction of successful runs to send (<code style="font-family:var(--font-mono);font-size:0.9em">0.0</code>–<code style="font-family:var(--font-mono);font-size:0.9em">1.0</code>). Errors always sent. Default <code style="font-family:var(--font-mono);font-size:0.9em">1.0</code>.</td>
             </tr>
             <tr>
               <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">promptVersion</code></th>
-              <td>Optional. Tag this run with a prompt version label (e.g. <code style="font-family:var(--font-mono);font-size:0.9em">"v2"</code>). Max 50 characters. Shown in the runs table and trace modal.</td>
+              <td>Optional. Tag this run with a prompt version label. Max 50 characters.</td>
             </tr>
             <tr>
               <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">parentTraceId</code></th>
-              <td>Optional. Link this run to a parent agent run. Pass the parent run's ID to reconstruct multi-agent pipelines.</td>
+              <td>Optional. Link this run to a parent agent run for multi-agent pipeline tracing.</td>
             </tr>
           </tbody>
         </table>
@@ -1320,7 +1355,7 @@ result = run_crew(<span style="color:#86efac">"market analysis for Q2 2026"</spa
           <li><strong style="color:var(--text)">Overview</strong> — KPI cards (total runs, success rate, avg duration with p95, total cost) and 4 charts. Filter by period (7/30/90 days) and agent.</li>
           <li><strong style="color:var(--text)">Runs</strong> — full runs table. Columns: Agent, Topic, Model, Status, Quality, Anomaly, Steps, Duration, Tokens, Cost, Error, Timestamp. Click any row to open the trace timeline showing all spans. Search by topic, filter by agent, export to CSV (Starter+).</li>
           <li><strong style="color:var(--text)">Agents</strong> — one card per agent showing total runs, success rate, avg cost, avg duration, last run. Click a card to open a detailed modal with charts and runs filtered to that agent.</li>
-          <li><strong style="color:var(--text)">Alerts</strong> — cost anomaly alerts and performance regression alerts. Clicking an alert opens the trace for that run.</li>
+          <li><strong style="color:var(--text)">Alerts</strong> — seven alert types: cost anomaly, duration anomaly, p95 latency, regression, quality trend, budget, and proactive trend alerts. Grouped alerts show when multiple agents are affected simultaneously. Clicking an alert opens the trace or filters runs to the affected agent.</li>
         </ul>
       </section>
 
@@ -1412,5 +1447,35 @@ result = run_crew(<span style="color:#86efac">"market analysis for Q2 2026"</spa
       <p><a href="/index.html">Home</a> · <a href="https://usefarol.dev">usefarol.dev</a></p>
     </div>
   </footer>
+  <script src="/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    (async () => {
+      if (!window.SUPABASE_URL || !window.SUPABASE_KEY || !window.supabase) return;
+      const client = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+      const { data: { session } } = await client.auth.getSession();
+      if (!session) return;
+
+      const email = session.user.email;
+
+      const navLogin = document.querySelector('a[href="/login"]');
+      const navGetStarted = document.querySelector('a[href="/signup"]');
+      if (navLogin) navLogin.style.display = 'none';
+      if (navGetStarted) navGetStarted.style.display = 'none';
+
+      const nav = document.querySelector('.nav-links') ?? document.querySelector('nav');
+      if (nav) {
+        const emailSpan = document.createElement('span');
+        emailSpan.textContent = email;
+        emailSpan.style.cssText = 'font-size:0.8rem;color:var(--text-muted);margin-right:0.5rem';
+        const dashBtn = document.createElement('a');
+        dashBtn.href = '/app';
+        dashBtn.className = 'btn btn-primary';
+        dashBtn.textContent = 'Dashboard →';
+        nav.appendChild(emailSpan);
+        nav.appendChild(dashBtn);
+      }
+    })();
+  </script>
 </body>
 </html>
