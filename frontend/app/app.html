@@ -3431,7 +3431,7 @@ def my_agent(task, run=None):
           const t = new Date(r.timestamp).getTime();
           return t >= now - 2 * WEEK && t < now - WEEK;
         });
-        if (current.length < 3 || previous.length < 3) return;
+        if (current.length < 10 || previous.length < 10) return;
         const currentRate  = current.filter(function (r) { return r.status === "success"; }).length / current.length * 100;
         const previousRate = previous.filter(function (r) { return r.status === "success"; }).length / previous.length * 100;
         const drop = previousRate - currentRate;
@@ -3482,7 +3482,7 @@ def my_agent(task, run=None):
           return q === 1 || q === -1;
         });
 
-        if (currentRated.length < 3 || previousRated.length < 3) return;
+        if (currentRated.length < 5 || previousRated.length < 5) return;
 
         const currentScore = Math.round(
           currentRated.filter(function (r) { return normalizeQualityScore(r.quality_score) === 1; }).length /
@@ -3521,7 +3521,7 @@ def my_agent(task, run=None):
 
       for (const agent of agents) {
         const successRuns = runs.filter((r) => r.agent === agent && r.status === "success" && r.duration_ms);
-        if (successRuns.length < 5) continue;
+        if (successRuns.length < 10) continue;
 
         const sorted = [...successRuns].sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
         const baselineRuns = sorted.slice(0, -1);

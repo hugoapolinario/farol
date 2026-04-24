@@ -136,9 +136,9 @@ def save_run(run: dict) -> None:
         except (TypeError, ValueError, AttributeError):
             continue
 
-    if len(baseline_costs) < 5:
+    if len(baseline_costs) < 10:
         anomaly = False
-        anomaly_reason = "Building baseline — need 5+ runs"
+        anomaly_reason = "Building baseline — need 10+ runs"
     else:
         median_cost = statistics.median(baseline_costs)
         mean_cost = statistics.mean(baseline_costs)

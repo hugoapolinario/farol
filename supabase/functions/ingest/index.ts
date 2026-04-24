@@ -59,6 +59,28 @@ function asBooleanRecord(val: unknown): Record<string, boolean> {
   return out;
 }
 
+/** Sample stdev, matches Python's statistics.stdev for n ≥ 2 */
+function stDevSample(nums: number[]): number {
+  if (nums.length < 2) return 0;
+  const mu = nums.reduce((a, b) => a + b, 0) / nums.length;
+  const varSum = nums.reduce((a, b) => a + (b - mu) ** 2, 0) / (nums.length - 1);
+  return Math.sqrt(varSum);
+}
+
+function mean(nums: number[]): number {
+  if (nums.length === 0) return 0;
+  return nums.reduce((a, b) => a + b, 0) / nums.length;
+}
+
+function median(nums: number[]): number {
+  if (nums.length === 0) return 0;
+  const s = [...nums].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 === 1
+    ? s[m]!
+    : (s[m - 1]! + s[m]!) / 2;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -249,6 +271,68 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ── Cost anomaly (median baseline) — same rules as farol-sdk, min 10 samples ─
+    const baselineAgent = typeof run.agent === "string" && run.agent.trim() !== ""
+      ? run.agent
+      : "";
+    const runStatus = run.status;
+    const rawCost = run.cost_usd;
+    const currentCost =
+      typeof rawCost === "number" ? rawCost : Number(rawCost);
+
+    let runAnomaly = false;
+    let runAnomalyReason: string | null = null;
+
+    if (
+      baselineAgent &&
+      runStatus === "success" &&
+      Number.isFinite(currentCost)
+    ) {
+      const { data: baselineData } = await supabase
+        .from("runs")
+        .select("cost_usd")
+        .eq("user_id", userId)
+        .eq("agent", baselineAgent)
+        .eq("status", "success")
+        .order("timestamp", { ascending: false })
+        .limit(20);
+
+      const baselineCosts: number[] = [];
+      for (const row of baselineData ?? []) {
+        const c = row?.cost_usd;
+        const n = typeof c === "number" ? c : Number(c);
+        if (Number.isFinite(n)) baselineCosts.push(n);
+      }
+
+      if (baselineCosts.length < 10) {
+        runAnomaly = false;
+        runAnomalyReason = "Building baseline — need 10+ runs";
+      } else {
+        const medianCost = median(baselineCosts);
+        const meanCost = mean(baselineCosts);
+        const stdDevCost = stDevSample(baselineCosts);
+        const isOver3xMedian = currentCost > 3 * medianCost;
+        const isOver2xAnd2std =
+          currentCost > 2 * medianCost &&
+          currentCost > meanCost + 2 * stdDevCost;
+        if (isOver3xMedian || isOver2xAnd2std) {
+          runAnomaly = true;
+          const ratio = medianCost > 0
+            ? currentCost / medianCost
+            : Number.POSITIVE_INFINITY;
+          const ratioText = Number.isFinite(ratio) ? ratio.toFixed(1) : "∞";
+          runAnomalyReason =
+            `Cost ${ratioText}× above median baseline (median: $${medianCost.toFixed(6)}, actual: $${currentCost.toFixed(6)})`;
+        } else {
+          runAnomaly = false;
+          runAnomalyReason = null;
+        }
+      }
+    } else {
+      runAnomaly = false;
+      runAnomalyReason = null;
+    }
+
     // ── Insert run ────────────────────────────────────────────────────
     const { error: insertError } = await supabase
       .from("runs")
@@ -257,6 +341,8 @@ Deno.serve(async (req) => {
         user_id: userId,
         prompt_version: promptVersion,
         parent_trace_id: parentTraceIdSafe,
+        anomaly: runAnomaly,
+        anomaly_reason: runAnomalyReason,
       });
 
     if (insertError) {
@@ -481,13 +567,13 @@ Deno.serve(async (req) => {
 
     const webhookUrl =
       typeof sub?.webhook_url === "string" ? sub.webhook_url.trim() : "";
-    if (webhookUrl && ["builder", "studio"].includes(plan) && run.anomaly) {
+    if (webhookUrl && ["builder", "studio"].includes(plan) && runAnomaly) {
       const tsVal = run.timestamp;
       const webhookPayload = {
         event: "cost_anomaly",
         agent: run.agent,
         topic: run.topic ?? null,
-        reason: run.anomaly_reason ?? null,
+        reason: runAnomalyReason,
         cost_usd: run.cost_usd ?? null,
         timestamp:
           typeof tsVal === "string" && tsVal
@@ -521,16 +607,15 @@ Deno.serve(async (req) => {
       typeof sub?.slack_webhook_url === "string"
         ? sub.slack_webhook_url.trim()
         : "";
-    const isCostAnomaly = Boolean(run.anomaly);
+    const isCostAnomaly = runAnomaly;
     if (slackHook && ["builder", "studio"].includes(plan) && isCostAnomaly) {
       const costUsd =
         typeof run.cost_usd === "number"
           ? run.cost_usd
           : Number(run.cost_usd) || 0;
-      const anomalyReason =
-        typeof run.anomaly_reason === "string" && run.anomaly_reason
-          ? run.anomaly_reason
-          : "Cost anomaly";
+      const anomalyReason = runAnomalyReason && runAnomalyReason.length > 0
+        ? runAnomalyReason
+        : "Cost anomaly";
       try {
         await fetch(slackHook, {
           method: "POST",

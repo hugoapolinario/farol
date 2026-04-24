@@ -297,9 +297,9 @@ def _save_run(
                 continue
     baseline_rows = baseline_rows[-20:]
 
-    if len(baseline_rows) < 5:
+    if len(baseline_rows) < 10:
         anomaly = False
-        anomaly_reason = "Building baseline — need 5+ runs"
+        anomaly_reason = "Building baseline — need 10+ runs"
     else:
         median_cost = statistics.median(baseline_rows)
         mean_cost = statistics.mean(baseline_rows)
