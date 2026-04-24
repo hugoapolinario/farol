@@ -4681,11 +4681,20 @@ def my_agent(task, run=None):
           var action = link.dataset.action;
           var agent = link.dataset.agent;
           if (action === "runs") {
-            navigateTo("runs");
+            runsPeriodDays = 0;
+            var periodEl = document.getElementById("runs-period-filter");
+            if (periodEl) periodEl.value = "0";
+            closeTrace();
+            runsMultiAgentFilter = null;
+            populateAgentFilter();
             if (agent) {
-              agentFilterEl.value = agent;
-              applyFilterAndRender();
+              var filterVal = agent === "—" ? AGENT_NONE_VALUE : agent;
+              if (Array.from(agentFilterEl.options).some(function (o) { return o.value === filterVal; })) {
+                agentFilterEl.value = filterVal;
+              }
             }
+            applyFilterAndRender();
+            navigateTo("runs");
           } else {
             navigateTo("alerts");
           }
