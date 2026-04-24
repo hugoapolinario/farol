@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Roadmap — Farol</title>
+  <meta name="description" content="What we’re building next for Farol — no dates, just direction." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #0a0b0d;
+      --bg-surface: #111318;
+      --bg-card: #111318;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8eaef;
+      --text-muted: #8b919d;
+      --accent: #f97316;
+      --accent-glow: rgba(249, 115, 22, 0.35);
+      --font-display: "Fraunces", Georgia, serif;
+      --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --max: 1120px;
+      --nav-h: 72px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--text);
+      background-color: var(--bg-deep);
+      color-scheme: dark;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249, 115, 22, 0.12), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 40%, rgba(249, 115, 22, 0.06), transparent 50%),
+        var(--bg-deep);
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 1rem;
+      top: -100px;
+      z-index: 9999;
+      padding: 0.65rem 1rem;
+      background: var(--accent);
+      color: #0a0b0d;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+    }
+
+    .skip-link:focus { top: 1rem; outline: 2px solid var(--text); outline-offset: 2px; }
+
+    .wrap {
+      width: min(100% - 2rem, var(--max));
+      margin-inline: auto;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: var(--nav-h);
+      border-bottom: 1px solid var(--border);
+      background: rgba(10, 11, 13, 0.78);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: var(--nav-h);
+      gap: 1rem;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 600;
+      font-size: 1.125rem;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), #ea580c);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 24px var(--accent-glow);
+    }
+
+    .logo-mark svg { width: 18px; height: 18px; color: #0a0b0d; }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .nav-link {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    .nav-link:hover { color: var(--text); }
+
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.65rem 1.25rem;
+      font-family: var(--font-sans);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      text-decoration: none;
+      background: var(--accent);
+      color: #0a0b0d;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    }
+
+    .nav-cta:hover {
+      background: #fb923c;
+      box-shadow: 0 4px 24px var(--accent-glow);
+    }
+
+    .nav-cta:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.65rem 1.25rem;
+      font-family: var(--font-sans);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      background: var(--accent);
+      color: #0a0b0d;
+      border: 1px solid transparent;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      background: #fb923c;
+      box-shadow: 0 4px 24px var(--accent-glow);
+    }
+
+    main {
+      padding: clamp(2rem, 5vw, 3.5rem) 0 clamp(3rem, 8vw, 5rem);
+    }
+
+    .roadmap-hero {
+      margin-bottom: 2.5rem;
+      max-width: 40rem;
+    }
+
+    .roadmap-hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin: 0 0 0.5rem;
+      line-height: 1.15;
+    }
+
+    .roadmap-sub {
+      margin: 0;
+      font-size: 1.05rem;
+      color: var(--text-muted);
+    }
+
+    .roadmap-section { margin-bottom: 3rem; }
+    .roadmap-section-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+    }
+    .roadmap-items { display: flex; flex-direction: column; gap: 0.75rem; }
+    .roadmap-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .roadmap-item-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 0.35rem; }
+    .roadmap-item-dot.shipped { background: #4ade80; }
+    .roadmap-item-dot.next { background: #f97316; }
+    .roadmap-item-dot.later { background: #475569; }
+    .roadmap-item-title { font-size: 0.875rem; font-weight: 600; color: var(--text); margin-bottom: 0.2rem; }
+    .roadmap-item-desc { font-size: 0.8rem; color: var(--text-muted); }
+    .roadmap-cta {
+      margin-top: 3rem;
+      padding: 1.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      text-align: center;
+    }
+    .roadmap-cta p { color: var(--text-muted); font-size: 0.875rem; margin: 0 0 0.5rem; }
+    .roadmap-cta p:last-of-type { margin-bottom: 0; }
+    .roadmap-cta a {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .roadmap-cta a:hover { text-decoration: underline; }
+
+    .site-footer {
+      border-top: 1px solid var(--border);
+      padding: 1.5rem 0 2rem;
+      margin-top: 2rem;
+    }
+
+    .site-footer p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .site-footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    .site-footer a:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="page-bg" aria-hidden="true"></div>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="wrap nav-inner">
+      <a class="logo" href="/" aria-label="Farol home">
+        <span class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <path d="M12 3L4 9v12h16V9l-8-6z" />
+            <path d="M9 21V12h6v9" />
+            <circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none" />
+          </svg>
+        </span>
+        Farol
+      </a>
+      <div class="nav-links">
+        <a href="/docs" class="nav-link">Docs</a>
+        <a href="https://github.com/hugoapolinario/farol" class="nav-link" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="/demo" class="nav-link">View demo</a>
+        <a href="/login" class="nav-link">Log in</a>
+        <a href="/signup" class="nav-cta">Get started</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="wrap">
+      <header class="roadmap-hero">
+        <h1>Roadmap</h1>
+        <p class="roadmap-sub">What we’re building next. No dates — just direction.</p>
+      </header>
+
+      <section class="roadmap-section" aria-labelledby="shipped-title">
+        <h2 class="roadmap-section-title" id="shipped-title">Recently shipped</h2>
+        <div class="roadmap-items">
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot shipped" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">Proactive trend alerts</div>
+              <p class="roadmap-item-desc">Cost, latency, and success rate drift detection.</p>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot shipped" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">Alert grouping</div>
+              <p class="roadmap-item-desc">Multiple agents affected by the same issue shown as one alert.</p>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot shipped" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">Multi-agent trace linking</div>
+              <p class="roadmap-item-desc">Connect child agent runs to their parent pipeline.</p>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot shipped" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">Prompt version tagging</div>
+              <p class="roadmap-item-desc">Compare cost and quality across prompt versions.</p>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot shipped" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">Agent Health Score</div>
+              <p class="roadmap-item-desc">One number (0–100) combining all agent signals.</p>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot shipped" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">Framework integrations</div>
+              <p class="roadmap-item-desc">LangChain, CrewAI, and Vercel AI SDK examples in the docs.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="roadmap-section" aria-labelledby="next-title">
+        <h2 class="roadmap-section-title" id="next-title">Coming next</h2>
+        <div class="roadmap-items">
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot next" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">Auto-propagation of trace context across agent boundaries</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot next" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">Alert grouping by root cause</div>
+              <p class="roadmap-item-desc">Not just time proximity.</p>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot next" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">Cost optimization insights</div>
+              <p class="roadmap-item-desc">Identify redundant tool calls.</p>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot next" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">Prompt version filter in runs table</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot next" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">LangChain / CrewAI first-class SDK integration</div>
+              <p class="roadmap-item-desc">Beyond documentation examples.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="roadmap-section" aria-labelledby="later-title" style="margin-bottom:0">
+        <h2 class="roadmap-section-title" id="later-title">Later</h2>
+        <div class="roadmap-items">
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot later" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">OpenTelemetry compatibility bridge</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot later" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">DAG visualization for multi-agent pipelines</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot later" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">Evals system</div>
+              <p class="roadmap-item-desc">Structured output quality beyond thumbs up/down.</p>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot later" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">Team features for Studio plan</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot later" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">Audit log export for compliance</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <span class="roadmap-item-dot later" aria-hidden="true"></span>
+            <div>
+              <div class="roadmap-item-title">Auto-failover to cheaper model when budget is hit</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="roadmap-cta">
+        <p><a href="/feedback">Want to influence the roadmap? Share your thoughts →</a></p>
+        <p><a href="https://github.com/hugoapolinario/farol/issues" target="_blank" rel="noopener noreferrer">See detailed issues on GitHub →</a></p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>© <span translate="no">2026</span> Farol · <a href="/">Home</a> · <a href="/changelog">Changelog</a> · <a href="/roadmap">Roadmap</a></p>
+    </div>
+  </footer>
+
+  <script src="/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    (async () => {
+      if (!window.SUPABASE_URL || !window.SUPABASE_KEY || typeof supabase === "undefined") return;
+      const { createClient } = supabase;
+      const client = createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+      const { data: { session } } = await client.auth.getSession();
+
+      if (!session) return;
+
+      const email = session.user.email;
+
+      const navLogin = document.querySelector('a[href="/login"]');
+      const navGetStarted = document.querySelector('a[href="/signup"]');
+      if (navLogin) navLogin.style.display = "none";
+      if (navGetStarted) navGetStarted.style.display = "none";
+
+      const nav = document.querySelector(".nav-links") ?? document.querySelector("nav");
+      if (nav) {
+        const dashBtn = document.createElement("a");
+        dashBtn.href = "/app";
+        dashBtn.className = "btn-primary";
+        dashBtn.textContent = "Dashboard →";
+        dashBtn.style.marginLeft = "0.5rem";
+
+        const emailSpan = document.createElement("span");
+        emailSpan.textContent = email;
+        emailSpan.style.cssText = "font-size:0.8rem;color:var(--text-muted);margin-right:0.5rem";
+
+        nav.appendChild(emailSpan);
+        nav.appendChild(dashBtn);
+      }
+    })();
+  </script>
+</body>
+</html>
