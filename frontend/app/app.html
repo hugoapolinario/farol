@@ -1130,6 +1130,20 @@
       margin-top: 0.15rem;
     }
 
+    .kpi-delta-wrap {
+      min-height: 1.2rem;
+      margin-top: 0.25rem;
+    }
+
+    .kpi-delta {
+      font-size: 0.72rem;
+      font-weight: 500;
+    }
+
+    .kpi-delta-good { color: #4ade80; }
+    .kpi-delta-bad { color: #ef4444; }
+    .kpi-delta-neutral { color: var(--text-muted); }
+
     .table-wrap-inner {
       overflow-x: auto;
     }
@@ -2306,19 +2320,23 @@
             <div class="runs-summary-item">
               <div class="runs-summary-label">Total runs</div>
               <div class="runs-summary-value" id="sum-total">—</div>
+              <div class="kpi-delta-wrap" id="sum-total-delta"></div>
             </div>
             <div class="runs-summary-item">
               <div class="runs-summary-label">Success rate</div>
               <div class="runs-summary-value accent" id="sum-success">—</div>
+              <div class="kpi-delta-wrap" id="sum-success-delta"></div>
             </div>
             <div class="runs-summary-item">
               <div class="runs-summary-label">Avg duration</div>
               <div class="runs-summary-value kpi-value" id="sum-duration">—</div>
+              <div class="kpi-delta-wrap" id="sum-duration-delta"></div>
               <div class="kpi-sub" id="sum-duration-p95">p95: —</div>
             </div>
             <div class="runs-summary-item">
               <div class="runs-summary-label">Total cost</div>
               <div class="runs-summary-value accent" id="sum-cost">—</div>
+              <div class="kpi-delta-wrap" id="sum-cost-delta"></div>
             </div>
           </div>
           <div class="ov-empty" id="ov-empty" hidden>No runs in this period.</div>
@@ -2977,6 +2995,14 @@ def my_agent(task, run=None):
       });
     }
 
+    function getOverviewRunsForDeltas() {
+      const cutoff = Date.now() - 14 * 86400000;
+      return allRuns.filter(function (r) {
+        const ts = r.timestamp ? new Date(r.timestamp).getTime() : 0;
+        return ts >= cutoff && (ovAgent === "" || r.agent === ovAgent);
+      });
+    }
+
     function populateOvAgentFilter() {
       const prev = ovAgentEl.value;
       ovAgentEl.innerHTML = '<option value="">All agents</option>';
@@ -3107,6 +3133,118 @@ def my_agent(task, run=None):
       return ms >= 1000 ? (ms / 1000).toFixed(1) + "s" : ms + "ms";
     }
 
+    function computeWeekOverWeekDeltas(runs) {
+      var now = Date.now();
+      var WEEK = 7 * 24 * 60 * 60 * 1000;
+
+      function getTime(r) {
+        return typeof r.timestamp === "number"
+          ? r.timestamp
+          : new Date(r.timestamp).getTime();
+      }
+
+      var current = runs.filter(function (r) { return getTime(r) >= now - WEEK; });
+      var previous = runs.filter(function (r) {
+        var t = getTime(r);
+        return t >= now - 2 * WEEK && t < now - WEEK;
+      });
+
+      if (current.length < 10 || previous.length < 10) return null;
+
+      var runDelta = Math.round(((current.length - previous.length) / previous.length) * 100);
+
+      var currentSuccess = Math.round(
+        (current.filter(function (r) { return r.status === "success"; }).length / current.length) * 100
+      );
+      var previousSuccess = Math.round(
+        (previous.filter(function (r) { return r.status === "success"; }).length / previous.length) * 100
+      );
+      var successDelta = currentSuccess - previousSuccess;
+
+      function median(arr) {
+        if (!arr.length) return 0;
+        var s = arr.slice().sort(function (a, b) { return a - b; });
+        var m = Math.floor(s.length / 2);
+        return s.length % 2 === 0 ? (s[m - 1] + s[m]) / 2 : s[m];
+      }
+      var currentCosts = current.map(function (r) { return Number(r.cost_usd) || 0; });
+      var previousCosts = previous.map(function (r) { return Number(r.cost_usd) || 0; });
+      var currentMedianCost = median(currentCosts);
+      var previousMedianCost = median(previousCosts);
+      var costDeltaPct =
+        previousMedianCost > 0
+          ? Math.round(((currentMedianCost - previousMedianCost) / previousMedianCost) * 100)
+          : null;
+
+      function p95(arr) {
+        if (!arr.length) return 0;
+        var s = arr.slice().sort(function (a, b) { return a - b; });
+        return s[Math.min(Math.floor(s.length * 0.95), s.length - 1)];
+      }
+      var currentDurations = current
+        .filter(function (r) { return r.status === "success" && r.duration_ms; })
+        .map(function (r) { return r.duration_ms; });
+      var previousDurations = previous
+        .filter(function (r) { return r.status === "success" && r.duration_ms; })
+        .map(function (r) { return r.duration_ms; });
+      var currentP95 = p95(currentDurations);
+      var previousP95 = p95(previousDurations);
+      var durationDeltaPct =
+        previousP95 > 0
+          ? Math.round(((currentP95 - previousP95) / previousP95) * 100)
+          : null;
+
+      return {
+        runDelta: runDelta,
+        successDelta: successDelta,
+        costDeltaPct: costDeltaPct,
+        durationDeltaPct: durationDeltaPct,
+      };
+    }
+
+    function renderDelta(pct, inverseGood, isSuccessDelta, neutralOnly) {
+      if (pct === null || pct === undefined) return "";
+      neutralOnly = !!neutralOnly;
+      isSuccessDelta = !!isSuccessDelta;
+      if (neutralOnly) {
+        if (pct === 0) return '<span class="kpi-delta kpi-delta-neutral">→ stable</span>';
+        var arrN = pct > 0 ? "↑" : "↓";
+        return (
+          '<span class="kpi-delta kpi-delta-neutral">' +
+          arrN +
+          Math.abs(pct) +
+          "% vs last week</span>"
+        );
+      }
+      if (isSuccessDelta && Math.abs(pct) < 2) {
+        return '<span class="kpi-delta kpi-delta-neutral">→ stable</span>';
+      }
+      if (pct === 0) return '<span class="kpi-delta kpi-delta-neutral">→ stable</span>';
+      var arrow = pct > 0 ? "↑" : "↓";
+      var cls = inverseGood
+        ? pct <= 0
+          ? "kpi-delta-good"
+          : "kpi-delta-bad"
+        : pct >= 0
+          ? "kpi-delta-good"
+          : "kpi-delta-bad";
+      return (
+        '<span class="kpi-delta ' +
+        cls +
+        '">' +
+        arrow +
+        Math.abs(pct) +
+        "% vs last week</span>"
+      );
+    }
+
+    function clearKpiDeltas() {
+      ["sum-total-delta", "sum-success-delta", "sum-duration-delta", "sum-cost-delta"].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.innerHTML = "";
+      });
+    }
+
     function renderSummary(runs) {
       const n = runs.length;
       const durEl = document.getElementById("sum-duration");
@@ -3117,6 +3255,7 @@ def my_agent(task, run=None):
         durEl.textContent = "—";
         if (p95El) p95El.textContent = "p95: —";
         document.getElementById("sum-cost").textContent = "—";
+        clearKpiDeltas();
         return;
       }
       document.getElementById("sum-total").textContent = String(n);
@@ -3128,6 +3267,21 @@ def my_agent(task, run=None):
       if (p95El) p95El.textContent = "p95: " + (p95ms > 0 ? fmtDuration(p95ms) : "—");
       const totalCost = runs.reduce(function (a, r) { return a + (Number(r.cost_usd) || 0); }, 0);
       document.getElementById("sum-cost").textContent = "$" + totalCost.toFixed(5);
+
+      var deltas = computeWeekOverWeekDeltas(getOverviewRunsForDeltas());
+      if (!deltas) {
+        clearKpiDeltas();
+      } else {
+        var el;
+        el = document.getElementById("sum-total-delta");
+        if (el) el.innerHTML = renderDelta(deltas.runDelta, false, false, true);
+        el = document.getElementById("sum-success-delta");
+        if (el) el.innerHTML = renderDelta(deltas.successDelta, false, true);
+        el = document.getElementById("sum-duration-delta");
+        if (el) el.innerHTML = renderDelta(deltas.durationDeltaPct, true);
+        el = document.getElementById("sum-cost-delta");
+        if (el) el.innerHTML = renderDelta(deltas.costDeltaPct, true);
+      }
     }
 
     function tooltipPlugin(formatFn) {
