@@ -9,6 +9,8 @@ interface TraceOptions {
     /** 0.0 to 1.0, default 1.0 */
     sampleRate?: number;
     promptVersion?: string;
+    /** Parent run id when this run was spawned by another agent */
+    parentTraceId?: string;
 }
 interface SpanOptions {
     type?: "tool" | "llm";
@@ -49,6 +51,7 @@ declare class Run {
     anomaly: boolean;
     anomalyReason?: string;
     promptVersion?: string;
+    parentTraceId?: string;
     constructor(agentName: string, model: string);
     startSpan(name: string, options?: SpanOptions): Span;
 }

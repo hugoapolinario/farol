@@ -67,9 +67,11 @@ function trace(fn, options) {
     costPer1kOutputTokens = 125e-5,
     captureIo = false,
     sampleRate = 1,
-    promptVersion
+    promptVersion,
+    parentTraceId
   } = options;
   const safePromptVersion = promptVersion ? promptVersion.slice(0, 50) : void 0;
+  const safeParentTraceId = parentTraceId ? parentTraceId.slice(0, 50) : void 0;
   if (captureIo) {
     console.warn(
       "[Farol] WARNING: captureIo is enabled \u2014 prompts are being stored in your Farol dashboard"
@@ -78,6 +80,7 @@ function trace(fn, options) {
   return async (...args) => {
     const run = new Run(agentName, model);
     const startTime = Date.now();
+    if (safeParentTraceId) run.parentTraceId = safeParentTraceId;
     try {
       const result = await fn(run, ...args);
       run.status = "success";
@@ -123,6 +126,7 @@ async function sendToFarol(run, farolKey, endpoint, captureIo) {
       anomaly: run.anomaly,
       anomaly_reason: run.anomalyReason ?? null,
       prompt_version: run.promptVersion ?? null,
+      parent_trace_id: run.parentTraceId ?? null,
       farol_key: farolKey
     };
     const res = await fetch(endpoint, {
