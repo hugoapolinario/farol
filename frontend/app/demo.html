@@ -1003,6 +1003,34 @@
       opacity: 1;
     }
 
+    .alert-item.trend { border-color: rgba(148,163,184,0.3); background: rgba(148,163,184,0.05); }
+    .alert-item.trend:hover { background: rgba(148,163,184,0.08); border-color: rgba(148,163,184,0.45); }
+    .alert-trend-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(148,163,184,0.1);
+      color: #94a3b8;
+      border: 1px solid rgba(148,163,184,0.25);
+      margin-right: 0.5rem;
+    }
+    .alert-item-trend-footer {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .alert-item-trend-footer .alert-view-runs {
+      margin-left: auto;
+      opacity: 0.75;
+    }
+    .alert-item:hover .alert-item-trend-footer .alert-view-runs {
+      opacity: 1;
+    }
+
     /* ── Modal overlay ───────────────────────────────────────────── */
     @keyframes modal-backdrop-in {
       from { opacity: 0; }
@@ -2113,52 +2141,52 @@ def my_agent(task, run=None):
       { id:"run_d10", agent:"data-pipeline",   topic:"Weekly aggregation pipeline Jan 2026",            model:"claude-haiku-4-5",  status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:6600, cost_usd:0.000139, input_tokens:3180, output_tokens:872, error:null, steps:[], timestamp:ts(61*D),  spans:pipelineSpans(6600,false) },
 
       /* research-agent duration alert demo: latest successful run far above median baseline */
-      { id:"run_r_dur", agent:"research-agent", topic:"Duration spike demo — extended literature crawl", model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:35000, cost_usd:0.000252, input_tokens:2400, output_tokens:800, error:null, steps:[], prompt_version:"v2", timestamp:ts(30*60*1000), spans:researchSpans(35000) }
+      { id:"run_r_dur", agent:"research-agent", topic:"Duration spike demo — extended literature crawl", model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4200, cost_usd:0.00025, input_tokens:2400, output_tokens:800, error:null, steps:[], prompt_version:"v2", timestamp:ts(30*60*1000), spans:researchSpans(4200) }
     ];
-    (function latencyP95DemoRuns() {
-      const ref = NOW - 30 * 60 * 1000;
-      for (let i = 0; i < 22; i++) {
-        const d = 8000 + (i % 8) * 900;
+    (function trendDemoResearchRuns() {
+      var latest = NOW - 2 * 60 * 1000;
+      for (var ci = 0; ci < 50; ci++) {
+        var cdur = ci < 5 ? 5000 : 2000;
         allRuns.push({
-          id: "run_lat_c_" + i,
+          id: "run_trend_c_" + ci,
           agent: "research-agent",
-          topic: "Latency p95 demo — current week " + i,
+          topic: "Trend demo — current week " + ci,
           model: "claude-sonnet-4-5",
           status: "success",
           anomaly: false,
           anomaly_reason: null,
-          duration_ms: d,
-          cost_usd: 0.00022,
+          duration_ms: cdur,
+          cost_usd: 0.00052,
           input_tokens: 1900,
           output_tokens: 620,
           error: null,
           steps: [],
-          prompt_version: i % 2 === 0 ? "v2" : "v3",
-          quality_score: i % 2 === 0 ? 1 : -1,
-          timestamp: ref - 2 * H - i * 3 * H,
-          spans: researchSpans(d),
+          prompt_version: ci % 2 === 0 ? "v2" : "v3",
+          quality_score: ci % 2 === 0 ? 1 : -1,
+          timestamp: latest - ci * 45 * 60 * 1000,
+          spans: researchSpans(cdur),
         });
       }
-      for (let i = 0; i < 22; i++) {
-        const d = 2000 + (i % 5) * 400;
+      for (var pi = 0; pi < 50; pi++) {
+        var pdur = pi < 5 ? 3000 : 2000;
         allRuns.push({
-          id: "run_lat_p_" + i,
+          id: "run_trend_p_" + pi,
           agent: "research-agent",
-          topic: "Latency p95 demo — prior week " + i,
+          topic: "Trend demo — prior week " + pi,
           model: "claude-sonnet-4-5",
           status: "success",
           anomaly: false,
           anomaly_reason: null,
-          duration_ms: d,
-          cost_usd: 0.000204,
+          duration_ms: pdur,
+          cost_usd: 0.0004,
           input_tokens: 1820,
           output_tokens: 598,
           error: null,
           steps: [],
-          prompt_version: i % 2 === 0 ? "v2" : "v3",
-          quality_score: i % 2 === 0 ? 1 : -1,
-          timestamp: ref - 10 * D - i * 4 * H,
-          spans: researchSpans(d),
+          prompt_version: pi % 2 === 0 ? "v2" : "v3",
+          quality_score: pi % 2 === 0 ? 1 : -1,
+          timestamp: latest - 8 * D - pi * 45 * 60 * 1000,
+          spans: researchSpans(pdur),
         });
       }
     })();
@@ -3174,17 +3202,135 @@ def my_agent(task, run=None):
       return alerts;
     }
 
+    function computeTrendAlerts(runs) {
+      if (!runs.length) return [];
+      var nowRef = Math.max.apply(
+        null,
+        runs.map(function (r) {
+          return Number(new Date(r.timestamp));
+        }),
+      );
+      if (!isFinite(nowRef)) return [];
+      var WEEK = 7 * 24 * 60 * 60 * 1000;
+      var agents = Array.from(new Set(runs.map(function (r) { return r.agent; }).filter(Boolean)));
+      var alerts = [];
+      for (var ai = 0; ai < agents.length; ai++) {
+        var agent = agents[ai];
+        var agentRuns = runs.filter(function (r) { return r.agent === agent; });
+        var current = agentRuns.filter(function (r) {
+          return Number(new Date(r.timestamp)) >= nowRef - WEEK;
+        });
+        var previous = agentRuns.filter(function (r) {
+          var t = Number(new Date(r.timestamp));
+          return t >= nowRef - 2 * WEEK && t < nowRef - WEEK;
+        });
+        if (current.length < 20 || previous.length < 20) continue;
+
+        function median(arr) {
+          if (!arr.length) return 0;
+          var sorted = arr.slice().sort(function (a, b) { return a - b; });
+          var mid = Math.floor(sorted.length / 2);
+          return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+        }
+
+        var currentCosts = current.map(function (r) { return r.cost_usd != null ? r.cost_usd : 0; });
+        var previousCosts = previous.map(function (r) { return r.cost_usd != null ? r.cost_usd : 0; });
+        var currentMedianCost = median(currentCosts);
+        var previousMedianCost = median(previousCosts);
+        if (previousMedianCost > 0) {
+          var costIncrease = (currentMedianCost - previousMedianCost) / previousMedianCost;
+          var absoluteIncrease = currentMedianCost - previousMedianCost;
+          if (costIncrease >= 0.2 && absoluteIncrease > 0.0001) {
+            alerts.push({
+              id: "trend_cost_" + agent,
+              agent: agent,
+              type: "trend",
+              subtype: "cost",
+              message:
+                agent +
+                " cost is trending " +
+                Math.round(costIncrease * 100) +
+                "% higher this week (median: $" +
+                currentMedianCost.toFixed(6) +
+                " vs $" +
+                previousMedianCost.toFixed(6) +
+                " last week)",
+              delta: Math.round(costIncrease * 100),
+            });
+          }
+        }
+
+        var successCurrent = current.filter(function (r) { return r.status === "success" && r.duration_ms; });
+        var successPrevious = previous.filter(function (r) { return r.status === "success" && r.duration_ms; });
+        if (successCurrent.length >= 20 && successPrevious.length >= 20) {
+          function p95(arr) {
+            var sorted = arr.slice().sort(function (a, b) { return a - b; });
+            return sorted[Math.min(Math.floor(sorted.length * 0.95), sorted.length - 1)];
+          }
+          var currentP95 = p95(successCurrent.map(function (r) { return r.duration_ms; }));
+          var previousP95 = p95(successPrevious.map(function (r) { return r.duration_ms; }));
+          if (previousP95 > 0) {
+            var latencyIncrease = (currentP95 - previousP95) / previousP95;
+            if (latencyIncrease >= 0.15) {
+              alerts.push({
+                id: "trend_latency_" + agent,
+                agent: agent,
+                type: "trend",
+                subtype: "latency",
+                message:
+                  agent +
+                  " is trending " +
+                  Math.round(latencyIncrease * 100) +
+                  "% slower this week (p95: " +
+                  (currentP95 / 1000).toFixed(1) +
+                  "s vs " +
+                  (previousP95 / 1000).toFixed(1) +
+                  "s last week)",
+                delta: Math.round(latencyIncrease * 100),
+              });
+            }
+          }
+        }
+
+        var currentSuccessRate = current.filter(function (r) { return r.status === "success"; }).length / current.length * 100;
+        var previousSuccessRate = previous.filter(function (r) { return r.status === "success"; }).length / previous.length * 100;
+        var rateDrop = previousSuccessRate - currentSuccessRate;
+        var additionalFailures = Math.round((rateDrop / 100) * current.length);
+        if (rateDrop >= 5 && additionalFailures >= 3) {
+          alerts.push({
+            id: "trend_success_" + agent,
+            agent: agent,
+            type: "trend",
+            subtype: "success",
+            message:
+              agent +
+              " success rate is drifting down this week (" +
+              Math.round(currentSuccessRate) +
+              "% vs " +
+              Math.round(previousSuccessRate) +
+              "% last week — " +
+              additionalFailures +
+              " more failures)",
+            delta: Math.round(rateDrop),
+          });
+        }
+      }
+      return alerts;
+    }
+
     function updateAlertsBadge() {
       var anomalous   = allRuns.filter(function(r) { return r.anomaly; });
       var regressions = computeRegressionAlerts(allRuns);
       var qualities   = computeQualityAlerts(allRuns);
       var durations   = computeDurationAlerts(allRuns);
       var latencies   = computeLatencyAlerts(allRuns);
+      var trends      = computeTrendAlerts(allRuns);
       var unread = anomalous.filter(function(r) { return !seenAlerts.has(r.id); }).length
                    + regressions.filter(function(a) { return !seenAlerts.has(a.id); }).length
                    + qualities.filter(function(a) { return !seenAlerts.has(a.id); }).length
                    + durations.filter(function(a) { return !seenAlerts.has(a.id); }).length
-                   + latencies.filter(function(a) { return !seenAlerts.has(a.id); }).length;
+                   + latencies.filter(function(a) { return !seenAlerts.has(a.id); }).length
+                   + trends.filter(function(a) { return !seenAlerts.has(a.id); }).length;
       const el = document.getElementById("alerts-count");
       if (unread > 0) {
         el.textContent  = String(unread);
@@ -3205,8 +3351,9 @@ def my_agent(task, run=None):
       const qualities   = computeQualityAlerts(allRuns);
       const durations   = computeDurationAlerts(allRuns);
       const latencies   = computeLatencyAlerts(allRuns);
+      const trends      = computeTrendAlerts(allRuns);
 
-      if (!anomalous.length && !regressions.length && !qualities.length && !durations.length && !latencies.length) {
+      if (!anomalous.length && !regressions.length && !qualities.length && !durations.length && !latencies.length && !trends.length) {
         filterBar.hidden = true;
         el.innerHTML = '<div class="alerts-empty">No anomalies detected in this period.</div>';
         return;
@@ -3220,6 +3367,7 @@ def my_agent(task, run=None):
         ...qualities.map(function(a) { return a.agent || "—"; }),
         ...durations.map(function(a) { return a.agent || "—"; }),
         ...latencies.map(function(a) { return a.agent || "—"; }),
+        ...trends.map(function(a) { return a.agent || "—"; }),
       ]);
       const prevSel = alertsAgentFilter;
       filterSel.innerHTML = '<option value="">All agents</option>';
@@ -3246,8 +3394,11 @@ def my_agent(task, run=None):
       const visibleLatencies = alertsAgentFilter
         ? latencies.filter(function(a) { return a.agent === alertsAgentFilter; })
         : latencies;
+      const visibleTrends = alertsAgentFilter
+        ? trends.filter(function(a) { return a.agent === alertsAgentFilter; })
+        : trends;
 
-      if (!visibleAnomalous.length && !visibleRegressions.length && !visibleQualities.length && !visibleDurations.length && !visibleLatencies.length) {
+      if (!visibleAnomalous.length && !visibleRegressions.length && !visibleQualities.length && !visibleDurations.length && !visibleLatencies.length && !visibleTrends.length) {
         el.innerHTML = '<div class="alerts-empty">No alerts for this agent.</div>';
         return;
       }
@@ -3341,6 +3492,24 @@ def my_agent(task, run=None):
         );
       });
 
+      const trendCards = visibleTrends.map(function(a) {
+        const isRead = seenAlerts.has(a.id);
+        const badgeText = a.subtype === "cost" ? "Cost trend" : a.subtype === "latency" ? "Latency trend" : "Success drift";
+        return (
+          '<div class="alert-item trend' + (isRead ? " read" : "") + '" data-alert-id="' + escapeHtml(a.id) + '" data-agent="' + escapeHtml(a.agent) + '">' +
+          '<div class="alert-item-header">' +
+            '<div class="alert-item-left"><span class="alert-item-agent">📈 ' + escapeHtml(a.agent) + "</span></div>" +
+            '<div class="alert-item-right"><span class="alert-item-time">This week</span></div>' +
+          "</div>" +
+          '<div class="alert-item-topic">' + escapeHtml(a.message) + "</div>" +
+          '<div class="alert-item-trend-footer">' +
+            '<span class="alert-trend-badge">' + escapeHtml(badgeText) + "</span>" +
+            '<span class="alert-view-runs" data-agent="' + escapeHtml(a.agent) + '">View runs →</span>' +
+          "</div>" +
+          "</div>"
+        );
+      });
+
       const listChunks = [];
       if (visibleAnomalous.length) {
         listChunks.push(
@@ -3387,6 +3556,15 @@ def my_agent(task, run=None):
         );
         listChunks.push(qualityCards.join(""));
       }
+      if (visibleTrends.length) {
+        listChunks.push(
+          '<div class="alert-section-header" id="trend-alerts-header">' +
+            '<span class="alert-section-title">Trends</span>' +
+            '<span class="alert-section-count">' + visibleTrends.length + "</span>" +
+            "</div>"
+        );
+        listChunks.push(trendCards.join(""));
+      }
       el.innerHTML = '<div class="alerts-list">' + listChunks.join("") + "</div>";
 
       /* Wire anomaly cards */
@@ -3419,7 +3597,9 @@ def my_agent(task, run=None):
       });
 
       /* Wire regression, quality & latency cards */
-      el.querySelectorAll(".alert-item.regression[data-alert-id], .alert-item.quality[data-alert-id], .alert-item.latency[data-alert-id]").forEach(function(item) {
+      el.querySelectorAll(
+        ".alert-item.regression[data-alert-id], .alert-item.quality[data-alert-id], .alert-item.latency[data-alert-id], .alert-item.trend[data-alert-id]"
+      ).forEach(function(item) {
         const alertId = item.dataset.alertId;
         const agent   = item.dataset.agent;
 
@@ -3429,14 +3609,13 @@ def my_agent(task, run=None):
           applyFilterAndRender();
         }
 
-        const runsLink = item.querySelector(".alert-view-runs");
-        if (runsLink) {
+        item.querySelectorAll(".alert-view-runs").forEach(function(runsLink) {
           runsLink.addEventListener("click", function(e) {
             e.stopPropagation();
             markAlertRead(alertId, item);
             openRegressionRuns();
           });
-        }
+        });
         item.addEventListener("click", function() {
           markAlertRead(alertId, item);
           openRegressionRuns();

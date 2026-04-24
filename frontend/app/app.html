@@ -1494,6 +1494,34 @@
       opacity: 1;
     }
 
+    .alert-item.trend { border-color: rgba(148,163,184,0.3); background: rgba(148,163,184,0.05); }
+    .alert-item.trend:hover { background: rgba(148,163,184,0.08); border-color: rgba(148,163,184,0.45); }
+    .alert-trend-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(148,163,184,0.1);
+      color: #94a3b8;
+      border: 1px solid rgba(148,163,184,0.25);
+      margin-right: 0.5rem;
+    }
+    .alert-item-trend-footer {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .alert-item-trend-footer .alert-view-runs {
+      margin-left: auto;
+      opacity: 0.75;
+    }
+    .alert-item:hover .alert-item-trend-footer .alert-view-runs {
+      opacity: 1;
+    }
+
     /* ── Agent cards ─────────────────────────────────────────────── */
     .agents-grid {
       display: grid;
@@ -3569,17 +3597,139 @@ def my_agent(task, run=None):
       return alerts;
     }
 
+    function computeTrendAlerts(runs) {
+      if (!runs.length) return [];
+      const nowRef = Math.max.apply(
+        null,
+        runs.map(function (r) {
+          return Number(new Date(r.timestamp));
+        }),
+      );
+      if (!Number.isFinite(nowRef)) return [];
+      const WEEK = 7 * 24 * 60 * 60 * 1000;
+      const agents = Array.from(new Set(runs.map(function (r) { return r.agent; }).filter(Boolean)));
+      const alerts = [];
+
+      for (var ai = 0; ai < agents.length; ai++) {
+        const agent = agents[ai];
+        const agentRuns = runs.filter(function (r) { return r.agent === agent; });
+        const current = agentRuns.filter(function (r) {
+          return Number(new Date(r.timestamp)) >= nowRef - WEEK;
+        });
+        const previous = agentRuns.filter(function (r) {
+          const t = Number(new Date(r.timestamp));
+          return t >= nowRef - 2 * WEEK && t < nowRef - WEEK;
+        });
+
+        if (current.length < 20 || previous.length < 20) continue;
+
+        function median(arr) {
+          if (!arr.length) return 0;
+          const sorted = arr.slice().sort(function (a, b) { return a - b; });
+          const mid = Math.floor(sorted.length / 2);
+          return sorted.length % 2 === 0
+            ? (sorted[mid - 1] + sorted[mid]) / 2
+            : sorted[mid];
+        }
+
+        const currentCosts = current.map(function (r) { return r.cost_usd != null ? r.cost_usd : 0; });
+        const previousCosts = previous.map(function (r) { return r.cost_usd != null ? r.cost_usd : 0; });
+        const currentMedianCost = median(currentCosts);
+        const previousMedianCost = median(previousCosts);
+        if (previousMedianCost > 0) {
+          const costIncrease = (currentMedianCost - previousMedianCost) / previousMedianCost;
+          const absoluteIncrease = currentMedianCost - previousMedianCost;
+          if (costIncrease >= 0.2 && absoluteIncrease > 0.0001) {
+            alerts.push({
+              id: "trend_cost_" + agent,
+              agent: agent,
+              type: "trend",
+              subtype: "cost",
+              message:
+                agent +
+                " cost is trending " +
+                Math.round(costIncrease * 100) +
+                "% higher this week (median: $" +
+                currentMedianCost.toFixed(6) +
+                " vs $" +
+                previousMedianCost.toFixed(6) +
+                " last week)",
+              delta: Math.round(costIncrease * 100),
+            });
+          }
+        }
+
+        const successCurrent = current.filter(function (r) { return r.status === "success" && r.duration_ms; });
+        const successPrevious = previous.filter(function (r) { return r.status === "success" && r.duration_ms; });
+        if (successCurrent.length >= 20 && successPrevious.length >= 20) {
+          function p95(arr) {
+            const sorted = arr.slice().sort(function (a, b) { return a - b; });
+            return sorted[Math.min(Math.floor(sorted.length * 0.95), sorted.length - 1)];
+          }
+          const currentP95 = p95(successCurrent.map(function (r) { return r.duration_ms; }));
+          const previousP95 = p95(successPrevious.map(function (r) { return r.duration_ms; }));
+          if (previousP95 > 0) {
+            const latencyIncrease = (currentP95 - previousP95) / previousP95;
+            if (latencyIncrease >= 0.15) {
+              alerts.push({
+                id: "trend_latency_" + agent,
+                agent: agent,
+                type: "trend",
+                subtype: "latency",
+                message:
+                  agent +
+                  " is trending " +
+                  Math.round(latencyIncrease * 100) +
+                  "% slower this week (p95: " +
+                  (currentP95 / 1000).toFixed(1) +
+                  "s vs " +
+                  (previousP95 / 1000).toFixed(1) +
+                  "s last week)",
+                delta: Math.round(latencyIncrease * 100),
+              });
+            }
+          }
+        }
+
+        const currentSuccessRate = current.filter(function (r) { return r.status === "success"; }).length / current.length * 100;
+        const previousSuccessRate = previous.filter(function (r) { return r.status === "success"; }).length / previous.length * 100;
+        const rateDrop = previousSuccessRate - currentSuccessRate;
+        const additionalFailures = Math.round((rateDrop / 100) * current.length);
+        if (rateDrop >= 5 && additionalFailures >= 3) {
+          alerts.push({
+            id: "trend_success_" + agent,
+            agent: agent,
+            type: "trend",
+            subtype: "success",
+            message:
+              agent +
+              " success rate is drifting down this week (" +
+              Math.round(currentSuccessRate) +
+              "% vs " +
+              Math.round(previousSuccessRate) +
+              "% last week — " +
+              additionalFailures +
+              " more failures)",
+            delta: Math.round(rateDrop),
+          });
+        }
+      }
+      return alerts;
+    }
+
     function updateAlertsBadge() {
       const anomalous   = allRuns.filter(function (r) { return r.anomaly; });
       const regressions = computeRegressionAlerts(allRuns);
       const qualities   = computeQualityAlerts(allRuns);
       const durations   = computeDurationAlerts(allRuns);
       const latencies   = computeLatencyAlerts(allRuns);
+      const trends      = computeTrendAlerts(allRuns);
       const unread = anomalous.filter(function (r) { return !seenAlerts.has(r.id); }).length
                    + regressions.filter(function (a) { return !seenAlerts.has(a.id); }).length
                    + qualities.filter(function (a) { return !seenAlerts.has(a.id); }).length
                    + durations.filter(function (a) { return !seenAlerts.has(a.id); }).length
-                   + latencies.filter(function (a) { return !seenAlerts.has(a.id); }).length;
+                   + latencies.filter(function (a) { return !seenAlerts.has(a.id); }).length
+                   + trends.filter(function (a) { return !seenAlerts.has(a.id); }).length;
       const el = document.getElementById("alerts-count");
       if (!el) return;
       if (unread > 0) {
@@ -3602,12 +3752,13 @@ def my_agent(task, run=None):
       const qualities   = computeQualityAlerts(allRuns);
       const durations   = computeDurationAlerts(allRuns);
       const latencies   = computeLatencyAlerts(allRuns);
+      const trends      = computeTrendAlerts(allRuns);
 
       document.querySelectorAll(".alerts-filter-btn").forEach(function (b) {
         b.classList.toggle("active", b.dataset.filter === alertsFilter);
       });
 
-      if (!anomalous.length && !regressions.length && !qualities.length && !durations.length && !latencies.length) {
+      if (!anomalous.length && !regressions.length && !qualities.length && !durations.length && !latencies.length && !trends.length) {
         if (filterBar) filterBar.hidden = true;
         if (readFilterEl) readFilterEl.hidden = true;
         if (listEl) listEl.innerHTML = '<div class="alerts-empty">No anomalies detected yet.</div>';
@@ -3623,6 +3774,7 @@ def my_agent(task, run=None):
         ...qualities.map(function (a) { return a.agent || "—"; }),
         ...durations.map(function (a) { return a.agent || "—"; }),
         ...latencies.map(function (a) { return a.agent || "—"; }),
+        ...trends.map(function (a) { return a.agent || "—"; }),
       ]);
       const prevSel = alertsAgentFilter;
       if (filterSel) {
@@ -3651,8 +3803,11 @@ def my_agent(task, run=None):
       const visibleLatencies = alertsAgentFilter
         ? latencies.filter(function (a) { return a.agent === alertsAgentFilter; })
         : latencies;
+      const visibleTrends = alertsAgentFilter
+        ? trends.filter(function (a) { return a.agent === alertsAgentFilter; })
+        : trends;
 
-      if (!visibleAnomalous.length && !visibleRegressions.length && !visibleQualities.length && !visibleDurations.length && !visibleLatencies.length) {
+      if (!visibleAnomalous.length && !visibleRegressions.length && !visibleQualities.length && !visibleDurations.length && !visibleLatencies.length && !visibleTrends.length) {
         if (listEl) listEl.innerHTML = '<div class="alerts-empty">No alerts for this agent.</div>';
         return;
       }
@@ -3673,6 +3828,9 @@ def my_agent(task, run=None):
       const displayLatencies = filterUnread
         ? visibleLatencies.filter(function (a) { return !seenAlerts.has(a.id); })
         : visibleLatencies;
+      const displayTrends = filterUnread
+        ? visibleTrends.filter(function (a) { return !seenAlerts.has(a.id); })
+        : visibleTrends;
 
       if (
         filterUnread &&
@@ -3680,7 +3838,8 @@ def my_agent(task, run=None):
         !displayRegressions.length &&
         !displayQualities.length &&
         !displayDurations.length &&
-        !displayLatencies.length
+        !displayLatencies.length &&
+        !displayTrends.length
       ) {
         if (listEl) listEl.innerHTML = '<div class="alerts-empty">No unread alerts — you\'re all caught up.</div>';
         return;
@@ -3789,6 +3948,27 @@ def my_agent(task, run=None):
         );
       });
 
+      const trendCards = displayTrends.map(function (a) {
+        const isRead = seenAlerts.has(a.id);
+        const badgeText =
+          a.subtype === "cost" ? "Cost trend" : a.subtype === "latency" ? "Latency trend" : "Success drift";
+        return (
+          '<div class="alert-item trend' + (isRead ? " read" : "") + '" data-alert-id="' + escapeHtml(a.id) + '" data-agent="' + escapeHtml(a.agent) + '">' +
+          '<div class="alert-item-header">' +
+            '<div class="alert-item-left"><span class="alert-item-agent">📈 ' + escapeHtml(a.agent) + '</span></div>' +
+            '<div class="alert-item-right">' +
+              '<span class="alert-item-time">This week</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="alert-item-topic">' + escapeHtml(a.message) + '</div>' +
+          '<div class="alert-item-trend-footer">' +
+            '<span class="alert-trend-badge">' + escapeHtml(badgeText) + '</span>' +
+            '<span class="alert-view-runs" data-agent="' + escapeHtml(a.agent) + '">View runs →</span>' +
+          '</div>' +
+          "</div>"
+        );
+      });
+
       const listChunks = [];
       if (displayAnomalous.length) {
         listChunks.push(
@@ -3835,6 +4015,15 @@ def my_agent(task, run=None):
         );
         listChunks.push(qualityCards.join(""));
       }
+      if (displayTrends.length) {
+        listChunks.push(
+          '<div class="alert-section-header" id="trend-alerts-header">' +
+            '<span class="alert-section-title">Trends</span>' +
+            '<span class="alert-section-count">' + displayTrends.length + "</span>" +
+            "</div>",
+        );
+        listChunks.push(trendCards.join(""));
+      }
       listEl.innerHTML = '<div class="alerts-list">' + listChunks.join("") + "</div>";
 
       /* Wire anomaly cards */
@@ -3865,10 +4054,10 @@ def my_agent(task, run=None):
         });
       });
 
-      /* Wire regression, quality & latency cards */
+      /* Wire regression, quality, latency & trend cards */
       listEl
         .querySelectorAll(
-          ".alert-item.regression[data-alert-id], .alert-item.quality[data-alert-id], .alert-item.latency[data-alert-id]",
+          ".alert-item.regression[data-alert-id], .alert-item.quality[data-alert-id], .alert-item.latency[data-alert-id], .alert-item.trend[data-alert-id]",
         )
         .forEach(function (item) {
         const alertId = item.dataset.alertId;
@@ -3880,14 +4069,14 @@ def my_agent(task, run=None):
           applyFilterAndRender();
         }
 
-        const runsLink = item.querySelector(".alert-view-runs");
-        if (runsLink) {
+        const runsLinks = item.querySelectorAll(".alert-view-runs");
+        runsLinks.forEach(function (runsLink) {
           runsLink.addEventListener("click", function (e) {
             e.stopPropagation();
             markAlertRead(alertId, item);
             openRegressionRuns();
           });
-        }
+        });
         item.addEventListener("click", function () {
           markAlertRead(alertId, item);
           openRegressionRuns();
