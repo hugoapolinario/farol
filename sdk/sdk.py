@@ -387,6 +387,7 @@ def trace(
     capture_io: bool = False,
     sample_rate: float = 1.0,  # 1.0 = 100%, 0.1 = 10%
     prompt_version: Optional[str] = None,
+    parent_trace_id: Optional[str] = None,
 ):
     def decorator(func):
         _capture_io_warned = False
@@ -415,6 +416,7 @@ def trace(
                 anomaly=False,
                 anomaly_reason=None,
                 prompt_version=prompt_version[:50] if prompt_version else None,
+                parent_trace_id=parent_trace_id[:50] if parent_trace_id else None,
             )
             if farol_key:
                 run["farol_key"] = farol_key

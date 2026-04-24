@@ -1112,6 +1112,10 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
               <td>Optional. Tag this run with a prompt version label (e.g. <code style="font-family:var(--font-mono);font-size:0.9em">"v2"</code>, <code style="font-family:var(--font-mono);font-size:0.9em">"after_refactor"</code>). Max 50 characters. Shown in the runs table and trace modal.</td>
             </tr>
             <tr>
+              <th scope="row">parent_trace_id</th>
+              <td>Optional. Link this run to a parent agent run. Pass the parent run's ID to reconstruct multi-agent pipelines.</td>
+            </tr>
+            <tr>
               <th scope="row">sample_rate</th>
               <td>Optional. Fraction of successful runs to send (<code style="font-family:var(--font-mono);font-size:0.9em">0.0</code>–<code style="font-family:var(--font-mono);font-size:0.9em">1.0</code>). Errors always sent. Default <code style="font-family:var(--font-mono);font-size:0.9em">1.0</code>.</td>
             </tr>
@@ -1131,6 +1135,10 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
             <tr>
               <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">promptVersion</code></th>
               <td>Optional. Tag this run with a prompt version label (e.g. <code style="font-family:var(--font-mono);font-size:0.9em">"v2"</code>). Max 50 characters. Shown in the runs table and trace modal.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">parentTraceId</code></th>
+              <td>Optional. Link this run to a parent agent run. Pass the parent run's ID to reconstruct multi-agent pipelines.</td>
             </tr>
           </tbody>
         </table>

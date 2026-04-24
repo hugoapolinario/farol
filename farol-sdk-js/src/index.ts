@@ -12,6 +12,8 @@ export interface TraceOptions {
   /** 0.0 to 1.0, default 1.0 */
   sampleRate?: number;
   promptVersion?: string;
+  /** Parent run id when this run was spawned by another agent */
+  parentTraceId?: string;
 }
 
 export interface SpanOptions {
@@ -86,6 +88,7 @@ export class Run {
   anomaly = false;
   anomalyReason?: string;
   promptVersion?: string;
+  parentTraceId?: string;
 
   constructor(agentName: string, model: string) {
     this.id = `run_${Date.now()}`;
@@ -115,8 +118,12 @@ export function trace<T extends unknown[], R>(
     captureIo = false,
     sampleRate = 1.0,
     promptVersion,
+    parentTraceId,
   } = options;
   const safePromptVersion = promptVersion ? promptVersion.slice(0, 50) : undefined;
+  const safeParentTraceId = parentTraceId
+    ? parentTraceId.slice(0, 50)
+    : undefined;
 
   if (captureIo) {
     console.warn(
@@ -127,6 +134,7 @@ export function trace<T extends unknown[], R>(
   return async (...args: T): Promise<R> => {
     const run = new Run(agentName, model);
     const startTime = Date.now();
+    if (safeParentTraceId) run.parentTraceId = safeParentTraceId;
 
     try {
       const result = await fn(run, ...args);
@@ -185,6 +193,7 @@ async function sendToFarol(
       anomaly: run.anomaly,
       anomaly_reason: run.anomalyReason ?? null,
       prompt_version: run.promptVersion ?? null,
+      parent_trace_id: run.parentTraceId ?? null,
       farol_key: farolKey,
     };
 

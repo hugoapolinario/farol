@@ -97,16 +97,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { farol_key, spans: rawSpans, prompt_version: rawPromptVersion, ...run } = body as {
+    const {
+      farol_key,
+      spans: rawSpans,
+      prompt_version: rawPromptVersion,
+      parent_trace_id: rawParentTraceId,
+      ...run
+    } = body as {
       farol_key?: string;
       spans?: unknown;
       prompt_version?: unknown;
+      parent_trace_id?: unknown;
       [key: string]: unknown;
     };
     const spans = Array.isArray(rawSpans) ? rawSpans : [];
     const promptVersion = typeof rawPromptVersion === "string"
       ? rawPromptVersion.slice(0, 50).replace(/[<>'"]/g, "").trim() || null
       : null;
+    const parentTraceId = typeof rawParentTraceId === "string"
+      ? rawParentTraceId.slice(0, 50).replace(/[^a-zA-Z0-9_-]/g, "")
+      : null;
+    const parentTraceIdSafe =
+      parentTraceId && parentTraceId.length > 0 ? parentTraceId : null;
 
     if (!farol_key) {
       return new Response(
@@ -240,7 +252,12 @@ Deno.serve(async (req) => {
     // ── Insert run ────────────────────────────────────────────────────
     const { error: insertError } = await supabase
       .from("runs")
-      .insert({ ...run, user_id: userId, prompt_version: promptVersion });
+      .insert({
+        ...run,
+        user_id: userId,
+        prompt_version: promptVersion,
+        parent_trace_id: parentTraceIdSafe,
+      });
 
     if (insertError) {
       return new Response(

@@ -446,6 +446,34 @@
       color: var(--text-muted);
     }
 
+    .trace-parent-link {
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .trace-link-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 0.78rem;
+      padding: 0;
+      text-decoration: underline;
+      font-family: inherit;
+    }
+
+    .trace-link-btn:hover {
+      color: #fb923c;
+    }
+
+    .trace-children-list {
+      margin-top: 0.25rem;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.35rem;
+    }
+
     .version-badge {
       display: inline-block;
       font-size: 0.65rem;
@@ -2448,6 +2476,15 @@ def my_agent(task, run=None):
         </div>
         <button class="close-btn" type="button" onclick="closeTrace()" aria-label="Close">&#x2715;</button>
       </div>
+      <div id="trace-parent-link" class="trace-parent-link" hidden>
+        <span style="font-size:0.78rem;color:var(--text-muted)">🔗 Spawned by </span>
+        <button type="button" id="trace-parent-agent" class="trace-link-btn"></button>
+      </div>
+      <div id="trace-children" class="trace-parent-link" hidden>
+        <span style="font-size:0.78rem;color:var(--text-muted)">🔗 Spawned runs: </span>
+        <div id="trace-children-list" class="trace-children-list"></div>
+      </div>
+      <div id="trace-total-cost" class="trace-parent-link" hidden style="font-size:0.78rem;color:var(--accent);font-weight:600"></div>
       <div class="trace-stats">
         <div class="trace-stat">
           <div class="trace-stat-label">Duration</div>
@@ -4622,10 +4659,13 @@ def my_agent(task, run=None):
         const noteIcon = noteTitle
           ? ` <span title="${noteTitle}" style="cursor:default">📝</span>`
           : "";
+        const parentIcon = r.parent_trace_id
+          ? ` <span title="Spawned by another agent" style="cursor:default;margin-left:0.3rem">🔗</span>`
+          : "";
 
         row.innerHTML = `
           <td>${r.agent != null && r.agent !== "" ? escapeHtml(r.agent) : "—"}</td>
-          <td>${topicCellText}${versionBadge}${noteIcon}</td>
+          <td>${topicCellText}${versionBadge}${noteIcon}${parentIcon}</td>
           <td>${modelCell}</td>
           <td><span class="badge ${r.status === "success" ? "success" : "error"}">${escapeHtml(r.status) || "unknown"}</span></td>
           ${qualityCell}
@@ -4647,7 +4687,7 @@ def my_agent(task, run=None):
     async function loadRuns(userId) {
       const { data, error } = await client
         .from("runs")
-        .select("id, agent, topic, model, status, anomaly, anomaly_reason, duration_ms, cost_usd, timestamp, steps, input_tokens, output_tokens, error, quality_score, notes, prompt_version")
+        .select("id, agent, topic, model, status, anomaly, anomaly_reason, duration_ms, cost_usd, timestamp, steps, input_tokens, output_tokens, error, quality_score, notes, prompt_version, parent_trace_id")
         .eq("user_id", userId)
         .order("timestamp", { ascending: false });
 
@@ -4726,6 +4766,64 @@ def my_agent(task, run=None):
       }
       document.getElementById("trace-meta").textContent =
         (r.timestamp ? new Date(r.timestamp).toLocaleString() : "—") + " · " + (r.status || "unknown");
+
+      const parentLinkEl = document.getElementById("trace-parent-link");
+      const parentBtnEl = document.getElementById("trace-parent-agent");
+      const childrenEl = document.getElementById("trace-children");
+      const childrenListEl = document.getElementById("trace-children-list");
+      const totalCostEl = document.getElementById("trace-total-cost");
+
+      function findRunById(rid) {
+        return allRuns.find(function (x) { return String(x.id) === String(rid); });
+      }
+
+      if (r.parent_trace_id) {
+        const parentRun = findRunById(r.parent_trace_id);
+        parentLinkEl.hidden = false;
+        parentBtnEl.textContent = parentRun
+          ? (parentRun.agent || "parent run")
+          : "parent agent";
+        parentBtnEl.onclick = function () {
+          if (parentRun) void openTraceRun(parentRun, null);
+        };
+      } else {
+        parentLinkEl.hidden = true;
+        parentBtnEl.onclick = null;
+      }
+
+      const childRuns = allRuns.filter(function (x) {
+        return x.parent_trace_id && String(x.parent_trace_id) === String(r.id);
+      });
+      if (childRuns.length > 0) {
+        childrenEl.hidden = false;
+        childrenListEl.innerHTML = "";
+        childRuns.forEach(function (child) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "trace-link-btn";
+          btn.textContent =
+            (child.agent || "—") +
+            " — $" +
+            (child.cost_usd != null ? Number(child.cost_usd).toFixed(6) : "0");
+          btn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            void openTraceRun(child, null);
+          });
+          childrenListEl.appendChild(btn);
+        });
+        const totalCost =
+          childRuns.reduce(function (s, c) {
+            return s + (Number(c.cost_usd) || 0);
+          }, 0) + (Number(r.cost_usd) || 0);
+        totalCostEl.textContent = "Total pipeline cost: $" + totalCost.toFixed(6);
+        totalCostEl.hidden = false;
+      } else {
+        childrenEl.hidden = true;
+        childrenListEl.innerHTML = "";
+        totalCostEl.hidden = true;
+        totalCostEl.textContent = "";
+      }
+
       document.getElementById("trace-duration").textContent =
         r.duration_ms != null ? (Number(r.duration_ms) / 1000).toFixed(2) + "s" : "—";
       document.getElementById("trace-cost").textContent =
