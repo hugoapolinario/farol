@@ -260,6 +260,18 @@
 
     .doc-section a.inline:hover { text-decoration: underline; }
 
+    .docs-note {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: rgba(249, 115, 22, 0.06);
+      border: 1px solid rgba(249, 115, 22, 0.2);
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .docs-note strong { color: var(--accent); }
+
     .steps {
       list-style: none;
       padding: 0;
@@ -1262,8 +1274,11 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
     <span style="color:#8b919d"># do market analysis...</span></code></pre>
         </div>
         <p style="margin-top:1rem;font-size:0.875rem;color:var(--text-muted)">
-          In the dashboard, parent runs show their spawned children and total pipeline cost. Child runs show a link back to the parent. Automatic trace propagation without manual ID passing is on the roadmap.
+          In the dashboard, parent runs show their spawned children and total pipeline cost. Child runs show a link back to the parent.
         </p>
+        <div class="docs-note">
+          <strong>Coming soon:</strong> Automatic trace context propagation across agent boundaries — no manual ID passing required. <a class="inline" href="/roadmap">View the roadmap →</a>
+        </div>
       </section>
 
       <section class="doc-section" id="framework-integrations" aria-labelledby="framework-integrations-heading">
