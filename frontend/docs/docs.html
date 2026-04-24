@@ -1348,7 +1348,7 @@ result = run_crew(<span style="color:#86efac">"market analysis for Q2 2026"</spa
         <p>The dashboard has four sections:</p>
         <ul>
           <li><strong style="color:var(--text)">Overview</strong> — KPI cards (total runs, success rate, avg duration with p95, total cost) and 4 charts. Filter by period (7/30/90 days) and agent.</li>
-          <li><strong style="color:var(--text)">Runs</strong> — full runs table. Columns: Agent, Topic, Model, Status, Quality, Anomaly, Steps, Duration, Tokens, Cost, Error, Timestamp. Click any row to open the trace timeline showing all spans. Search by topic, filter by agent, export to CSV (Starter+).</li>
+          <li><strong style="color:var(--text)">Runs</strong> — full runs table. Columns: Agent, Topic, Model, Status, Quality, Anomaly, Steps, Duration, Tokens, Cost, Error, Timestamp. Click any row to open the trace timeline showing all spans. Search by topic, filter by agent, export to CSV (Starter+). Quality ratings act as lightweight evals — rate outputs directly from the trace modal and track trends over time.</li>
           <li><strong style="color:var(--text)">Agents</strong> — one card per agent showing total runs, success rate, avg cost, avg duration, last run. Click a card to open a detailed modal with charts and runs filtered to that agent.</li>
           <li><strong style="color:var(--text)">Alerts</strong> — seven alert types: cost anomaly, duration anomaly, p95 latency, regression, quality trend, budget, and proactive trend alerts. Grouped alerts show when multiple agents are affected simultaneously. Clicking an alert opens the trace or filters runs to the affected agent.</li>
         </ul>
@@ -1375,6 +1375,10 @@ result = run_crew(<span style="color:#86efac">"market analysis for Q2 2026"</spa
         <div class="faq-item">
           <h3>Does Farol support OpenTelemetry?</h3>
           <p>Not yet — but an OpenTelemetry compatibility bridge is on the roadmap. This will allow Farol to receive traces from any OTEL-compatible tool and work alongside existing observability stacks. For now, Farol's SDK works with any Python or Node.js framework directly. <a class="inline" href="/roadmap">View the roadmap →</a></p>
+        </div>
+        <div class="faq-item">
+          <h3>Does Farol have an evals system?</h3>
+          <p>Farol includes lightweight evals via quality scoring — rate any agent output thumbs up or down directly from the trace modal. Farol tracks quality trends over time and alerts you when output quality degrades week over week. A structured evals system with custom rubrics and automated scoring is on the roadmap. <a class="inline" href="/roadmap">View the roadmap →</a></p>
         </div>
         <div class="faq-item">
           <h3>What counts as an event for billing?</h3>
