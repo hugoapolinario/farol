@@ -1416,7 +1416,7 @@
       white-space: nowrap;
       opacity: 0.82;
       transition: opacity 0.13s ease;
-      pointer-events: none;
+      pointer-events: auto;
     }
 
     .alert-item:hover .alert-view-trace { opacity: 1; }
@@ -1520,6 +1520,38 @@
     }
     .alert-item:hover .alert-item-trend-footer .alert-view-runs {
       opacity: 1;
+    }
+
+    .alert-agents-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      margin: 0.4rem 0;
+    }
+    .agent-pill {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      font-family: var(--font-mono);
+    }
+    .alert-anomaly-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      color: #f59e0b;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      margin-right: 0.5rem;
+    }
+    .alert-item-grouped-footer {
+      margin-top: 0.1rem;
+    }
+    .alert-item-grouped-footer .alert-view-runs {
+      margin-left: auto;
     }
 
     /* ── Agent cards ─────────────────────────────────────────────── */
@@ -2560,6 +2592,8 @@ def my_agent(task, run=None):
     const lastUpdatedEl = document.getElementById("last-updated");
     const agentFilterEl = document.getElementById("agent-filter");
     let runsSearchQuery = "";
+    /** When set, runs list shows only runs whose `agent` is in this array (from grouped alert "View all"). */
+    let runsMultiAgentFilter = null;
     let runsPeriodDays = 7;
 
     const AGENT_NONE_VALUE = "__FAROL_NO_AGENT__";
@@ -3011,7 +3045,10 @@ def my_agent(task, run=None):
       const v = agentFilterEl.value;
       const q = runsSearchQuery.toLowerCase();
       let runs;
-      if (v === "") runs = allRuns.slice();
+      if (runsMultiAgentFilter && runsMultiAgentFilter.length) {
+        const allow = new Set(runsMultiAgentFilter);
+        runs = allRuns.filter(function (r) { return r.agent && allow.has(r.agent); });
+      } else if (v === "") runs = allRuns.slice();
       else if (v === AGENT_NONE_VALUE) runs = allRuns.filter(function (r) { return r.agent == null || r.agent === ""; });
       else runs = allRuns.filter(function (r) { return r.agent === v; });
       if (q) {
@@ -3457,6 +3494,69 @@ def my_agent(task, run=None):
       return Number.isFinite(t) ? t : 0;
     }
 
+    function computeCostAnomalyAlerts(runs) {
+      return runs
+        .filter(function (r) { return r.anomaly; })
+        .map(function (run) {
+          return {
+            id: "anomaly_" + run.id,
+            agent: run.agent,
+            type: "anomaly",
+            timestamp: runTimestampMs(run),
+            runId: run.id,
+            topic: run.topic,
+            anomaly_reason: run.anomaly_reason,
+          };
+        });
+    }
+
+    function groupAlerts(alerts, windowMs) {
+      if (alerts.length < 2) return alerts;
+      const sorted = alerts.slice().sort(function (a, b) { return (b.timestamp ?? 0) - (a.timestamp ?? 0); });
+      const groups = [];
+      const used = new Set();
+      for (var i = 0; i < sorted.length; i++) {
+        if (used.has(i)) continue;
+        const group = [sorted[i]];
+        used.add(i);
+        for (var j = i + 1; j < sorted.length; j++) {
+          if (used.has(j)) continue;
+          const timeDiff = Math.abs((sorted[i].timestamp ?? 0) - (sorted[j].timestamp ?? 0));
+          if (timeDiff <= windowMs) {
+            group.push(sorted[j]);
+            used.add(j);
+          }
+        }
+        if (group.length >= 2) {
+          const agentList = group.map(function (a) { return a.agent; });
+          groups.push({
+            id: "group_" + group.map(function (a) { return a.id; }).join("_"),
+            type: group[0].type,
+            grouped: true,
+            agents: agentList,
+            count: group.length,
+            alerts: group,
+            message: group.length + " agents affected — " + agentList.join(", "),
+          });
+        } else {
+          groups.push(sorted[i]);
+        }
+      }
+      return groups;
+    }
+
+    function alertItemMatchesFilter(item, filterAgent) {
+      if (!filterAgent) return true;
+      if (item.grouped) {
+        const ags = item.agents || [];
+        for (var i = 0; i < ags.length; i++) {
+          if ((ags[i] || "—") === filterAgent) return true;
+        }
+        return false;
+      }
+      return (item.agent || "—") === filterAgent;
+    }
+
     function computeQualityAlerts(runs) {
       if (!runs.length) return [];
       const WEEK = 7 * 24 * 60 * 60 * 1000;
@@ -3540,6 +3640,7 @@ def my_agent(task, run=None):
             id: `duration_${agent}_${latestRun.id}`,
             agent,
             type: "duration",
+            timestamp: runTimestampMs(latestRun),
             runId: latestRun.id,
             durationMs: latestRun.duration_ms,
             medianMs: median,
@@ -3718,16 +3819,16 @@ def my_agent(task, run=None):
     }
 
     function updateAlertsBadge() {
-      const anomalous   = allRuns.filter(function (r) { return r.anomaly; });
+      const costItems     = groupAlerts(computeCostAnomalyAlerts(allRuns), 30 * 60 * 1000);
+      const durationItems = groupAlerts(computeDurationAlerts(allRuns), 60 * 60 * 1000);
       const regressions = computeRegressionAlerts(allRuns);
       const qualities   = computeQualityAlerts(allRuns);
-      const durations   = computeDurationAlerts(allRuns);
       const latencies   = computeLatencyAlerts(allRuns);
       const trends      = computeTrendAlerts(allRuns);
-      const unread = anomalous.filter(function (r) { return !seenAlerts.has(r.id); }).length
+      const unread = costItems.filter(function (a) { return !seenAlerts.has(a.id); }).length
+                   + durationItems.filter(function (a) { return !seenAlerts.has(a.id); }).length
                    + regressions.filter(function (a) { return !seenAlerts.has(a.id); }).length
                    + qualities.filter(function (a) { return !seenAlerts.has(a.id); }).length
-                   + durations.filter(function (a) { return !seenAlerts.has(a.id); }).length
                    + latencies.filter(function (a) { return !seenAlerts.has(a.id); }).length
                    + trends.filter(function (a) { return !seenAlerts.has(a.id); }).length;
       const el = document.getElementById("alerts-count");
@@ -3747,10 +3848,11 @@ def my_agent(task, run=None):
       const filterBar = document.getElementById("alerts-filter-bar");
       const readFilterEl = document.getElementById("alerts-read-filter");
       const filterSel = document.getElementById("alerts-agent-filter");
-      const anomalous   = allRuns.filter(function (r) { return r.anomaly; });
+      const costAlertItems   = groupAlerts(computeCostAnomalyAlerts(allRuns), 30 * 60 * 1000);
+      const rawDurationAlerts = computeDurationAlerts(allRuns);
+      const durationAlertItems = groupAlerts(rawDurationAlerts, 60 * 60 * 1000);
       const regressions = computeRegressionAlerts(allRuns);
       const qualities   = computeQualityAlerts(allRuns);
-      const durations   = computeDurationAlerts(allRuns);
       const latencies   = computeLatencyAlerts(allRuns);
       const trends      = computeTrendAlerts(allRuns);
 
@@ -3758,7 +3860,7 @@ def my_agent(task, run=None):
         b.classList.toggle("active", b.dataset.filter === alertsFilter);
       });
 
-      if (!anomalous.length && !regressions.length && !qualities.length && !durations.length && !latencies.length && !trends.length) {
+      if (!costAlertItems.length && !regressions.length && !qualities.length && !durationAlertItems.length && !latencies.length && !trends.length) {
         if (filterBar) filterBar.hidden = true;
         if (readFilterEl) readFilterEl.hidden = true;
         if (listEl) listEl.innerHTML = '<div class="alerts-empty">No anomalies detected yet.</div>';
@@ -3768,14 +3870,19 @@ def my_agent(task, run=None):
       /* Build agent dropdown from the union of all alert types */
       if (filterBar) filterBar.hidden = false;
       if (readFilterEl) readFilterEl.hidden = false;
-      const agentSet = new Set([
-        ...anomalous.map(function (r) { return r.agent || "—"; }),
-        ...regressions.map(function (a) { return a.agent || "—"; }),
-        ...qualities.map(function (a) { return a.agent || "—"; }),
-        ...durations.map(function (a) { return a.agent || "—"; }),
-        ...latencies.map(function (a) { return a.agent || "—"; }),
-        ...trends.map(function (a) { return a.agent || "—"; }),
-      ]);
+      const agentSet = new Set();
+      costAlertItems.forEach(function (it) {
+        if (it.grouped) (it.agents || []).forEach(function (a) { agentSet.add(a || "—"); });
+        else agentSet.add(it.agent || "—");
+      });
+      durationAlertItems.forEach(function (it) {
+        if (it.grouped) (it.agents || []).forEach(function (a) { agentSet.add(a || "—"); });
+        else agentSet.add(it.agent || "—");
+      });
+      regressions.forEach(function (a) { agentSet.add(a.agent || "—"); });
+      qualities.forEach(function (a) { agentSet.add(a.agent || "—"); });
+      latencies.forEach(function (a) { agentSet.add(a.agent || "—"); });
+      trends.forEach(function (a) { agentSet.add(a.agent || "—"); });
       const prevSel = alertsAgentFilter;
       if (filterSel) {
         filterSel.innerHTML = '<option value="">All agents</option>';
@@ -3788,18 +3895,18 @@ def my_agent(task, run=None):
         alertsAgentFilter = filterSel.value;
       }
 
-      const visibleAnomalous   = alertsAgentFilter
-        ? anomalous.filter(function (r) { return (r.agent || "—") === alertsAgentFilter; })
-        : anomalous;
+      const visibleCostAlerts = alertsAgentFilter
+        ? costAlertItems.filter(function (a) { return alertItemMatchesFilter(a, alertsAgentFilter); })
+        : costAlertItems;
       const visibleRegressions = alertsAgentFilter
         ? regressions.filter(function (a) { return a.agent === alertsAgentFilter; })
         : regressions;
       const visibleQualities = alertsAgentFilter
         ? qualities.filter(function (a) { return a.agent === alertsAgentFilter; })
         : qualities;
-      const visibleDurations = alertsAgentFilter
-        ? durations.filter(function (a) { return a.agent === alertsAgentFilter; })
-        : durations;
+      const visibleDurationAlerts = alertsAgentFilter
+        ? durationAlertItems.filter(function (a) { return alertItemMatchesFilter(a, alertsAgentFilter); })
+        : durationAlertItems;
       const visibleLatencies = alertsAgentFilter
         ? latencies.filter(function (a) { return a.agent === alertsAgentFilter; })
         : latencies;
@@ -3807,24 +3914,24 @@ def my_agent(task, run=None):
         ? trends.filter(function (a) { return a.agent === alertsAgentFilter; })
         : trends;
 
-      if (!visibleAnomalous.length && !visibleRegressions.length && !visibleQualities.length && !visibleDurations.length && !visibleLatencies.length && !visibleTrends.length) {
+      if (!visibleCostAlerts.length && !visibleRegressions.length && !visibleQualities.length && !visibleDurationAlerts.length && !visibleLatencies.length && !visibleTrends.length) {
         if (listEl) listEl.innerHTML = '<div class="alerts-empty">No alerts for this agent.</div>';
         return;
       }
 
       const filterUnread = alertsFilter === "unread";
-      const displayAnomalous = filterUnread
-        ? visibleAnomalous.filter(function (r) { return !seenAlerts.has(r.id); })
-        : visibleAnomalous;
+      const displayCostAlerts = filterUnread
+        ? visibleCostAlerts.filter(function (a) { return !seenAlerts.has(a.id); })
+        : visibleCostAlerts;
       const displayRegressions = filterUnread
         ? visibleRegressions.filter(function (a) { return !seenAlerts.has(a.id); })
         : visibleRegressions;
       const displayQualities = filterUnread
         ? visibleQualities.filter(function (a) { return !seenAlerts.has(a.id); })
         : visibleQualities;
-      const displayDurations = filterUnread
-        ? visibleDurations.filter(function (a) { return !seenAlerts.has(a.id); })
-        : visibleDurations;
+      const displayDurationAlerts = filterUnread
+        ? visibleDurationAlerts.filter(function (a) { return !seenAlerts.has(a.id); })
+        : visibleDurationAlerts;
       const displayLatencies = filterUnread
         ? visibleLatencies.filter(function (a) { return !seenAlerts.has(a.id); })
         : visibleLatencies;
@@ -3834,10 +3941,10 @@ def my_agent(task, run=None):
 
       if (
         filterUnread &&
-        !displayAnomalous.length &&
+        !displayCostAlerts.length &&
         !displayRegressions.length &&
         !displayQualities.length &&
-        !displayDurations.length &&
+        !displayDurationAlerts.length &&
         !displayLatencies.length &&
         !displayTrends.length
       ) {
@@ -3854,20 +3961,43 @@ def my_agent(task, run=None):
         if (alertsFilter === "unread") renderAlerts();
       }
 
-      const anomalyCards = displayAnomalous.map(function (r) {
-        const isRead = seenAlerts.has(r.id);
+      const anomalyCards = displayCostAlerts.map(function (item) {
+        if (item.grouped) {
+          const isRead = seenAlerts.has(item.id);
+          const encAgents = encodeURIComponent(JSON.stringify(item.agents || []));
+          return (
+            '<div class="alert-item anomaly grouped' + (isRead ? " read" : "") + '" data-alert-id="' + escapeHtml(item.id) + '" data-grouped="1" data-group-agents="' + encAgents + '">' +
+            '<div class="alert-item-header">' +
+              '<div class="alert-item-left"><span class="alert-item-agent">⚠ ' + String(item.count) + " agents affected</span></div>" +
+              '<div class="alert-item-right"><span class="alert-item-time">This week</span></div>' +
+            "</div>" +
+            '<div class="alert-item-topic">' + escapeHtml(item.message) + "</div>" +
+            '<div class="alert-agents-list">' +
+              (item.agents || [])
+                .map(function (a) { return '<span class="agent-pill">' + escapeHtml(a || "—") + "</span>"; })
+                .join("") +
+            "</div>" +
+            '<div class="alert-item-duration-footer alert-item-grouped-footer">' +
+              '<span class="alert-anomaly-badge">Grouped Cost spike</span>' +
+              '<span class="alert-view-runs alert-view-runs--grouped">View all →</span>' +
+            "</div></div>"
+          );
+        }
+        const run = allRuns.find(function (r) { return String(r.id) === String(item.runId); });
+        const isRead = seenAlerts.has(item.id);
+        const r = run;
         return (
-          '<div class="alert-item' + (isRead ? " read" : "") + '" data-run-id="' + escapeHtml(String(r.id)) + '">' +
+          '<div class="alert-item anomaly' + (isRead ? " read" : "") + '" data-alert-id="' + escapeHtml(item.id) + '" data-run-id="' + escapeHtml(String(item.runId)) + '">' +
           '<div class="alert-item-header">' +
-            '<div class="alert-item-left"><span class="alert-item-agent">' + escapeHtml(r.agent || "—") + '</span></div>' +
+            '<div class="alert-item-left"><span class="alert-item-agent">' + escapeHtml(r && r.agent || item.agent || "—") + '</span></div>' +
             '<div class="alert-item-right">' +
-              '<span class="alert-item-time">' + (r.timestamp ? new Date(r.timestamp).toLocaleString() : "—") + '</span>' +
+              '<span class="alert-item-time">' + (r && r.timestamp ? new Date(r.timestamp).toLocaleString() : "—") + '</span>' +
               '<span class="alert-view-trace">View trace →</span>' +
             '</div>' +
-          '</div>' +
-          '<div class="alert-item-topic">' + escapeHtml(r.topic || "—") + '</div>' +
-          '<div class="alert-item-reason">⚠ ' + escapeHtml(r.anomaly_reason || "Cost anomaly detected") + '</div>' +
-          '</div>'
+          "</div>" +
+          '<div class="alert-item-topic">' + escapeHtml((r && r.topic) || item.topic || "—") + "</div>" +
+          '<div class="alert-item-reason">⚠ ' + escapeHtml((r && r.anomaly_reason) || item.anomaly_reason || "Cost anomaly detected") + "</div>" +
+          "</div>"
         );
       });
 
@@ -3908,24 +4038,44 @@ def my_agent(task, run=None):
         );
       });
 
-      const durationCards = displayDurations.map(function (a) {
+      const durationCards = displayDurationAlerts.map(function (a) {
+        if (a.grouped) {
+          const isReadG = seenAlerts.has(a.id);
+          const encAgentsG = encodeURIComponent(JSON.stringify(a.agents || []));
+          return (
+            '<div class="alert-item duration grouped' + (isReadG ? " read" : "") + '" data-alert-id="' + escapeHtml(a.id) + '" data-grouped="1" data-group-agents="' + encAgentsG + '">' +
+            '<div class="alert-item-header">' +
+              '<div class="alert-item-left"><span class="alert-item-agent">⚠ ' + String(a.count) + " agents affected</span></div>" +
+              '<div class="alert-item-right"><span class="alert-item-time">This week</span></div>' +
+            "</div>" +
+            '<div class="alert-item-topic">' + escapeHtml(a.message) + "</div>" +
+            '<div class="alert-agents-list">' +
+              (a.agents || [])
+                .map(function (ag) { return '<span class="agent-pill">' + escapeHtml(ag || "—") + "</span>"; })
+                .join("") +
+            "</div>" +
+            '<div class="alert-item-duration-footer alert-item-grouped-footer">' +
+              '<span class="alert-anomaly-badge">Grouped Duration spike</span>' +
+              '<span class="alert-view-runs alert-view-runs--grouped">View all →</span>' +
+            "</div></div>"
+          );
+        }
         const run = allRuns.find(function (r) { return String(r.id) === String(a.runId); });
         const ts = run && run.timestamp ? new Date(run.timestamp).toLocaleString() : "—";
         const isRead = seenAlerts.has(a.id);
         return (
-          '<div class="alert-item duration' + (isRead ? " read" : "") + '" data-alert-id="' + escapeHtml(a.id) + '">' +
+          '<div class="alert-item duration' + (isRead ? " read" : "") + '" data-alert-id="' + escapeHtml(a.id) + '" data-run-id="' + escapeHtml(String(a.runId)) + '">' +
           '<div class="alert-item-header">' +
             '<div class="alert-item-left"><span class="alert-item-agent">⏱ ' + escapeHtml(a.agent) + '</span></div>' +
             '<div class="alert-item-right">' +
               '<span class="alert-item-time">' + escapeHtml(ts) + '</span>' +
             '</div>' +
-          '</div>' +
-          '<div class="alert-item-topic">' + escapeHtml(a.message) + '</div>' +
+          "</div>" +
+          '<div class="alert-item-topic">' + escapeHtml(a.message) + "</div>" +
           '<div class="alert-item-duration-footer">' +
             '<span class="alert-duration-badge">Duration spike</span>' +
             '<span class="alert-view-trace">View trace →</span>' +
-          '</div>' +
-          '</div>'
+          "</div></div>"
         );
       });
 
@@ -3970,20 +4120,20 @@ def my_agent(task, run=None):
       });
 
       const listChunks = [];
-      if (displayAnomalous.length) {
+      if (displayCostAlerts.length) {
         listChunks.push(
           '<div class="alert-section-header" id="cost-alerts-header">' +
             '<span class="alert-section-title">Cost Anomalies</span>' +
-            '<span class="alert-section-count">' + displayAnomalous.length + "</span>" +
+            '<span class="alert-section-count">' + displayCostAlerts.length + "</span>" +
             "</div>"
         );
         listChunks.push(anomalyCards.join(""));
       }
-      if (displayDurations.length) {
+      if (displayDurationAlerts.length) {
         listChunks.push(
           '<div class="alert-section-header" id="duration-alerts-header">' +
             '<span class="alert-section-title">Duration Alerts</span>' +
-            '<span class="alert-section-count">' + displayDurations.length + "</span>" +
+            '<span class="alert-section-count">' + displayDurationAlerts.length + "</span>" +
             "</div>"
         );
         listChunks.push(durationCards.join(""));
@@ -4026,13 +4176,15 @@ def my_agent(task, run=None):
       }
       listEl.innerHTML = '<div class="alerts-list">' + listChunks.join("") + "</div>";
 
-      /* Wire anomaly cards */
-      listEl.querySelectorAll(".alert-item[data-run-id]").forEach(function (item) {
+      /* Wire cost anomaly (single) — use alert id (anomaly_*) for read state */
+      listEl.querySelectorAll('.alert-item.anomaly[data-run-id]:not([data-grouped="1"])').forEach(function (item) {
+        const alertId = item.dataset.alertId;
         const runId = item.dataset.runId;
-        const run   = allRuns.find(function (r) { return String(r.id) === runId; });
+        const run   = allRuns.find(function (r) { return String(r.id) === String(runId); });
 
         function openAlertTrace() {
           if (!run) return;
+          runsMultiAgentFilter = null;
           const agent = run.agent || "";
           navigateTo("runs");
           agentFilterEl.value = agent;
@@ -4044,14 +4196,40 @@ def my_agent(task, run=None):
         if (traceLink) {
           traceLink.addEventListener("click", function (e) {
             e.stopPropagation();
-            markAlertRead(runId, item);
+            markAlertRead(alertId, item);
             openAlertTrace();
           });
         }
         item.addEventListener("click", function () {
-          markAlertRead(runId, item);
+          markAlertRead(alertId, item);
           openAlertTrace();
         });
+      });
+
+      listEl.querySelectorAll('.alert-item.anomaly.grouped[data-group-agents]').forEach(function (item) {
+        const alertId = item.dataset.alertId;
+        const raw = item.getAttribute("data-group-agents");
+        function openGroupedCostRuns() {
+          var agents = [];
+          try {
+            agents = raw ? JSON.parse(decodeURIComponent(raw)) : [];
+          } catch (_e) {
+            agents = [];
+          }
+          markAlertRead(alertId, item);
+          runsMultiAgentFilter = agents;
+          navigateTo("runs");
+          agentFilterEl.value = "";
+          applyFilterAndRender();
+        }
+        const link = item.querySelector(".alert-view-runs--grouped");
+        if (link) {
+          link.addEventListener("click", function (e) {
+            e.stopPropagation();
+            openGroupedCostRuns();
+          });
+        }
+        item.addEventListener("click", openGroupedCostRuns);
       });
 
       /* Wire regression, quality, latency & trend cards */
@@ -4064,6 +4242,7 @@ def my_agent(task, run=None):
         const agent   = item.dataset.agent;
 
         function openRegressionRuns() {
+          runsMultiAgentFilter = null;
           navigateTo("runs");
           agentFilterEl.value = agent || "";
           applyFilterAndRender();
@@ -4083,14 +4262,41 @@ def my_agent(task, run=None):
         });
       });
 
-      /* Wire duration alert cards (trace modal) */
-      listEl.querySelectorAll(".alert-item.duration[data-alert-id]").forEach(function (item) {
+      listEl.querySelectorAll('.alert-item.duration.grouped[data-group-agents]').forEach(function (item) {
+        const alertIdD = item.dataset.alertId;
+        const rawD = item.getAttribute("data-group-agents");
+        function openGroupedDurRuns() {
+          var ags = [];
+          try {
+            ags = rawD ? JSON.parse(decodeURIComponent(rawD)) : [];
+          } catch (_e) {
+            ags = [];
+          }
+          markAlertRead(alertIdD, item);
+          runsMultiAgentFilter = ags;
+          navigateTo("runs");
+          agentFilterEl.value = "";
+          applyFilterAndRender();
+        }
+        const linkD = item.querySelector(".alert-view-runs--grouped");
+        if (linkD) {
+          linkD.addEventListener("click", function (e) {
+            e.stopPropagation();
+            openGroupedDurRuns();
+          });
+        }
+        item.addEventListener("click", openGroupedDurRuns);
+      });
+
+      /* Wire duration alert cards (single, trace modal) */
+      listEl.querySelectorAll('.alert-item.duration[data-run-id]:not([data-grouped="1"])').forEach(function (item) {
         const alertId = item.dataset.alertId;
-        const durAlert = durations.find(function (a) { return a.id === alertId; });
-        const run = durAlert ? allRuns.find(function (r) { return String(r.id) === String(durAlert.runId); }) : null;
+        const runId = item.dataset.runId;
+        const run = allRuns.find(function (r) { return String(r.id) === String(runId); });
 
         function openDurationTrace() {
           if (!run) return;
+          runsMultiAgentFilter = null;
           const agent = run.agent || "";
           navigateTo("runs");
           agentFilterEl.value = agent;
@@ -5192,6 +5398,7 @@ def my_agent(task, run=None):
 
     agentFilterEl.addEventListener("change", function () {
       closeTrace();
+      runsMultiAgentFilter = null;
       applyFilterAndRender();
     });
 
@@ -5199,6 +5406,7 @@ def my_agent(task, run=None):
       runsPeriodDays = parseInt(e.target.value, 10);
       if (Number.isNaN(runsPeriodDays)) runsPeriodDays = 7;
       closeTrace();
+      runsMultiAgentFilter = null;
       populateAgentFilter();
       applyFilterAndRender();
     });
@@ -5206,6 +5414,7 @@ def my_agent(task, run=None):
     document.getElementById("runs-search").addEventListener("input", function () {
       runsSearchQuery = this.value.trim();
       closeTrace();
+      runsMultiAgentFilter = null;
       applyFilterAndRender();
     });
 

@@ -1277,6 +1277,19 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
           <p>After enough successful runs for the same agent, Farol compares the current cost to a rolling baseline (median and spread). Large jumps—relative to that baseline—flag as anomalies so you catch bill spikes early.</p>
         </div>
         <div class="faq-item">
+          <h3>Why am I not seeing alerts yet?</h3>
+          <p>Farol needs enough run history to establish a reliable baseline before firing alerts. Minimum requirements per alert type:</p>
+          <ul>
+            <li><strong style="color:var(--text)">Cost anomaly</strong> — 10+ successful runs for the same agent</li>
+            <li><strong style="color:var(--text)">Duration anomaly</strong> — 10+ successful runs for the same agent</li>
+            <li><strong style="color:var(--text)">Regression alerts</strong> — 10+ runs in both the current and previous 7-day window</li>
+            <li><strong style="color:var(--text)">Quality trend alerts</strong> — 5+ rated runs in both the current and previous 7-day window</li>
+            <li><strong style="color:var(--text)">p95 latency alerts</strong> — 20+ successful runs in both windows</li>
+            <li><strong style="color:var(--text)">Proactive trend alerts</strong> — 20+ runs in both windows</li>
+          </ul>
+          <p style="margin-top:0.65rem">Budget alerts fire immediately when the monthly limit is crossed — no minimum runs needed.</p>
+        </div>
+        <div class="faq-item">
           <h3>Can I use Farol without a Farol key?</h3>
           <p>The decorator runs without a key, but runs are not tied to your dashboard and are not synced under your account. Pass <code style="font-family:var(--font-mono);font-size:0.88em">farol_key</code> from the app to attribute runs to you.</p>
         </div>
