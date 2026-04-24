@@ -4,7 +4,7 @@
 
 AI agents fail silently and bill loudly. Farol tells you first.
 
-→ [usefarol.dev](https://usefarol.dev) · [Docs](https://usefarol.dev/docs) · [Live demo](https://usefarol.dev/demo) · [Changelog](https://usefarol.dev/changelog) · [Security](https://usefarol.dev/security) · [GitHub](https://github.com/hugoapolinario/farol)
+→ [usefarol.dev](https://usefarol.dev) · [Docs](https://usefarol.dev/docs) · [Live demo](https://usefarol.dev/demo) · [Changelog](https://usefarol.dev/changelog) · [Roadmap](https://usefarol.dev/roadmap) · [Security](https://usefarol.dev/security) · [GitHub](https://github.com/hugoapolinario/farol)
 
 ---
 
@@ -16,6 +16,10 @@ Farol is a monitoring tool for AI agents. Add one decorator to your agent functi
 - Duration & p95 latency anomaly alerts
 - Regression alerts — success rate drops week over week
 - Quality scoring & quality trend alerts
+- Proactive trend alerts — drift detection before things break
+- Alert grouping — multiple agents affected shown as one alert
+- Multi-agent trace linking — connect child runs to parent pipelines
+- Prompt version tagging — compare cost and quality across versions
 - Budget alerts per agent
 - Agent Health Score (0-100)
 - Full trace inspector
@@ -104,6 +108,55 @@ def research_agent(topic, run=None):
     return response.text
 ```
 
+### Multi-agent tracing
+
+Link child agent runs to their parent using `parent_trace_id`:
+
+```python
+@trace(agent_name="research-agent", farol_key="frl_...")
+def research_agent(topic, run=None):
+    run["topic"] = topic
+    # do research...
+    result = market_agent(topic, parent_trace_id=run["id"])
+    return result
+
+@trace(agent_name="market-agent", farol_key="frl_...")
+def market_agent(topic, run=None, parent_trace_id=None):
+    run["topic"] = topic
+    run["parent_trace_id"] = parent_trace_id
+    # do market analysis...
+```
+
+Parent runs show spawned children and total pipeline cost in the dashboard.
+
+### Framework integrations
+
+Works with any framework — wrap your agent's entrypoint with `@trace`:
+
+**LangChain:**
+
+```python
+@trace(agent_name="langchain-agent", farol_key="frl_...")
+def run_chain(query, run=None):
+    run["topic"] = query
+    with run.span("chain_invoke", type="tool") as span:
+        result = chain.invoke({"query": query})
+    return result
+```
+
+**CrewAI:**
+
+```python
+@trace(agent_name="crewai-agent", farol_key="frl_...")
+def run_crew(topic, run=None):
+    run["topic"] = topic
+    with run.span("crew_kickoff", type="tool") as span:
+        result = crew.kickoff(inputs={"topic": topic})
+    return result
+```
+
+Also works with AutoGen, Haystack, LlamaIndex, smolagents, and any custom agent loop.
+
 ### SDK options
 
 | Parameter | Description |
@@ -114,6 +167,8 @@ def research_agent(topic, run=None):
 | `cost_per_1k_input_tokens` | USD per 1k input tokens (default: 0.00025) |
 | `cost_per_1k_output_tokens` | USD per 1k output tokens (default: 0.00125) |
 | `capture_io` | Store prompt inputs/outputs (default: False) |
+| `prompt_version` | Tag runs with a version label (e.g. "v2"). Max 50 chars. |
+| `parent_trace_id` | Link to a parent agent run for multi-agent pipeline tracing. |
 | `sample_rate` | Fraction of runs to send, 0.0–1.0 (default: 1.0) |
 
 ### Supported providers
