@@ -27,6 +27,32 @@
 
     * { box-sizing: border-box; }
 
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      z-index: 9999;
+      padding: 0.5rem 1rem;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .skip-link:focus {
+      left: 0;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+
     [hidden] { display: none !important; }
 
     html, body { height: 100%; margin: 0; }
@@ -424,7 +450,7 @@
     }
 
     body.modal-open .sidebar,
-    body.modal-open .content-area {
+    body.modal-open main.content-area {
       filter: blur(2px);
       pointer-events: none;
       user-select: none;
@@ -2057,7 +2083,7 @@
       }
 
       /* Content takes full width */
-      .content-area {
+      main.content-area {
         padding: 1rem 1rem 2rem;
         min-width: 0;
         width: 100%;
@@ -2143,6 +2169,7 @@
   </style>
 </head>
 <body>
+  <a href="#main" class="skip-link">Skip to main content</a>
   <!-- ── Mobile top bar ──────────────────────────────────────────── -->
   <div class="mobile-topbar" aria-label="Mobile navigation bar">
     <a href="/" class="nav-logo" aria-label="Farol home">
@@ -2241,8 +2268,9 @@
       </div>
     </aside>
 
-    <!-- ── Content area ─────────────────────────────────────────── -->
-    <div class="content-area">
+    <!-- ── Main content ────────────────────────────────────────── -->
+    <main id="main" class="content-area">
+      <h1 class="visually-hidden">Farol Dashboard</h1>
 
       <!-- Upgrade banner (free plan only) ─────────────────────── -->
       <div class="upgrade-banner" id="upgrade-banner" hidden>
@@ -2255,13 +2283,13 @@
         <span id="usage-warning-text"></span>
         <div class="usage-warning-actions">
           <a id="usage-warning-upgrade" href="/settings" class="usage-warning-link">Upgrade now →</a>
-          <button id="usage-warning-dismiss" class="usage-warning-dismiss">×</button>
+          <button id="usage-warning-dismiss" type="button" class="usage-warning-dismiss" aria-label="Dismiss usage warning">×</button>
         </div>
       </div>
 
       <!-- Overview ───────────────────────────────────────────── -->
       <div id="section-overview" class="content-section active">
-        <h1 class="section-title">Overview</h1>
+        <h2 class="section-title">Overview</h2>
 
         <div id="empty-state" hidden>
           <div class="empty-state-card">
@@ -2297,7 +2325,7 @@
         <!-- Filter bar -->
         <div class="ov-filter-bar">
           <div class="ov-filter-group">
-            <span class="ov-filter-label">Period</span>
+            <label for="ov-date-filter" class="ov-filter-label">Period</label>
             <select class="ov-select" id="ov-date-filter">
               <option value="7">Last 7 days</option>
               <option value="30">Last 30 days</option>
@@ -2305,7 +2333,7 @@
             </select>
           </div>
           <div class="ov-filter-group">
-            <span class="ov-filter-label">Agent</span>
+            <label for="ov-agent-filter" class="ov-filter-label">Agent</label>
             <select class="ov-select" id="ov-agent-filter">
               <option value="">All agents</option>
             </select>
@@ -2362,7 +2390,7 @@
 
       <!-- Runs ───────────────────────────────────────────────── -->
       <div id="section-runs" class="content-section">
-        <h1 class="section-title">Runs</h1>
+        <h2 class="section-title">Runs</h2>
         <section class="card filter-bar" aria-label="Filter runs by agent">
           <label for="agent-filter">Agent</label>
           <select id="agent-filter" class="filter-select">
@@ -2376,7 +2404,7 @@
             <option value="0">All time</option>
           </select>
           <div class="runs-search-wrap">
-            <input type="text" id="runs-search" placeholder="Search by agent, topic or error..." class="runs-search-input" />
+            <input type="text" id="runs-search" aria-label="Search runs by agent, topic or error" placeholder="Search by agent, topic or error..." class="runs-search-input" />
           </div>
           <button type="button" id="export-csv-btn" class="btn-export" title="Export visible runs to CSV">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -2434,14 +2462,14 @@ def my_agent(task, run=None):
 
       <!-- Agents ─────────────────────────────────────────────── -->
       <div id="section-agents" class="content-section">
-        <h1 class="section-title">Agents</h1>
+        <h2 class="section-title">Agents</h2>
         <div class="agents-grid" id="agents-grid"></div>
         <div class="agents-stats-bar" id="agents-stats-bar" hidden></div>
       </div>
 
       <!-- Alerts ─────────────────────────────────────────────── -->
       <div id="section-alerts" class="content-section">
-        <h1 class="section-title">Alerts</h1>
+        <h2 class="section-title">Alerts</h2>
         <div class="filter-bar" id="alerts-filter-bar" aria-label="Filter alerts by agent" hidden>
           <label for="alerts-agent-filter">Agent</label>
           <select id="alerts-agent-filter">
@@ -2455,7 +2483,7 @@ def my_agent(task, run=None):
         <div id="alerts-list"></div>
       </div>
 
-    </div><!-- /.content-area -->
+    </main><!-- /#main .content-area -->
   </div><!-- /.app-shell -->
 
   <!-- ── Agent detail modal ─────────────────────────────────────── -->
@@ -2547,7 +2575,7 @@ def my_agent(task, run=None):
           <span id="trace-prompt-version" class="version-badge" hidden></span>
           <div class="trace-meta" id="trace-meta">—</div>
         </div>
-        <button class="close-btn" type="button" onclick="closeTrace()" aria-label="Close">&#x2715;</button>
+        <button class="close-btn" type="button" id="trace-close-btn" onclick="closeTrace()" aria-label="Close">&#x2715;</button>
       </div>
       <div id="trace-parent-link" class="trace-parent-link" hidden>
         <span style="font-size:0.78rem;color:var(--text-muted)">🔗 Spawned by </span>
@@ -2574,8 +2602,8 @@ def my_agent(task, run=None):
       </div>
       <div class="quality-rating" id="quality-rating">
         <span class="quality-label">Output quality:</span>
-        <button type="button" class="quality-btn thumbs-up" id="quality-up" title="Good output">👍</button>
-        <button type="button" class="quality-btn thumbs-down" id="quality-down" title="Bad output">👎</button>
+        <button type="button" class="quality-btn thumbs-up" id="quality-up" aria-label="Mark output as good">👍</button>
+        <button type="button" class="quality-btn thumbs-down" id="quality-down" aria-label="Mark output as bad">👎</button>
         <span class="quality-rated-label" id="quality-rated-label" hidden></span>
       </div>
       <div class="anomaly-warning" id="trace-anomaly-warning"></div>
@@ -4598,7 +4626,7 @@ def my_agent(task, run=None):
           : "";
         el.innerHTML =
           `Health score: <strong style="color:${color}">${score.total}/100</strong>${deltaText}
-  <button onclick="this.nextElementSibling.hidden=!this.nextElementSibling.hidden" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.75rem;padding:0 0.25rem">(?)</button>
+  <button type="button" aria-label="Explain how health score is calculated" aria-expanded="false" onclick="var s=this.nextElementSibling;s.hidden=!s.hidden;this.setAttribute('aria-expanded',s.hidden?'false':'true')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.75rem;padding:0 0.25rem">(?)</button>
   <span hidden style="display:block;font-size:0.78rem;color:var(--text-muted);margin-top:0.25rem">
     Success: ${score.breakdown.successScore} · Cost: ${score.breakdown.costScore} · Quality: ${score.breakdown.qualityScore} · Latency: ${score.breakdown.latencyScore}
   </span>`;
@@ -5422,6 +5450,7 @@ def my_agent(task, run=None):
       }
 
       notesInput.value = r.notes ?? "";
+      document.getElementById("trace-close-btn").focus();
     }
 
     function closeTrace() {

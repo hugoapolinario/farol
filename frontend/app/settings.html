@@ -632,9 +632,36 @@
       font-weight: 600;
       min-width: 4.5rem;
     }
+
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      z-index: 9999;
+      padding: 0.5rem 1rem;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .skip-link:focus {
+      left: 0;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
   </style>
 </head>
 <body>
+  <a href="#main" class="skip-link">Skip to main content</a>
   <header class="navbar">
     <div class="wrap nav-inner">
       <div class="nav-left">
@@ -650,7 +677,7 @@
     </div>
   </header>
 
-  <main class="wrap">
+  <main id="main" class="wrap">
     <h1 class="page-title">Account settings</h1>
 
     <section class="card" aria-labelledby="api-key-heading">
@@ -744,6 +771,7 @@
 
         <div id="webhook-form" hidden>
           <div class="webhook-input-row">
+            <label for="webhook-url-input" class="visually-hidden">Webhook URL</label>
             <input type="url" id="webhook-url-input" class="webhook-url-input" placeholder="https://hooks.slack.com/..." />
             <button id="save-webhook-btn" class="btn btn-primary" type="button">Save</button>
             <span id="webhook-saved-indicator" class="webhook-saved-indicator" hidden aria-live="polite">✓ Saved</span>
@@ -767,6 +795,7 @@
 
         <div id="slack-form" hidden>
           <div class="webhook-row">
+            <label for="slack-url-input" class="visually-hidden">Slack incoming webhook URL</label>
             <input id="slack-url-input" type="url" class="webhook-input" placeholder="https://hooks.slack.com/services/..." />
             <button id="slack-save-btn" class="btn btn-primary btn-sm" type="button">Save</button>
             <button id="slack-test-btn" class="btn btn-sm btn-outline" type="button">Test</button>
