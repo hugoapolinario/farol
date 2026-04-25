@@ -119,13 +119,24 @@ Deno.serve(async (req) => {
       if (!confirmRes.ok) {
         const errText = await confirmRes.text();
         console.error("[send-feedback] Resend (confirm):", confirmRes.status, errText);
+        return new Response(
+          JSON.stringify({ ok: true, confirmationEmailSent: false }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
+      return new Response(
+        JSON.stringify({ ok: true, confirmationEmailSent: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    return new Response(JSON.stringify({ ok: true }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ ok: true, confirmationEmailSent: true }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (err) {
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,

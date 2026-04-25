@@ -68,13 +68,21 @@ Deno.serve(async (req) => {
 
     // Fetch runs (last 90 days, max 500)
     const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: runs } = await supabase
+    const { data: runs, error: runsError } = await supabase
       .from("runs")
       .select("id, agent, model, topic, status, anomaly, anomaly_reason, duration_ms, input_tokens, output_tokens, cost_usd, error, timestamp, steps, prompt_version")
       .eq("user_id", userId)
       .gte("timestamp", since)
       .order("timestamp", { ascending: false })
       .limit(500);
+
+    if (runsError) {
+      console.error("[share-data] runs query failed:", runsError);
+      return new Response(JSON.stringify({ error: "Failed to load runs" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     return new Response(JSON.stringify({ runs: runs ?? [] }), {
       status: 200,

@@ -35,38 +35,61 @@ Deno.serve(async (req) => {
       .in("plan", ["starter", "builder", "studio"]);
 
     if (!subscriptions?.length) {
-      return new Response(JSON.stringify({ ok: true, sent: 0 }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ ok: true, sent: 0, failed: 0, skippedErrors: 0 }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     }
 
     let sent = 0;
+    let failed = 0;
+    let skippedErrors = 0;
 
     for (const sub of subscriptions) {
       try {
         // Get user email
-        const { data: userData } = await supabase.auth.admin.getUserById(sub.user_id);
+        const { data: userData, error: userErr } = await supabase.auth.admin.getUserById(
+          sub.user_id,
+        );
         const email = userData?.user?.email;
-        if (!email) continue;
+        if (userErr || !email) {
+          console.error("[digest] getUserById failed:", userErr, "user_id:", sub.user_id);
+          skippedErrors++;
+          continue;
+        }
 
         // Get this week's runs
-        const { data: thisWeekRuns } = await supabase
+        const { data: thisWeekRuns, error: runsErr } = await supabase
           .from("runs")
           .select("agent, status, cost_usd, duration_ms, anomaly, timestamp, quality_score")
           .eq("user_id", sub.user_id)
           .gte("timestamp", weekAgo.toISOString())
           .order("timestamp", { ascending: false });
 
+        if (runsErr) {
+          console.error("[digest] runs query failed:", runsErr);
+          skippedErrors++;
+          continue;
+        }
+
         if (!thisWeekRuns?.length) continue; // Skip users with no runs
 
         // Get last week's runs for comparison
-        const { data: lastWeekRuns } = await supabase
+        const { data: lastWeekRuns, error: lastWeekErr } = await supabase
           .from("runs")
           .select("agent, status, cost_usd")
           .eq("user_id", sub.user_id)
           .gte("timestamp", twoWeeksAgo.toISOString())
           .lt("timestamp", weekAgo.toISOString());
+
+        if (lastWeekErr) {
+          console.error("[digest] last week runs query failed:", lastWeekErr);
+          skippedErrors++;
+          continue;
+        }
 
         // Compute overall stats
         const totalRuns = thisWeekRuns.length;
@@ -97,13 +120,14 @@ Deno.serve(async (req) => {
           .join("");
 
         // Last week comparison
-        const lastTotal = lastWeekRuns?.length ?? 0;
+        const lastWeekList = lastWeekRuns ?? [];
+        const lastTotal = lastWeekList.length;
         const lastSuccessRate = lastTotal > 0
           ? Math.round(
-            lastWeekRuns!.filter((r) => r.status === "success").length / lastTotal * 100,
+            lastWeekList.filter((r) => r.status === "success").length / lastTotal * 100,
           )
           : null;
-        const lastCost = lastWeekRuns?.reduce((s, r) => s + (r.cost_usd ?? 0), 0) ?? 0;
+        const lastCost = lastWeekList.reduce((s, r) => s + (r.cost_usd ?? 0), 0);
 
         // Per-agent breakdown
         const agents: Record<
@@ -246,9 +270,14 @@ Deno.serve(async (req) => {
             html,
           }),
         });
-        await resendRes.text().catch(() => {});
-
-        sent++;
+        if (!resendRes.ok) {
+          const resBody = await resendRes.text().catch(() => "");
+          console.error("[digest] Resend failed:", resendRes.status, resBody);
+          failed++;
+        } else {
+          await resendRes.text().catch(() => {});
+          sent++;
+        }
 
         // Small delay between emails to avoid rate limits
         await new Promise((resolve) => setTimeout(resolve, 200));
@@ -257,10 +286,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, sent }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ ok: true, sent, failed, skippedErrors }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   } catch (err) {
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,

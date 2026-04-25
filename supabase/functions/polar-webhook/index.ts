@@ -88,14 +88,14 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "No email" }), { status: 400 });
       }
 
-      // Find user by email
-      const { data: userData } = await supabase.auth.admin.listUsers();
-      const user = userData?.users?.find(u => u.email === userEmail);
-
-      if (!user) {
-        console.error("[polar-webhook] User not found:", userEmail);
+      const { data, error: userErr } = await supabase.auth.admin.getUserByEmail(
+        userEmail,
+      );
+      if (userErr || !data?.user) {
+        console.error("[polar-webhook] user not found:", userEmail, userErr);
         return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
       }
+      const user = data.user;
 
       const plan = status === "canceled" || status === "revoked" ? "free" : getPlan(productId);
 

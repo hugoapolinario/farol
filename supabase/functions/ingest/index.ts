@@ -170,17 +170,17 @@ Deno.serve(async (req) => {
     const userId = keyData.user_id;
 
     // ── Fetch subscription ────────────────────────────────────────────
-    const { data: sub } = await supabase
+    const subSelect =
+      "plan, event_count, agent_names, period_start, webhook_url, slack_webhook_url, budget_limits, monthly_cost_usd, budget_period_start, budget_alerted";
+    let { data: sub } = await supabase
       .from("subscriptions")
-      .select(
-        "plan, event_count, agent_names, period_start, webhook_url, slack_webhook_url, budget_limits, monthly_cost_usd, budget_period_start, budget_alerted",
-      )
+      .select(subSelect)
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     // Provision a free-tier row for first-time users
     if (!sub) {
-      await supabase.from("subscriptions").insert({
+      const { error: insertSubErr } = await supabase.from("subscriptions").insert({
         user_id: userId,
         plan: "free",
         status: "active",
@@ -188,6 +188,46 @@ Deno.serve(async (req) => {
         agent_names: [],
         period_start: new Date().toISOString(),
       });
+      if (insertSubErr) {
+        if (insertSubErr.code === "23505") {
+          const { data: refetchedSub, error: refetchErr } = await supabase
+            .from("subscriptions")
+            .select(subSelect)
+            .eq("user_id", userId)
+            .single();
+          if (refetchErr || !refetchedSub) {
+            console.error(
+              "[ingest] subscription re-fetch after duplicate failed:",
+              refetchErr,
+            );
+            return new Response(
+              JSON.stringify({ error: "Subscription error" }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+          sub = refetchedSub;
+        } else {
+          console.error("[ingest] subscription insert failed:", insertSubErr);
+          return new Response(
+            JSON.stringify({ error: "Subscription error" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+      } else {
+        const { data: createdSub, error: loadSubErr } = await supabase
+          .from("subscriptions")
+          .select(subSelect)
+          .eq("user_id", userId)
+          .single();
+        if (loadSubErr || !createdSub) {
+          console.error("[ingest] subscription load after insert failed:", loadSubErr);
+          return new Response(
+            JSON.stringify({ error: "Subscription error" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        sub = createdSub;
+      }
     }
 
     // ── Plan limits ───────────────────────────────────────────────────
@@ -433,14 +473,22 @@ Deno.serve(async (req) => {
 
     // ── Update usage counters ─────────────────────────────────────────
     const updatedAgents = isNewAgent ? [...currentAgents, agentName] : currentAgents;
-    await supabase.from("subscriptions").upsert({
+    const { error: upsertErr } = await supabase.from("subscriptions").upsert({
       user_id: userId,
       event_count: currentEvents + spanCount,
       agent_names: updatedAgents,
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
+    if (upsertErr) {
+      console.error("[ingest] usage upsert failed:", upsertErr);
+      return new Response(
+        JSON.stringify({ error: "Usage update failed" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     if (agentName) {
+      let markBudgetAlerted = false;
       const runCost = typeof run.cost_usd === "number"
         ? run.cost_usd
         : Number(run.cost_usd) || 0;
@@ -555,14 +603,22 @@ Deno.serve(async (req) => {
           }
         }
 
-        budgetAlertedMap[agentName] = true;
+        markBudgetAlerted = true;
       }
 
       monthlyCostMap[agentName] = newMonthlyCost;
-      await supabase.from("subscriptions").update({
+      const nextBudgetAlerted = markBudgetAlerted
+        ? { ...budgetAlertedMap, [agentName]: true }
+        : budgetAlertedMap;
+      const { error: budgetErr } = await supabase.from("subscriptions").update({
         monthly_cost_usd: monthlyCostMap,
-        budget_alerted: budgetAlertedMap,
+        budget_alerted: nextBudgetAlerted,
       }).eq("user_id", userId);
+      if (budgetErr) {
+        console.error("[ingest] budget update failed:", budgetErr);
+      } else if (markBudgetAlerted) {
+        budgetAlertedMap[agentName] = true;
+      }
     }
 
     const webhookUrl =
