@@ -2715,8 +2715,17 @@ def my_agent(task, run=None):
     }
 
     const STARTER_CHECKOUT = "https://buy.polar.sh/polar_cl_gyGMib96vYPVleRhQOXWPQZAXN3U3jI1GEgju3yzWKj";
+    function debounce(fn, delay) {
+      let timer;
+      return function (...args) {
+        clearTimeout(timer);
+        const self = this;
+        timer = setTimeout(function () {
+          fn.apply(self, args);
+        }, delay);
+      };
+    }
     let lastRefreshAt = null;
-    let refreshIntervalId = null;
     let secondsTickerId = null;
     let allRuns = [];
     let displayedRuns = [];
@@ -2843,19 +2852,29 @@ def my_agent(task, run=None):
     }
 
     function renderTraceStepsFallback(r, stepsEl) {
-      stepsEl.innerHTML = "";
       if (r.steps && r.steps.length > 0) {
-        r.steps.forEach((s, si) => {
+        const parts = [];
+        r.steps.forEach(function (s, si) {
           const detail = s.url || s.model || "";
-          stepsEl.innerHTML += `
-            <div class="step">
-              <div class="step-num">${si + 1}</div>
-              <div>
-                <span class="step-type ${sanitizeCssClassSegment(s.step)}">${escapeHtml(s.step)}</span>
-                <div class="step-detail">${escapeHtml(detail)}</div>
-              </div>
-            </div>`;
+          parts.push(
+            '<div class="step">' +
+              '<div class="step-num">' +
+              (si + 1) +
+              "</div>" +
+              "<div>" +
+              '<span class="step-type ' +
+              sanitizeCssClassSegment(s.step) +
+              '">' +
+              escapeHtml(s.step) +
+              "</span>" +
+              '<div class="step-detail">' +
+              escapeHtml(detail) +
+              "</div>" +
+              "</div>" +
+              "</div>"
+          );
         });
+        stepsEl.innerHTML = parts.join("");
       } else {
         stepsEl.innerHTML =
           '<div style="color:var(--text-muted);font-size:0.85rem">No steps recorded</div>';
@@ -5483,19 +5502,40 @@ def my_agent(task, run=None):
       }, 1000);
     }
 
-    function startAutoRefresh() {
-      if (refreshIntervalId) {
-        clearInterval(refreshIntervalId);
+    function startAutoRefresh(userId) {
+      let intervalId = null;
+
+      function start() {
+        if (intervalId) return;
+        intervalId = setInterval(async function () {
+          if (!userId) return;
+          try {
+            await loadRuns(userId);
+            setLastUpdatedNow();
+          } catch (_e) {
+            // keep current table data; next cycle will retry
+          }
+        }, 15000);
       }
-      refreshIntervalId = setInterval(async function () {
-        if (!currentUserId) return;
-        try {
-          await loadRuns(currentUserId);
-          setLastUpdatedNow();
-        } catch (_e) {
-          // keep current table data; next cycle will retry
+
+      function stop() {
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
         }
-      }, 15000);
+      }
+
+      document.addEventListener("visibilitychange", function () {
+        if (document.hidden) {
+          stop();
+        } else {
+          start();
+        }
+      });
+
+      if (!document.hidden) {
+        start();
+      }
     }
 
     /* ── Sidebar navigation ────────────────────────────────────── */
@@ -5561,7 +5601,7 @@ def my_agent(task, run=None):
         await loadRuns(user.id);
         setLastUpdatedNow();
         startSecondsCounter();
-        startAutoRefresh();
+        startAutoRefresh(user.id);
         setStatus("");
       } catch (e) {
         setStatus(e && e.message ? e.message : "Failed to load dashboard data.");
@@ -5598,12 +5638,15 @@ def my_agent(task, run=None):
       applyFilterAndRender();
     });
 
-    document.getElementById("runs-search").addEventListener("input", function () {
-      runsSearchQuery = this.value.trim();
-      closeTrace();
-      runsMultiAgentFilter = null;
-      applyFilterAndRender();
-    });
+    document.getElementById("runs-search").addEventListener(
+      "input",
+      debounce(function (e) {
+        runsSearchQuery = e.target.value.trim().toLowerCase();
+        closeTrace();
+        runsMultiAgentFilter = null;
+        applyFilterAndRender();
+      }, 250)
+    );
 
     document.getElementById("export-csv-btn").addEventListener("click", exportRunsCSV);
 
