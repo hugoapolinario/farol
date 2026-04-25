@@ -2362,6 +2362,17 @@ def my_agent(task, run=None):
     const ovDateEl      = document.getElementById("ov-date-filter");
     const ovAgentEl     = document.getElementById("ov-agent-filter");
 
+    function debounce(fn, delay) {
+      let timer;
+      return function (...args) {
+        clearTimeout(timer);
+        const self = this;
+        timer = setTimeout(function () {
+          fn.apply(self, args);
+        }, delay);
+      };
+    }
+
     /* ─── Helpers ────────────────────────────────────────────────── */
     function escapeHtml(s) {
       if (s == null) return "";
@@ -2463,6 +2474,41 @@ def my_agent(task, run=None):
       if (v == null) return "";
       if (typeof v === "object") { try { return JSON.stringify(v); } catch (_e) { return String(v); } }
       return String(v);
+    }
+
+    function sanitizeCssClassSegment(value) {
+      const s = String(value == null ? "" : value).replace(/[^a-zA-Z0-9_-]/g, "_");
+      return s.length > 0 ? s : "step";
+    }
+
+    function renderTraceStepsFallback(r, stepsEl) {
+      if (r.steps && r.steps.length > 0) {
+        const parts = [];
+        r.steps.forEach(function (s, si) {
+          const detail = s.url || s.model || "";
+          parts.push(
+            '<div class="step">' +
+              '<div class="step-num">' +
+              (si + 1) +
+              "</div>" +
+              "<div>" +
+              '<span class="step-type ' +
+              sanitizeCssClassSegment(s.step) +
+              '">' +
+              escapeHtml(s.step) +
+              "</span>" +
+              '<div class="step-detail">' +
+              escapeHtml(detail) +
+              "</div>" +
+              "</div>" +
+              "</div>"
+          );
+        });
+        stepsEl.innerHTML = parts.join("");
+      } else {
+        stepsEl.innerHTML =
+          '<div style="color:var(--text-muted);font-size:0.85rem">No steps recorded</div>';
+      }
     }
 
     function agentGroupKey(r) { return (r.agent != null && r.agent !== "") ? r.agent : AGENT_NONE_VALUE; }
@@ -4239,7 +4285,7 @@ def my_agent(task, run=None):
       const spans   = r.spans || [];
 
       if (spans.length > 0) { titleEl.textContent = "Trace timeline"; renderWaterfall(r, spans, stepsEl); }
-      else                   { titleEl.textContent = "Execution steps"; stepsEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">No steps recorded</div>'; }
+      else { titleEl.textContent = "Execution steps"; renderTraceStepsFallback(r, stepsEl); }
 
       notesInput.value = r.notes ?? "";
     }
@@ -4513,12 +4559,15 @@ def my_agent(task, run=None):
       applyFilterAndRender();
     });
 
-    document.getElementById("runs-search").addEventListener("input", function() {
-      runsSearchQuery = this.value.trim();
-      closeTrace();
-      runsMultiAgentFilter = null;
-      applyFilterAndRender();
-    });
+    document.getElementById("runs-search").addEventListener(
+      "input",
+      debounce(function (e) {
+        runsSearchQuery = e.target.value.trim().toLowerCase();
+        closeTrace();
+        runsMultiAgentFilter = null;
+        applyFilterAndRender();
+      }, 250)
+    );
 
     ovDateEl.addEventListener("change", function() { ovDays = Number(this.value); refreshOverview(); });
     ovAgentEl.addEventListener("change", function() { ovAgent = this.value; refreshOverview(); });
