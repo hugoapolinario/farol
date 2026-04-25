@@ -55,18 +55,19 @@ Deno.serve(async (req) => {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  if (!RESEND_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    return new Response(
-      JSON.stringify({ error: "Server misconfiguration" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
-  }
-
   try {
     const body = await req.json() as { email?: string; user_id?: string; event?: string };
-    const { email, user_id: userId, event } = body;
+    const { email, user_id, event } = body;
+    console.log("Starting onboarding email", { email, user_id, event });
 
-    if (!email || !event || !userId) {
+    if (!RESEND_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      return new Response(
+        JSON.stringify({ error: "Server misconfiguration" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (!email || !event || !user_id) {
       return new Response(
         JSON.stringify({ error: "Missing email, user_id, or event" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -101,7 +102,7 @@ Deno.serve(async (req) => {
 
     const column = event === "welcome" ? "welcome_email_sent_at" : "followup_email_sent_at";
     const patchRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(userId)}`,
+      `${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(user_id)}`,
       {
         method: "PATCH",
         headers: {
@@ -127,9 +128,10 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: String(err) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    console.error("Onboarding email error:", err);
+    return new Response(JSON.stringify({ error: String(err) }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
