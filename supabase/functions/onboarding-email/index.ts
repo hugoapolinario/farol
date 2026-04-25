@@ -1,6 +1,9 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ONBOARDING_EMAIL_SECRET = Deno.env.get("ONBOARDING_EMAIL_SECRET");
 
 const welcomeEmail = (email: string) => ({
   from: "Farol <alerts@usefarol.dev>",
@@ -48,7 +51,7 @@ const followupEmail = (email: string) => ({
 Deno.serve(async (req) => {
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
+    "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info, x-onboarding-secret",
   };
 
   if (req.method === "OPTIONS") {
@@ -67,9 +70,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!email || !event || !user_id) {
+    if (ONBOARDING_EMAIL_SECRET) {
+      const h = req.headers.get("x-onboarding-secret");
+      if (h !== ONBOARDING_EMAIL_SECRET) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
+    if (!event || !user_id) {
       return new Response(
-        JSON.stringify({ error: "Missing email, user_id, or event" }),
+        JSON.stringify({ error: "Missing user_id or event" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -81,7 +94,54 @@ Deno.serve(async (req) => {
       );
     }
 
-    const payload = event === "welcome" ? welcomeEmail(email) : followupEmail(email);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    const { data: authData, error: authErr } = await supabase.auth.admin.getUserById(user_id);
+    if (authErr || !authData.user) {
+      return new Response(
+        JSON.stringify({ error: "User not found" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const authUser = authData.user;
+    const canonicalEmail = authUser.email;
+    if (!canonicalEmail) {
+      return new Response(
+        JSON.stringify({ error: "User has no email" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (!authUser.email_confirmed_at) {
+      return new Response(
+        JSON.stringify({ error: "Email not confirmed" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (email && email.trim().toLowerCase() !== canonicalEmail.trim().toLowerCase()) {
+      return new Response(
+        JSON.stringify({ error: "email does not match user_id" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const { data: subRow, error: subErr } = await supabase
+      .from("subscriptions")
+      .select("user_id")
+      .eq("user_id", user_id)
+      .maybeSingle();
+
+    if (subErr || !subRow) {
+      return new Response(
+        JSON.stringify({ error: "No subscription for this user" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const toEmail = canonicalEmail;
+    const payload = event === "welcome" ? welcomeEmail(toEmail) : followupEmail(toEmail);
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
