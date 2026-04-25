@@ -1,7 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
 
-const SIGNING_SECRET = Deno.env.get("LEMONSQUEEZY_WEBHOOK_SECRET")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -12,24 +11,30 @@ const VARIANT_PLAN_MAP: Record<string, string> = {
 };
 
 Deno.serve(async (req) => {
+  const SIGNING_SECRET = Deno.env.get("LEMONSQUEEZY_WEBHOOK_SECRET");
+  if (!SIGNING_SECRET) {
+    console.error("LEMONSQUEEZY_WEBHOOK_SECRET not set — rejecting request");
+    return new Response(
+      JSON.stringify({ error: "Webhook secret not configured" }),
+      { status: 500 },
+    );
+  }
+
   const rawBody = await req.text();
   const signature = req.headers.get("x-signature") ?? "";
 
-  // Verify webhook signature
-  if (SIGNING_SECRET) {
-    const key = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(SIGNING_SECRET),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["verify"],
-    );
-    const sigBytes = hexToBytes(signature);
-    const bodyBytes = new TextEncoder().encode(rawBody);
-    const valid = await crypto.subtle.verify("HMAC", key, sigBytes, bodyBytes);
-    if (!valid) {
-      return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401 });
-    }
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(SIGNING_SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["verify"],
+  );
+  const sigBytes = hexToBytes(signature);
+  const bodyBytes = new TextEncoder().encode(rawBody);
+  const valid = await crypto.subtle.verify("HMAC", key, sigBytes, bodyBytes);
+  if (!valid) {
+    return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401 });
   }
 
   const event = JSON.parse(rawBody);

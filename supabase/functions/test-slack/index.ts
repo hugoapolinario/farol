@@ -41,6 +41,25 @@ Deno.serve(async (req) => {
       });
     }
 
+    const allowedHosts = ["hooks.slack.com"];
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(slack_url);
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid webhook URL" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (!allowedHosts.includes(parsedUrl.hostname)) {
+      return new Response(
+        JSON.stringify({
+          error: "Invalid webhook URL — only Slack webhooks are supported",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const res = await fetch(slack_url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -63,9 +82,9 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } else {
-      const body = await res.text();
+      await res.text().catch(() => {});
       return new Response(
-        JSON.stringify({ error: `Slack returned ${res.status}: ${body}` }),
+        JSON.stringify({ error: `Slack returned an error (${res.status})` }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

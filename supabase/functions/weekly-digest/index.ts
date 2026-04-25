@@ -6,10 +6,15 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 
 Deno.serve(async (req) => {
   const DIGEST_SECRET = Deno.env.get("WEEKLY_DIGEST_SECRET");
+  if (!DIGEST_SECRET) {
+    return new Response(JSON.stringify({ error: "Digest secret not configured" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
-  // When WEEKLY_DIGEST_SECRET is set, require matching x-digest-secret (e.g. from pg_cron).
   const authHeader = req.headers.get("x-digest-secret");
-  if (DIGEST_SECRET && authHeader !== DIGEST_SECRET) {
+  if (authHeader !== DIGEST_SECRET) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },

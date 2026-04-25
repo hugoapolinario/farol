@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json() as { email?: string; user_id?: string; event?: string };
     const { email, user_id, event } = body;
-    console.log("Starting onboarding email", { email, user_id, event });
+    console.log("Starting onboarding email", { user_id_prefix: user_id?.slice(0, 8), event });
 
     if (!RESEND_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       return new Response(
