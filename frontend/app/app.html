@@ -2683,35 +2683,47 @@ def my_agent(task, run=None):
     }
 
     function updateUsageBar() {
-      const limits = PLAN_LIMITS[userPlan] ?? PLAN_LIMITS.free;
       const usageBlock = document.getElementById("usage-block");
-
-      if (limits.events === Infinity && limits.agents === Infinity) {
-        usageBlock.hidden = true;
-        return;
-      }
       usageBlock.hidden = false;
 
-      const eventPct = limits.events === Infinity ? 0 : Math.min(100, (eventCount / limits.events) * 100);
-      const agentPct = limits.agents === Infinity ? 0 : Math.min(100, (agentCount / limits.agents) * 100);
+      const plan = userPlan;
+      const eventLimitStr =
+        plan === "free" ? "50k" : plan === "starter" ? "300k" : "Unlimited";
+      const agentLimitStr =
+        plan === "free" ? "1" : plan === "starter" ? "3" : "Unlimited";
 
-      const eventsLabel = limits.events === Infinity
-        ? `${eventCount.toLocaleString()} / ∞`
-        : `${eventCount.toLocaleString()} / ${(limits.events / 1000).toFixed(0)}k`;
-      const agentsLabel = limits.agents === Infinity
-        ? `${agentCount} / ∞`
-        : `${agentCount} / ${limits.agents}`;
+      const limits = PLAN_LIMITS[userPlan] ?? PLAN_LIMITS.free;
+      const isLimitedPlan = plan === "free" || plan === "starter";
+
+      const eventsLabel = `${eventCount.toLocaleString()} / ${eventLimitStr}`;
+      const agentsLabel = `${agentCount} / ${agentLimitStr}`;
 
       document.getElementById("usage-events-text").textContent = eventsLabel;
       document.getElementById("usage-agents-text").textContent = agentsLabel;
 
       const eventsBar = document.getElementById("usage-events-bar");
-      eventsBar.style.width = eventPct + "%";
-      eventsBar.className = "usage-bar-fill" + (eventPct >= 100 ? " critical" : eventPct >= 80 ? " warning" : "");
-
       const agentsBar = document.getElementById("usage-agents-bar");
+
+      if (!isLimitedPlan) {
+        eventsBar.style.width = "100%";
+        eventsBar.className = "usage-bar-fill";
+        agentsBar.style.width = "100%";
+        agentsBar.className = "usage-bar-fill";
+        return;
+      }
+
+      const eventPct = Math.min(100, (eventCount / limits.events) * 100);
+      const agentPct = Math.min(100, (agentCount / limits.agents) * 100);
+
+      eventsBar.style.width = eventPct + "%";
+      eventsBar.className =
+        "usage-bar-fill" +
+        (eventPct >= 100 ? " critical" : eventPct >= 80 ? " warning" : "");
+
       agentsBar.style.width = agentPct + "%";
-      agentsBar.className = "usage-bar-fill" + (agentPct >= 100 ? " critical" : agentPct >= 80 ? " warning" : "");
+      agentsBar.className =
+        "usage-bar-fill" +
+        (agentPct >= 100 ? " critical" : agentPct >= 80 ? " warning" : "");
     }
 
     const STARTER_CHECKOUT = "https://buy.polar.sh/polar_cl_gyGMib96vYPVleRhQOXWPQZAXN3U3jI1GEgju3yzWKj";
