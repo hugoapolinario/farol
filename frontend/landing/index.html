@@ -254,6 +254,22 @@
       animation: fade-up 0.7s ease 0.32s both;
     }
 
+    .hero-product-hunt {
+      margin-top: 1.25rem;
+      animation: fade-up 0.7s ease 0.4s both;
+    }
+
+    .hero-product-hunt a {
+      display: inline-block;
+      line-height: 0;
+    }
+
+    .hero-product-hunt a:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+      border-radius: 4px;
+    }
+
     /* Hero */
     .hero {
       padding: clamp(3rem, 8vw, 5.5rem) 0 clamp(4rem, 10vw, 6rem);
@@ -794,6 +810,13 @@
       <p style="font-size:0.8rem;color:var(--text-muted);margin-top:0.5rem">
         Open source SDK · <a href="https://github.com/hugoapolinario/farol" style="color:var(--accent)">View on GitHub →</a>
       </p>
+      <div class="hero-product-hunt">
+        <a href="https://www.producthunt.com/products/farol?launch=farol" target="_blank" rel="noopener">
+          <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=farol&amp;theme=dark"
+            alt="Farol on Product Hunt"
+            style="height:54px;">
+        </a>
+      </div>
     </section>
 
     <section class="wrap" aria-labelledby="problem-heading">
