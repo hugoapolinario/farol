@@ -171,6 +171,36 @@ def run_crew(topic, run=None):
     return result
 ```
 
+**Cursor SDK (Node.js):**
+
+```typescript
+import { trace } from '@usefarol/sdk';
+import { CursorClient } from '@cursor/sdk';
+
+const client = new CursorClient({ apiKey: process.env.CURSOR_API_KEY });
+
+const runAgent = trace(
+  async (run, prompt: string) => {
+    run.topic = prompt;
+
+    const span = run.startSpan('cursor_agent', { type: 'tool' });
+    try {
+      const result = await client.agent.run({ prompt });
+      span.end();
+      return result;
+    } catch (e) {
+      span.end(e instanceof Error ? e : new Error(String(e)));
+      throw e;
+    }
+  },
+  { agentName: 'cursor-agent', farolKey: 'frl_your_key_here' }
+);
+
+await runAgent('scaffold a new Express API with TypeScript');
+```
+
+Cursor SDK is in early access — check the Cursor SDK docs for the latest API.
+
 Also works with AutoGen, Haystack, LlamaIndex, smolagents, and any custom agent loop.
 
 ## SDK options

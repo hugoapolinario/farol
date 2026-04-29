@@ -1372,6 +1372,38 @@ result = run_crew(<span style="color:#86efac">"market analysis for Q2 2026"</spa
 );</code></pre>
         </div>
 
+        <h3>Cursor SDK (Node.js)</h3>
+        <p>Wrap Cursor agent runs to track cost, duration, and errors automatically:</p>
+        <div class="code-panel" translate="no" style="margin-top:0.75rem">
+          <div class="code-header">typescript — cursor sdk</div>
+          <pre class="code-body"><code><span style="color:#c084fc">import</span> { trace } <span style="color:#c084fc">from</span> <span style="color:#86efac">'@usefarol/sdk'</span>;
+<span style="color:#c084fc">import</span> { CursorClient } <span style="color:#c084fc">from</span> <span style="color:#86efac">'@cursor/sdk'</span>;
+
+<span style="color:#c084fc">const</span> client = <span style="color:#c084fc">new</span> CursorClient({ apiKey: process.env.CURSOR_API_KEY });
+
+<span style="color:#c084fc">const</span> runAgent = <span style="color:#fb923c">trace</span>(
+  <span style="color:#c084fc">async</span> (run, prompt: <span style="color:#7dd3fc">string</span>) =&gt; {
+    run.topic = prompt;
+
+    <span style="color:#c084fc">const</span> span = run.startSpan(<span style="color:#86efac">'cursor_agent'</span>, { type: <span style="color:#86efac">'tool'</span> });
+    <span style="color:#c084fc">try</span> {
+      <span style="color:#c084fc">const</span> result = <span style="color:#c084fc">await</span> client.agent.run({ prompt });
+      span.end();
+      <span style="color:#c084fc">return</span> result;
+    } <span style="color:#c084fc">catch</span> (e) {
+      span.end(e <span style="color:#c084fc">instanceof</span> Error ? e : <span style="color:#c084fc">new</span> Error(String(e)));
+      <span style="color:#c084fc">throw</span> e;
+    }
+  },
+  { agentName: <span style="color:#86efac">'cursor-agent'</span>, farolKey: <span style="color:#86efac">'frl_your_key_here'</span> }
+);
+
+<span style="color:#c084fc">await</span> runAgent(<span style="color:#86efac">'scaffold a new Express API with TypeScript'</span>);</code></pre>
+        </div>
+        <div class="docs-note" style="margin-top:1rem">
+          <strong>Note:</strong> Cursor SDK is in early access. Check the Cursor SDK docs for the latest API.
+        </div>
+
         <h3>Works with any framework</h3>
         <p>If your agent is a Python or Node.js function, <code style="font-family:var(--font-mono);font-size:0.88em">@trace</code> wraps it. This includes AutoGen, Haystack, LlamaIndex, smolagents, and any custom agent loop. Wrap the top-level entrypoint function and add <code style="font-family:var(--font-mono);font-size:0.88em">run.span()</code> calls inside for step-level visibility.</p>
       </section>
