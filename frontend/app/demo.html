@@ -20,6 +20,8 @@
       --success: #4ade80;
       --radius: 12px;
       --radius-sm: 8px;
+      --bg: var(--bg-surface);
+      --bg-card: var(--bg-elevated);
     }
 
     * { box-sizing: border-box; }
@@ -1291,6 +1293,60 @@
 
     .anomaly-warning.visible { display: block; }
 
+    .trace-tab-row {
+      display: flex;
+      gap: 0.25rem;
+      margin-bottom: 0.65rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .trace-tab {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 500;
+      padding: 0.45rem 0.65rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      font-family: inherit;
+    }
+
+    .trace-tab:hover {
+      color: var(--text);
+    }
+
+    .trace-tab.trace-tab-active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .dag-container { padding: 1rem 0; }
+    .dag-legend { display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .dag-legend-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; color: var(--text-muted); }
+    .dag-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dag-flow { display: flex; align-items: flex-start; gap: 0; overflow-x: auto; padding-bottom: 0.5rem; }
+    .dag-node-wrap { display: flex; align-items: center; }
+    .dag-children { display: flex; flex-direction: column; gap: 0.75rem; }
+    .dag-branch { display: flex; align-items: center; }
+    .dag-edge { display: flex; align-items: center; margin: 0 0.5rem; }
+    .dag-edge-line { width: 32px; height: 2px; background: var(--border); }
+    .dag-edge-arrow { color: var(--text-muted); font-size: 0.6rem; margin-left: -4px; }
+    .dag-node { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); min-width: 140px; max-width: 180px; cursor: pointer; overflow: hidden; transition: border-color 0.15s; }
+    .dag-node:hover { border-color: var(--accent); }
+    .dag-node-current { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(249,115,22,0.15); }
+    .dag-node-error { border-color: #ef4444; }
+    .dag-node-status-bar { height: 3px; width: 100%; }
+    .dag-node-content { padding: 0.6rem 0.75rem; }
+    .dag-node-name { font-size: 0.8rem; font-weight: 600; color: var(--text); margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dag-node-meta { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.2rem; }
+    .dag-node-cost { font-size: 0.72rem; color: var(--accent); font-weight: 500; }
+    .dag-node-pct { font-size: 0.65rem; color: var(--text-muted); background: var(--bg); padding: 0 0.25rem; border-radius: 3px; }
+    .dag-node-duration { font-size: 0.65rem; color: var(--text-muted); margin-left: auto; }
+    .dag-node-topic { font-size: 0.65rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dag-total { margin-top: 1.25rem; font-size: 0.78rem; color: var(--text-muted); padding-top: 0.75rem; border-top: 1px solid var(--border); }
+
     .steps-title {
       font-size: 0.68rem;
       color: var(--text-muted);
@@ -2052,8 +2108,17 @@ def my_agent(task, run=None):
         <span class="quality-rated-label" id="quality-rated-label" hidden></span>
       </div>
       <div class="anomaly-warning" id="trace-anomaly-warning"></div>
-      <div class="steps-title" id="trace-detail-title">Trace timeline</div>
-      <div id="trace-steps"></div>
+      <div class="trace-tab-row" role="tablist" aria-label="Trace detail views">
+        <button type="button" class="trace-tab trace-tab-active" id="trace-tab-trace" data-tab="trace" role="tab" aria-selected="true">Trace</button>
+        <button type="button" class="trace-tab" id="trace-tab-pipeline" data-tab="pipeline" role="tab" aria-selected="false" style="display:none">Pipeline</button>
+      </div>
+      <div class="trace-panel" id="trace-panel-trace" role="tabpanel">
+        <div class="steps-title" id="trace-detail-title">Execution steps</div>
+        <div id="trace-steps"></div>
+      </div>
+      <div class="trace-panel" id="trace-panel-pipeline" role="tabpanel" style="display:none">
+        <div id="pipeline-dag-container"></div>
+      </div>
       <div class="trace-notes-section">
         <div class="trace-notes-label">Notes</div>
         <textarea id="trace-notes-input" class="trace-notes-input" placeholder="Add a note... (e.g. 'Failed due to external API outage')"></textarea>
@@ -4452,6 +4517,167 @@ def my_agent(task, run=None):
       stepsEl.innerHTML = parts.join("");
     }
 
+    function buildPipelineTree(rootId, allRuns) {
+      var root = allRuns.find(function (r) {
+        return String(r.id) === String(rootId);
+      });
+      if (!root) return null;
+      var children = allRuns
+        .filter(function (r) {
+          return r.parent_trace_id != null && String(r.parent_trace_id) === String(rootId);
+        })
+        .sort(function (a, b) {
+          return new Date(a.timestamp) - new Date(b.timestamp);
+        });
+      return {
+        run: root,
+        children: children.map(function (c) {
+          return buildPipelineTree(c.id, allRuns);
+        }),
+      };
+    }
+
+    function findPipelineRoot(run, allRuns) {
+      if (!run.parent_trace_id) return run;
+      var parent = allRuns.find(function (r) {
+        return String(r.id) === String(run.parent_trace_id);
+      });
+      return parent ? findPipelineRoot(parent, allRuns) : run;
+    }
+
+    function flattenTree(node) {
+      if (!node) return [];
+      var out = [node];
+      for (var i = 0; i < node.children.length; i++) {
+        out = out.concat(flattenTree(node.children[i]));
+      }
+      return out;
+    }
+
+    function getPipelineTotalCost(node) {
+      if (!node) return 0;
+      var sub = Number(node.run.cost_usd) || 0;
+      for (var i = 0; i < node.children.length; i++) {
+        sub += getPipelineTotalCost(node.children[i]);
+      }
+      return sub;
+    }
+
+    function renderPipelineDAG(run, allRuns) {
+      var root = findPipelineRoot(run, allRuns);
+      var tree = buildPipelineTree(root.id, allRuns);
+      if (!tree) {
+        return '<p style="color:var(--text-muted);font-size:0.85rem">Pipeline data not available.</p>';
+      }
+      var allNodes = flattenTree(tree);
+      if (allNodes.length < 2) {
+        return '<p style="color:var(--text-muted);font-size:0.85rem">No linked pipeline runs found. Pipeline view requires multi-agent trace linking.</p>';
+      }
+      var totalCost = getPipelineTotalCost(tree);
+
+      function renderNode(node, depth) {
+        var rn = node.run;
+        var isCurrentRun = String(rn.id) === String(run.id);
+        var statusColor =
+          rn.status === "success" ? "#4ade80" : rn.status === "error" ? "#ef4444" : "#f97316";
+        var costNum = Number(rn.cost_usd) || 0;
+        var costPct = totalCost > 0 ? Math.round((costNum / totalCost) * 100) : 0;
+        var duration =
+          rn.duration_ms != null
+            ? rn.duration_ms > 1000
+              ? (Number(rn.duration_ms) / 1000).toFixed(1) + "s"
+              : String(rn.duration_ms) + "ms"
+            : "—";
+        var costVal = rn.cost_usd != null ? "$" + Number(rn.cost_usd).toFixed(6) : "—";
+        var topic = rn.topic || "";
+        var topicShort = topic.length > 40 ? topic.slice(0, 40) + "…" : topic;
+
+        var childrenHtml = "";
+        if (node.children.length > 0) {
+          childrenHtml =
+            '<div class="dag-children">' +
+            node.children
+              .map(function (c) {
+                return (
+                  '<div class="dag-branch"><div class="dag-edge"><div class="dag-edge-line"></div><div class="dag-edge-arrow">▶</div></div>' +
+                  renderNode(c, depth + 1) +
+                  "</div>"
+                );
+              })
+              .join("") +
+            "</div>";
+        }
+
+        return (
+          '<div class="dag-node-wrap">' +
+          '<div class="dag-node' +
+          (isCurrentRun ? " dag-node-current" : "") +
+          (rn.status === "error" ? " dag-node-error" : "") +
+          '" data-run-id="' +
+          escapeHtml(String(rn.id)) +
+          '" style="--node-status:' +
+          statusColor +
+          '">' +
+          '<div class="dag-node-status-bar" style="background:' +
+          statusColor +
+          '"></div>' +
+          '<div class="dag-node-content">' +
+          '<div class="dag-node-name">' +
+          escapeHtml(rn.agent || "unknown") +
+          "</div>" +
+          '<div class="dag-node-meta">' +
+          '<span class="dag-node-cost">' +
+          costVal +
+          '</span><span class="dag-node-pct">' +
+          costPct +
+          '%</span><span class="dag-node-duration">' +
+          duration +
+          "</span></div>" +
+          '<div class="dag-node-topic">' +
+          escapeHtml(topicShort) +
+          "</div></div></div>" +
+          childrenHtml +
+          "</div>"
+        );
+      }
+
+      return (
+        '<div class="dag-container">' +
+        '<div class="dag-legend">' +
+        '<span class="dag-legend-item"><span class="dag-legend-dot" style="background:#4ade80"></span> Success</span>' +
+        '<span class="dag-legend-item"><span class="dag-legend-dot" style="background:#ef4444"></span> Error</span>' +
+        '<span class="dag-legend-item"><span class="dag-legend-dot" style="background:#f97316"></span> Running</span>' +
+        "</div>" +
+        '<div class="dag-flow">' +
+        renderNode(tree, 0) +
+        "</div>" +
+        '<div class="dag-total">Total pipeline cost: <strong>$' +
+        totalCost.toFixed(6) +
+        "</strong> · " +
+        String(allNodes.length) +
+        " agents</div></div>"
+      );
+    }
+
+    function setTraceDetailTab(tab) {
+      var traceBtn = document.getElementById("trace-tab-trace");
+      var pipeBtn = document.getElementById("trace-tab-pipeline");
+      var tracePan = document.getElementById("trace-panel-trace");
+      var pipePan = document.getElementById("trace-panel-pipeline");
+      var pipeVisible = pipeBtn && pipeBtn.style.display !== "none";
+      var usePipeline = tab === "pipeline" && pipeVisible;
+      if (traceBtn) {
+        traceBtn.classList.toggle("trace-tab-active", !usePipeline);
+        traceBtn.setAttribute("aria-selected", !usePipeline ? "true" : "false");
+      }
+      if (pipeBtn && pipeVisible) {
+        pipeBtn.classList.toggle("trace-tab-active", usePipeline);
+        pipeBtn.setAttribute("aria-selected", usePipeline ? "true" : "false");
+      }
+      if (tracePan) tracePan.style.display = usePipeline ? "none" : "";
+      if (pipePan) pipePan.style.display = usePipeline ? "" : "none";
+    }
+
     /* ─── Trace modal ────────────────────────────────────────────── */
     function openTraceRun(r, row) {
       if (!r) return;
@@ -4554,6 +4780,24 @@ def my_agent(task, run=None):
 
       if (spans.length > 0) { titleEl.textContent = "Trace timeline"; renderWaterfall(r, spans, stepsEl); }
       else { titleEl.textContent = "Execution steps"; renderTraceStepsFallback(r, stepsEl); }
+
+      setTraceDetailTab("trace");
+      var hasParent = !!r.parent_trace_id;
+      var hasChildren = allRuns.some(function (x) {
+        return x.parent_trace_id != null && String(x.parent_trace_id) === String(r.id);
+      });
+      var hasPipeline = hasParent || hasChildren;
+      var pipelineTab = document.getElementById("trace-tab-pipeline");
+      var pipelinePanel = document.getElementById("trace-panel-pipeline");
+      var dagEl = document.getElementById("pipeline-dag-container");
+      if (hasPipeline && pipelineTab && dagEl) {
+        pipelineTab.style.display = "";
+        dagEl.innerHTML = renderPipelineDAG(r, allRuns);
+      } else {
+        if (pipelineTab) pipelineTab.style.display = "none";
+        if (pipelinePanel) pipelinePanel.style.display = "none";
+        if (dagEl) dagEl.innerHTML = "";
+      }
 
       notesInput.value = r.notes ?? "";
     }
@@ -4872,6 +5116,31 @@ def my_agent(task, run=None):
     });
 
     document.getElementById("trace-backdrop").addEventListener("click", closeTrace);
+
+    (function initTraceModalTabs() {
+      var tabRow = document.querySelector(".trace-tab-row");
+      if (tabRow) {
+        tabRow.addEventListener("click", function (e) {
+          var btn = e.target.closest(".trace-tab");
+          if (!btn) return;
+          var t = btn.getAttribute("data-tab");
+          if (!t) return;
+          if (btn.id === "trace-tab-pipeline" && btn.style.display === "none") return;
+          setTraceDetailTab(t);
+        });
+      }
+      var dagHost = document.getElementById("pipeline-dag-container");
+      if (dagHost) {
+        dagHost.addEventListener("click", function (e) {
+          var node = e.target.closest(".dag-node");
+          if (!node || !node.dataset.runId) return;
+          var targetRun = allRuns.find(function (x) {
+            return String(x.id) === String(node.dataset.runId);
+          });
+          if (targetRun) openTraceRun(targetRun, null);
+        });
+      }
+    })();
 
     document.getElementById("quality-up").addEventListener("click", function () {
       if (!traceModalRun || traceModalRun.id == null) return;
