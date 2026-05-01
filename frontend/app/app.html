@@ -514,6 +514,20 @@
       font-family: var(--font-mono);
     }
 
+    .run-pipeline-parent {
+      color: #38bdf8;
+      font-size: 0.75rem;
+      cursor: pointer;
+      margin-left: 0.3rem;
+    }
+
+    .run-pipeline-child {
+      color: #f97316;
+      font-size: 0.75rem;
+      cursor: pointer;
+      margin-left: 0.3rem;
+    }
+
     .version-table {
       width: 100%;
       border-collapse: collapse;
@@ -5530,13 +5544,19 @@ def my_agent(task, run=None):
         const noteIcon = noteTitle
           ? ` <span title="${noteTitle}" style="cursor:default">📝</span>`
           : "";
-        const parentIcon = r.parent_trace_id
-          ? ` <span title="Spawned by another agent" style="cursor:default;margin-left:0.3rem">🔗</span>`
-          : "";
+        const hasChildren = allRuns.some(
+          (x) => x.parent_trace_id != null && String(x.parent_trace_id) === String(r.id)
+        );
+        const hasParent = !!r.parent_trace_id;
+        const pipelineIcon = hasChildren
+          ? ` <span class="run-pipeline-parent" title="Pipeline parent — spawned child agents">⑂</span>`
+          : hasParent
+            ? ` <span class="run-pipeline-child" title="Linked to parent pipeline">🔗</span>`
+            : "";
 
         row.innerHTML = `
           <td>${r.agent != null && r.agent !== "" ? escapeHtml(r.agent) : "—"}</td>
-          <td>${topicCellText}${versionBadge}${noteIcon}${parentIcon}</td>
+          <td>${topicCellText}${versionBadge}${noteIcon}${pipelineIcon}</td>
           <td>${modelCell}</td>
           <td><span class="badge ${r.status === "success" ? "success" : "error"}">${escapeHtml(r.status) || "unknown"}</span></td>
           ${qualityCell}
