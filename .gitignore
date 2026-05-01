@@ -4,3 +4,4 @@ venv/
 __pycache__/
 *.pyc
 runs.json
+farol-sdk-js/node_modules/
