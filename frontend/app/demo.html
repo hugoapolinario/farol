@@ -3368,12 +3368,13 @@ def my_agent(task, run=None):
     }
 
     function dismissInsight(id, agent) {
-      var key = "farol_dismissed_insights_" + agent;
-      var dismissed = JSON.parse(localStorage.getItem(key) || "{}");
-      dismissed[id] = Date.now();
-      localStorage.setItem(key, JSON.stringify(dismissed));
-      var el = document.getElementById("agent-modal-insights");
-      if (el) el.innerHTML = renderCostInsights(agent, allRuns);
+      /* Demo mode — don't persist dismissals, just hide for this session */
+      const card = document.querySelector('.cost-insight-card[data-insight-id="' + id + '"]');
+      if (card) card.remove();
+      const container = document.getElementById("agent-modal-insights");
+      if (container && !container.querySelector(".cost-insight-card")) {
+        container.innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted)">No optimization opportunities detected yet. Need 20+ runs to analyze.</p>';
+      }
     }
 
     function viewInsightRuns(agent) {
