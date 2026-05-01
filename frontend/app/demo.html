@@ -2205,85 +2205,77 @@ def my_agent(task, run=None):
       { id:"run_r_dur", agent:"research-agent", topic:"Duration spike demo — extended literature crawl", model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4200, cost_usd:0.00025, input_tokens:2400, output_tokens:800, error:null, steps:[], prompt_version:"v2", timestamp:ts(30*60*1000), spans:researchSpans(4200) }
     ];
     (function researchAgentCostInsightsDemo() {
-      /* 30 + 15 + 5 = 50 runs — triggers cost insights without flooding agent modal charts */
-      function lowTokOpusSpans(dur) {
-        var llm = Math.round(dur * 0.55);
+      /* 64 runs: 28 opus + 14 baseline + 22 spikes (≥10% spikes vs all research-agent successes) */
+      function threeToolsLowLlmSpans(dur, opusModelOnRun) {
+        var llm = Math.round(dur * 0.5);
+        var t = Math.round(dur * 0.12);
         return [
-          { name: "web_search", type: "tool", duration_ms: Math.round(dur * 0.2), input_tokens: 0, output_tokens: 0, metadata: {}, error: null },
-          { name: "llm_call", type: "llm", duration_ms: llm, input_tokens: 35, output_tokens: 28, metadata: { model: "claude-3-opus" }, error: null },
-        ];
-      }
-      function heavyTools(dur) {
-        var t = Math.round(dur * 0.08);
-        var llm = Math.round(dur * 0.52);
-        return [
-          { name: "web_search", type: "tool", duration_ms: t, input_tokens: 0, output_tokens: 0, metadata: {}, error: null },
           { name: "web_search", type: "tool", duration_ms: t, input_tokens: 0, output_tokens: 0, metadata: {}, error: null },
           { name: "web_search", type: "tool", duration_ms: t, input_tokens: 0, output_tokens: 0, metadata: {}, error: null },
           { name: "cache_lookup", type: "tool", duration_ms: t, input_tokens: 0, output_tokens: 0, metadata: {}, error: null },
-          { name: "llm_call", type: "llm", duration_ms: llm, input_tokens: 400, output_tokens: 120, metadata: {}, error: null },
+          { name: "llm_call", type: "llm", duration_ms: llm, input_tokens: 35, output_tokens: 28, metadata: { model: opusModelOnRun ? "claude-3-opus" : "claude-sonnet-4-5" }, error: null },
         ];
       }
       var base = NOW - 5 * H;
       var i;
-      for (i = 0; i < 30; i++) {
+      for (i = 0; i < 28; i++) {
         allRuns.push({
           id: "run_rad_opus_" + i,
           agent: "research-agent",
-          topic: "Insights demo — low-token opus " + i,
+          topic: "Insights demo — opus 3-tool low-token " + i,
           model: "claude-3-opus-20240229",
           status: "success",
           anomaly: false,
           anomaly_reason: null,
           duration_ms: 1800,
-          cost_usd: 0.000045,
+          cost_usd: 0.00004,
           input_tokens: 35,
           output_tokens: 28,
           error: null,
           steps: [],
           prompt_version: "v2",
           timestamp: base - i * 45000,
-          spans: lowTokOpusSpans(1800),
+          spans: threeToolsLowLlmSpans(1800, true),
         });
       }
-      for (i = 0; i < 15; i++) {
+      for (i = 0; i < 14; i++) {
         allRuns.push({
           id: "run_rad_cheap_" + i,
           agent: "research-agent",
-          topic: "Insights demo — cost baseline " + i,
+          topic: "Insights demo — baseline 3-tool " + i,
           model: "claude-sonnet-4-5",
           status: "success",
           anomaly: false,
           anomaly_reason: null,
           duration_ms: 2000,
-          cost_usd: 0.00002,
-          input_tokens: 800,
-          output_tokens: 260,
+          cost_usd: 0.00003,
+          input_tokens: 35,
+          output_tokens: 28,
           error: null,
           steps: [],
           prompt_version: "v2",
-          timestamp: base - 4000 - i * 40000,
-          spans: i % 5 === 0 ? heavyTools(2000) : researchSpans(2000),
+          timestamp: base - 5000 - i * 40000,
+          spans: threeToolsLowLlmSpans(2000, false),
         });
       }
-      for (i = 0; i < 5; i++) {
+      for (i = 0; i < 22; i++) {
         allRuns.push({
           id: "run_rad_spike_" + i,
           agent: "research-agent",
-          topic: "Insights demo — cost spike " + i,
+          topic: "Insights demo — cost spike 3-tool " + i,
           model: "claude-sonnet-4-5",
           status: "success",
           anomaly: false,
           anomaly_reason: null,
           duration_ms: 3200,
-          cost_usd: 0.00022,
+          cost_usd: 0.0002,
           input_tokens: 2000,
           output_tokens: 700,
           error: null,
           steps: [],
           prompt_version: "v2",
-          timestamp: base - 5000 - i * 41000,
-          spans: researchSpans(3200),
+          timestamp: base - 6000 - i * 41000,
+          spans: threeToolsLowLlmSpans(3200, false),
         });
       }
     })();
@@ -3254,8 +3246,13 @@ def my_agent(task, run=None):
         var medianToolCalls = median(toolSpanCounts);
         var runsWithExtra = toolSpanCounts.filter(function (c) { return c > medianToolCalls + 1; }).length;
         var extraRatio = runsWithExtra / runsWithSpans.length;
+        var shareThreePlus = toolSpanCounts.filter(function (c) { return c >= 3; }).length / runsWithSpans.length;
+        var exactlyThree = toolSpanCounts.filter(function (c) { return c === 3; }).length;
+        var redundantFlatThree = medianToolCalls >= 3 && runsWithSpans.length >= 25 && shareThreePlus >= 0.8;
+        var redundantManyExactThree = exactlyThree >= 25;
+        var redundantTail = medianToolCalls >= 2 && extraRatio >= 0.8;
 
-        if (medianToolCalls >= 2 && extraRatio >= 0.8) {
+        if (redundantTail || redundantFlatThree || redundantManyExactThree) {
           var avgExtraSpanCost = median(agentRuns.map(function (r) { return r.cost_usd != null ? Number(r.cost_usd) : 0; })) * 0.3;
           var monthlySaving = Math.round(avgExtraSpanCost * weeklyRate * 4 * 100) / 100;
           var id = "redundant_tools_" + agentName;
@@ -3273,27 +3270,27 @@ def my_agent(task, run=None):
         }
       }
 
-      var llmSpans = agentRuns.reduce(function (acc, r) {
+      var expensiveModels = ["gpt-4", "gpt-4o", "claude-opus", "claude-3-opus"];
+      function runUsesExpensiveModel(r) {
+        var mstr = ((r.model) || "").toLowerCase();
+        return expensiveModels.some(function (em) { return mstr.indexOf(em) !== -1; });
+      }
+      var expensiveRuns = agentRuns.filter(runUsesExpensiveModel);
+      var modelLabel = "";
+      if (expensiveRuns.length > 0) {
+        modelLabel = (expensiveRuns[0].model || "").toLowerCase();
+      }
+      var llmSpansFromExpensive = expensiveRuns.reduce(function (acc, r) {
         return acc.concat((r.spans || []).filter(function (s) { return s.type === "llm"; }));
       }, []);
-      if (llmSpans.length >= 20) {
-        var totalTokens = llmSpans.map(function (s) {
+      if (llmSpansFromExpensive.length >= 20) {
+        var totalTokensExp = llmSpansFromExpensive.map(function (s) {
           return (Number(s.input_tokens) || 0) + (Number(s.output_tokens) || 0);
         });
-        var medianTokens = median(totalTokens);
-        var expensiveModels = ["gpt-4", "gpt-4o", "claude-opus", "claude-3-opus"];
-        var model = "";
-        for (var ri = 0; ri < agentRuns.length; ri++) {
-          var mstr = ((agentRuns[ri].model) || "").toLowerCase();
-          if (expensiveModels.some(function (em) { return mstr.indexOf(em) !== -1; })) {
-            model = mstr;
-            break;
-          }
-        }
-        var isExpensive = model.length > 0;
+        var medianTokensExp = median(totalTokensExp);
 
-        if (isExpensive && medianTokens < 500) {
-          var currentCost = median(agentRuns.map(function (r) { return r.cost_usd != null ? Number(r.cost_usd) : 0; }));
+        if (modelLabel.length > 0 && medianTokensExp < 500) {
+          var currentCost = median(expensiveRuns.map(function (r) { return r.cost_usd != null ? Number(r.cost_usd) : 0; }));
           var estimatedCheaperCost = currentCost * 0.1;
           var monthlySaving2 = Math.round((currentCost - estimatedCheaperCost) * weeklyRate * 4 * 100) / 100;
           var id2 = "model_mismatch_" + agentName;
@@ -3303,9 +3300,9 @@ def my_agent(task, run=None):
               agent: agentName,
               type: "model_mismatch",
               title: "Model may be over-qualified for task",
-              message: agentName + " uses " + model + " but median token usage is only " + Math.round(medianTokens) + " tokens/run. A lighter model could handle this at 80-90% lower cost.",
+              message: agentName + " uses " + modelLabel + " but median token usage is only " + Math.round(medianTokensExp) + " tokens/run. A lighter model could handle this at 80-90% lower cost.",
               saving: monthlySaving2 > 0 ? "~$" + monthlySaving2.toFixed(2) + "/mo potential saving" : null,
-              basis: "Based on " + llmSpans.length + " LLM spans",
+              basis: "Based on " + llmSpansFromExpensive.length + " LLM spans (premium-model runs)",
             });
           }
         }
@@ -3314,12 +3311,16 @@ def my_agent(task, run=None):
       var highCostRuns = agentRuns.filter(function (r) { return Number(r.cost_usd) > 0; });
       if (highCostRuns.length >= 20) {
         var costs = highCostRuns.map(function (r) { return Number(r.cost_usd); });
-        var medianCost = median(costs);
         var sortedCosts = costs.slice().sort(function (a, b) { return a - b; });
-        var p90Cost = sortedCosts[Math.floor(sortedCosts.length * 0.9)];
-        var spikeyRatio = highCostRuns.filter(function (r) { return Number(r.cost_usd) > medianCost * 3; }).length / highCostRuns.length;
+        var kBaseline = Math.max(1, Math.ceil(sortedCosts.length * 0.5));
+        var bottomCosts = sortedCosts.slice(0, kBaseline);
+        var medianCost = median(bottomCosts);
+        var p90Cost = sortedCosts[Math.min(Math.floor(sortedCosts.length * 0.9), sortedCosts.length - 1)];
+        var spikeyRatio = medianCost > 0
+          ? highCostRuns.filter(function (r) { return Number(r.cost_usd) > medianCost * 3; }).length / highCostRuns.length
+          : 0;
 
-        if (spikeyRatio >= 0.1 && p90Cost > medianCost * 2) {
+        if (spikeyRatio >= 0.1 && p90Cost > medianCost * 2 && medianCost > 0) {
           var monthlySaving3 = Math.round((p90Cost - medianCost) * weeklyRate * 4 * 0.1 * 100) / 100;
           var id3 = "cost_spikes_" + agentName;
           if (!dismissed[id3] || dismissed[id3] < now - 30 * 24 * 60 * 60 * 1000) {
@@ -3328,7 +3329,7 @@ def my_agent(task, run=None):
               agent: agentName,
               type: "cost_spikes",
               title: "Frequent cost spikes detected",
-              message: "10%+ of " + agentName + " runs cost 3× more than median ($" + medianCost.toFixed(6) + " median vs $" + p90Cost.toFixed(6) + " p90). Investigate what causes expensive runs.",
+              message: "10%+ of " + agentName + " runs cost 3× more than a typical low-cost baseline ($" + medianCost.toFixed(6) + " baseline vs $" + p90Cost.toFixed(6) + " p90). Investigate what causes expensive runs.",
               saving: monthlySaving3 > 0 ? "~$" + monthlySaving3.toFixed(2) + "/mo if spikes eliminated" : null,
               basis: "Based on " + highCostRuns.length + " runs",
             });
