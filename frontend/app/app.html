@@ -4845,6 +4845,7 @@ def my_agent(task, run=None):
     }
 
     function viewInsightRuns(agent) {
+      closeAgentModal();
       runsPeriodDays = 0;
       var periodEl = document.getElementById("runs-period-filter");
       if (periodEl) periodEl.value = "0";
