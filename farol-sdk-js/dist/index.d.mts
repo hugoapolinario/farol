@@ -11,6 +11,8 @@ interface TraceOptions {
     promptVersion?: string;
     /** Parent run id when this run was spawned by another agent */
     parentTraceId?: string;
+    /** When true (default), child traces inherit the current run id from async context */
+    propagate?: boolean;
 }
 interface SpanOptions {
     type?: "tool" | "llm";

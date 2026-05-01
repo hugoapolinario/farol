@@ -1,5 +1,7 @@
 // src/index.ts
+import { AsyncLocalStorage } from "async_hooks";
 var DEFAULT_ENDPOINT = "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/ingest";
+var traceContext = new AsyncLocalStorage();
 var Span = class {
   constructor(name, options = {}) {
     this.inputTokens = 0;
@@ -68,10 +70,9 @@ function trace(fn, options) {
     captureIo = false,
     sampleRate = 1,
     promptVersion,
-    parentTraceId
+    parentTraceId,
+    propagate = true
   } = options;
-  const safePromptVersion = promptVersion ? promptVersion.slice(0, 50) : void 0;
-  const safeParentTraceId = parentTraceId ? parentTraceId.slice(0, 50) : void 0;
   if (captureIo) {
     console.warn(
       "[Farol] WARNING: captureIo is enabled \u2014 prompts are being stored in your Farol dashboard"
@@ -80,31 +81,37 @@ function trace(fn, options) {
   return async (...args) => {
     const run = new Run(agentName, model);
     const startTime = Date.now();
-    if (safeParentTraceId) run.parentTraceId = safeParentTraceId;
-    try {
-      const result = await fn(run, ...args);
-      run.status = "success";
-      return result;
-    } catch (err) {
-      run.status = "error";
-      run.error = err instanceof Error ? err.message : String(err);
-      throw err;
-    } finally {
-      if (safePromptVersion) run.promptVersion = safePromptVersion;
-      run.durationMs = Date.now() - startTime;
-      run.costUsd = parseFloat(
-        (run.inputTokens / 1e3 * costPer1kInputTokens + run.outputTokens / 1e3 * costPer1kOutputTokens).toFixed(6)
-      );
-      for (const span of run.spans) {
-        if (!span.endedAt) span.end();
-      }
-      const shouldSend = run.status === "error" || Math.random() <= sampleRate;
-      if (shouldSend) {
-        await sendToFarol(run, farolKey, farolEndpoint, captureIo);
-      } else {
-        console.log(`[Farol] Run sampled out (sampleRate=${sampleRate})`);
-      }
+    const autoParentId = propagate ? traceContext.getStore() : void 0;
+    const effectiveParentId = parentTraceId ?? autoParentId;
+    if (effectiveParentId) {
+      run.parentTraceId = effectiveParentId.slice(0, 50);
     }
+    return traceContext.run(run.id, async () => {
+      try {
+        const result = await fn(run, ...args);
+        run.status = "success";
+        return result;
+      } catch (err) {
+        run.status = "error";
+        run.error = err instanceof Error ? err.message : String(err);
+        throw err;
+      } finally {
+        if (promptVersion) run.promptVersion = promptVersion.slice(0, 50);
+        run.durationMs = Date.now() - startTime;
+        run.costUsd = parseFloat(
+          (run.inputTokens / 1e3 * costPer1kInputTokens + run.outputTokens / 1e3 * costPer1kOutputTokens).toFixed(6)
+        );
+        for (const span of run.spans) {
+          if (!span.endedAt) span.end();
+        }
+        const shouldSend = run.status === "error" || Math.random() <= sampleRate;
+        if (shouldSend) {
+          await sendToFarol(run, farolKey, farolEndpoint, captureIo);
+        } else {
+          console.log(`[Farol] Run sampled out (sampleRate=${sampleRate})`);
+        }
+      }
+    });
   };
 }
 async function sendToFarol(run, farolKey, endpoint, captureIo) {

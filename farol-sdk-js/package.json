@@ -16,10 +16,18 @@
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["ai", "agents", "observability", "monitoring", "llm", "farol"],
+  "keywords": [
+    "ai",
+    "agents",
+    "observability",
+    "monitoring",
+    "llm",
+    "farol"
+  ],
   "author": "Farol",
   "license": "MIT",
   "devDependencies": {
+    "@types/node": "^20.19.39",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0"
   },

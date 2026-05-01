@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextvars
 import json
 import os
 import random
@@ -24,6 +25,10 @@ ALERT_EMAIL = os.getenv("ALERT_EMAIL")
 resend.api_key = RESEND_API_KEY
 
 DEFAULT_INGEST_URL = "https://usefarol.dev/api/ingest"
+
+_current_trace_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "farol_trace_id", default=None
+)
 
 
 def _span_random_suffix(length: int = 4) -> str:
@@ -388,6 +393,7 @@ def trace(
     sample_rate: float = 1.0,  # 1.0 = 100%, 0.1 = 10%
     prompt_version: Optional[str] = None,
     parent_trace_id: Optional[str] = None,
+    propagate: bool = True,  # auto-propagate parent trace ID
 ):
     def decorator(func):
         _capture_io_warned = False
@@ -400,6 +406,9 @@ def trace(
                     "in your Farol dashboard"
                 )
                 _capture_io_warned = True
+            auto_parent_id = _current_trace_id.get() if propagate else None
+            effective_parent_id = parent_trace_id or auto_parent_id
+
             run = TracedRun(
                 id=f"run_{int(time.time())}",
                 agent=agent_name,
@@ -416,12 +425,15 @@ def trace(
                 anomaly=False,
                 anomaly_reason=None,
                 prompt_version=prompt_version[:50] if prompt_version else None,
-                parent_trace_id=parent_trace_id[:50] if parent_trace_id else None,
+                parent_trace_id=(
+                    effective_parent_id[:50] if effective_parent_id else None
+                ),
             )
             if farol_key:
                 run["farol_key"] = farol_key
 
             start = time.time()
+            token = _current_trace_id.set(run["id"])
 
             try:
                 result = func(*args, run=run, **kwargs)
@@ -438,6 +450,7 @@ def trace(
                     (run["output_tokens"] / 1000 * cost_per_1k_output_tokens),
                     6,
                 )
+                _current_trace_id.reset(token)
                 # Always send errors regardless of sample rate
                 should_send = run["status"] == "error" or random.random() <= sample_rate
                 if should_send:

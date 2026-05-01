@@ -16,7 +16,7 @@ load_dotenv(_ROOT / ".env")
 client = Anthropic()
 firecrawl = FirecrawlApp(api_key=os.getenv("FIRECRAWL_API_KEY"))
 
-@trace(agent_name="research-agent", farol_key="FAROL_KEY", farol_endpoint="https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/ingest", capture_io=True)
+@trace(agent_name="research-agent", farol_key=os.getenv("FAROL_KEY"), farol_endpoint="https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/ingest", capture_io=True)
 def research_topic(topic: str, run: dict = None):
     print(f"\n Researching: {topic}\n")
     run["topic"] = topic
@@ -59,7 +59,11 @@ def research_topic(topic: str, run: dict = None):
     print("SUMMARY:")
     print(message.content[0].text)
 
-@trace(agent_name="market-agent", farol_key="FAROL_KEY", farol_endpoint="https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/ingest", capture_io=True)
+    print("\nStep 3 — Nested market analysis (child trace links automatically)...\n")
+    market_research(topic)
+
+
+@trace(agent_name="market-agent", farol_key=os.getenv("FAROL_KEY"), farol_endpoint="https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/ingest", capture_io=True)
 def market_research(topic: str, run: dict = None):
     print(f"\n Market research: {topic}\n")
     run["topic"] = topic
@@ -103,5 +107,6 @@ def market_research(topic: str, run: dict = None):
     print(message.content[0].text)
 
 if __name__ == "__main__":
-    research_topic("how to reduce LLM costs")
-    market_research("Latitude.so agent observability pricing features 2026")
+    research_topic("reddit complaints about existing software tools too expensive 2026 site:reddit.com")
+    research_topic("I wish there was a tool that site:reddit.com 2026")
+    market_research("small business owners frustrated with invoicing scheduling booking software 2026")

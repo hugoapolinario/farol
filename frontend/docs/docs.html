@@ -1146,7 +1146,11 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
             </tr>
             <tr>
               <th scope="row">parent_trace_id</th>
-              <td>Optional. Link this run to a parent agent run. Pass the parent run's ID to reconstruct multi-agent pipelines.</td>
+              <td>Optional. Link this run to a parent agent run. Usually left unset — the parent ID is filled automatically when a traced function calls another traced function. Set explicitly to force a specific parent; that value overrides automatic propagation.</td>
+            </tr>
+            <tr>
+              <th scope="row">propagate</th>
+              <td>Optional. When <code style="font-family:var(--font-mono);font-size:0.9em">True</code> (default), inherit <code style="font-family:var(--font-mono);font-size:0.9em">parent_trace_id</code> from the current trace context (Python <code style="font-family:var(--font-mono);font-size:0.9em">contextvars</code>). Set <code style="font-family:var(--font-mono);font-size:0.9em">False</code> to disable.</td>
             </tr>
             <tr>
               <th scope="row">sample_rate</th>
@@ -1199,7 +1203,11 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
             </tr>
             <tr>
               <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">parentTraceId</code></th>
-              <td>Optional. Link this run to a parent agent run for multi-agent pipeline tracing.</td>
+              <td>Optional. Link this run to a parent agent run. Usually omitted — parent ID is set automatically when a traced function awaits another traced function. Set explicitly to force a parent; that value overrides automatic propagation.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">propagate</code></th>
+              <td>Optional. When <code style="font-family:var(--font-mono);font-size:0.9em">true</code> (default), inherit parent ID from <code style="font-family:var(--font-mono);font-size:0.9em">AsyncLocalStorage</code> context. Set <code style="font-family:var(--font-mono);font-size:0.9em">false</code> to disable.</td>
             </tr>
           </tbody>
         </table>
@@ -1272,31 +1280,29 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
         </p>
 
         <h3 id="multi-agent-tracing">Multi-agent tracing</h3>
-        <p>Link child agent runs to their parent using <code style="font-family:var(--font-mono);font-size:0.88em">parent_trace_id</code>. Pass the parent run's ID when calling a child agent to reconstruct the full pipeline in Farol.</p>
+        <p>Child agent runs are linked to their parent automatically. When a traced function calls another traced function on the same thread (Python) or within the same async chain (Node), the child run’s <code style="font-family:var(--font-mono);font-size:0.88em">parent_trace_id</code> is set from the parent run’s ID so you can reconstruct the full pipeline in Farol. You can still pass <code style="font-family:var(--font-mono);font-size:0.88em">parent_trace_id</code> on the decorator to force a specific parent when needed.</p>
         <div class="code-panel" translate="no" style="margin-top:0.75rem">
           <div class="code-header">example — parent and child agents</div>
           <pre class="code-body"><code><span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"research-agent"</span>, farol_key=<span style="color:#86efac">"frl_..."</span>)
 <span style="color:#c084fc">def</span> <span style="color:#7dd3fc">research_agent</span>(topic, run=<span style="color:#c084fc">None</span>):
     run[<span style="color:#86efac">"topic"</span>] = topic
-    <span style="color:#8b919d"># do research work...</span>
-
-    <span style="color:#8b919d"># call child agent, passing this run's ID</span>
-    result = market_agent(topic, parent_trace_id=run[<span style="color:#86efac">"id"</span>])
+    <span style="color:#8b919d"># calling market_agent inside here automatically links it</span>
+    result = market_agent(topic)
     <span style="color:#c084fc">return</span> result
 
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"market-agent"</span>, farol_key=<span style="color:#86efac">"frl_..."</span>)
-<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">market_agent</span>(topic, run=<span style="color:#c084fc">None</span>, parent_trace_id=<span style="color:#c084fc">None</span>):
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">market_agent</span>(topic, run=<span style="color:#c084fc">None</span>):
     run[<span style="color:#86efac">"topic"</span>] = topic
-    run[<span style="color:#86efac">"parent_trace_id"</span>] = parent_trace_id  <span style="color:#8b919d"># links to parent</span>
+    <span style="color:#8b919d"># parent_trace_id is set automatically</span>
     <span style="color:#8b919d"># do market analysis...</span></code></pre>
         </div>
         <p style="margin-top:1rem;font-size:0.875rem;color:var(--text-muted)">
+          Auto-propagation uses Python’s <code style="font-family:var(--font-mono);font-size:0.9em">contextvars</code> (async-safe). Set <code style="font-family:var(--font-mono);font-size:0.9em">propagate=False</code> on <code style="font-family:var(--font-mono);font-size:0.9em">@trace</code> to disable. Manual <code style="font-family:var(--font-mono);font-size:0.9em">parent_trace_id</code> always takes precedence.
+        </p>
+        <p style="margin-top:1rem;font-size:0.875rem;color:var(--text-muted)">
           In the dashboard, parent runs show their spawned children and total pipeline cost. Child runs show a link back to the parent.
         </p>
-        <div class="docs-note">
-          <strong>Coming soon:</strong> Automatic trace context propagation across agent boundaries — no manual ID passing required. <a class="inline" href="/roadmap">View the roadmap →</a>
-        </div>
       </section>
 
       <section class="doc-section" id="framework-integrations" aria-labelledby="framework-integrations-heading">
