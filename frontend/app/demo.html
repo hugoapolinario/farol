@@ -1679,6 +1679,17 @@
       margin-bottom: 0.55rem;
     }
 
+    .cost-insight-card { background: rgba(249,115,22,0.04); border: 1px solid rgba(249,115,22,0.15); border-radius: var(--radius); padding: 0.85rem 1rem; margin-bottom: 0.75rem; }
+    .cost-insight-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
+    .cost-insight-icon { font-size: 0.9rem; }
+    .cost-insight-title { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+    .cost-insight-message { font-size: 0.78rem; color: var(--text-muted); margin: 0 0 0.5rem; line-height: 1.5; }
+    .cost-insight-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; font-size: 0.72rem; }
+    .cost-insight-saving { color: #4ade80; font-weight: 600; }
+    .cost-insight-basis { color: var(--text-muted); }
+    .cost-insight-dismiss { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 0.15rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.72rem; }
+    .cost-insight-view { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.72rem; padding: 0; text-decoration: underline; }
+
     /* ── Health banner ───────────────────────────────────────────── */
     #health-banner { display: none; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.6rem 1rem; margin-bottom: 0.9rem; border-radius: var(--radius-sm); font-size: 0.84rem; border-left: 4px solid transparent; line-height: 1.4; }
     #health-banner.critical { display: flex; background: rgba(239, 68, 68, 0.08); border-color: #ef4444; }
@@ -1959,6 +1970,10 @@ def my_agent(task, run=None):
         <span class="latency-chip">p95 <strong id="agent-p95">—</strong></span>
         <span class="latency-chip">p99 <strong id="agent-p99">—</strong></span>
       </div>
+      <div class="modal-section" id="agent-modal-insights-section">
+        <div class="modal-section-title">Cost insights</div>
+        <div id="agent-modal-insights"></div>
+      </div>
       <div id="agent-modal-version-section"></div>
       <div class="ov-empty" id="agent-modal-empty" hidden aria-live="polite">No runs in this period.</div>
       <div class="agent-modal-charts" id="agent-modal-charts-grid">
@@ -2189,6 +2204,88 @@ def my_agent(task, run=None):
       /* research-agent duration alert demo: latest successful run far above median baseline */
       { id:"run_r_dur", agent:"research-agent", topic:"Duration spike demo — extended literature crawl", model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4200, cost_usd:0.00025, input_tokens:2400, output_tokens:800, error:null, steps:[], prompt_version:"v2", timestamp:ts(30*60*1000), spans:researchSpans(4200) }
     ];
+    (function researchAgentCostInsightsDemo() {
+      function lowTokOpusSpans(dur) {
+        var llm = Math.round(dur * 0.55);
+        return [
+          { name: "web_search", type: "tool", duration_ms: Math.round(dur * 0.2), input_tokens: 0, output_tokens: 0, metadata: {}, error: null },
+          { name: "llm_call", type: "llm", duration_ms: llm, input_tokens: 35, output_tokens: 28, metadata: { model: "claude-3-opus" }, error: null },
+        ];
+      }
+      function heavyTools(dur) {
+        var t = Math.round(dur * 0.08);
+        var llm = Math.round(dur * 0.52);
+        return [
+          { name: "web_search", type: "tool", duration_ms: t, input_tokens: 0, output_tokens: 0, metadata: {}, error: null },
+          { name: "web_search", type: "tool", duration_ms: t, input_tokens: 0, output_tokens: 0, metadata: {}, error: null },
+          { name: "web_search", type: "tool", duration_ms: t, input_tokens: 0, output_tokens: 0, metadata: {}, error: null },
+          { name: "cache_lookup", type: "tool", duration_ms: t, input_tokens: 0, output_tokens: 0, metadata: {}, error: null },
+          { name: "llm_call", type: "llm", duration_ms: llm, input_tokens: 400, output_tokens: 120, metadata: {}, error: null },
+        ];
+      }
+      var base = NOW - 5 * H;
+      var i;
+      for (i = 0; i < 480; i++) {
+        allRuns.push({
+          id: "run_rad_opus_" + i,
+          agent: "research-agent",
+          topic: "Insights demo — low-token opus " + i,
+          model: "claude-3-opus-20240229",
+          status: "success",
+          anomaly: false,
+          anomaly_reason: null,
+          duration_ms: 1800,
+          cost_usd: 0.000045,
+          input_tokens: 35,
+          output_tokens: 28,
+          error: null,
+          steps: [],
+          prompt_version: "v2",
+          timestamp: base - i * 45000,
+          spans: lowTokOpusSpans(1800),
+        });
+      }
+      for (i = 0; i < 250; i++) {
+        allRuns.push({
+          id: "run_rad_cheap_" + i,
+          agent: "research-agent",
+          topic: "Insights demo — cost baseline " + i,
+          model: "claude-sonnet-4-5",
+          status: "success",
+          anomaly: false,
+          anomaly_reason: null,
+          duration_ms: 2000,
+          cost_usd: 0.00002,
+          input_tokens: 800,
+          output_tokens: 260,
+          error: null,
+          steps: [],
+          prompt_version: "v2",
+          timestamp: base - 4000 - i * 40000,
+          spans: i % 5 === 0 ? heavyTools(2000) : researchSpans(2000),
+        });
+      }
+      for (i = 0; i < 55; i++) {
+        allRuns.push({
+          id: "run_rad_spike_" + i,
+          agent: "research-agent",
+          topic: "Insights demo — cost spike " + i,
+          model: "claude-sonnet-4-5",
+          status: "success",
+          anomaly: false,
+          anomaly_reason: null,
+          duration_ms: 3200,
+          cost_usd: 0.00022,
+          input_tokens: 2000,
+          output_tokens: 700,
+          error: null,
+          steps: [],
+          prompt_version: "v2",
+          timestamp: base - 5000 - i * 41000,
+          spans: researchSpans(3200),
+        });
+      }
+    })();
     (function trendDemoResearchRuns() {
       var B = DEMO_BLOCK_LATEST;
       for (var ci = 0; ci < 50; ci++) {
@@ -3122,6 +3219,173 @@ def my_agent(task, run=None):
         el.innerHTML = "";
         el.removeAttribute("title");
       }
+    }
+
+    function computeCostInsights(agentName, runs) {
+      var WEEK = 7 * 24 * 60 * 60 * 1000;
+      var now = Date.now();
+      function getTime(r) {
+        return typeof r.timestamp === "number" ? r.timestamp : new Date(r.timestamp).getTime();
+      }
+
+      var agentRuns = runs.filter(function (r) { return r.agent === agentName && r.status === "success"; });
+      if (agentRuns.length < 20) return [];
+
+      var insights = [];
+      var dismissedKey = "farol_dismissed_insights_" + agentName;
+      var dismissed = JSON.parse(localStorage.getItem(dismissedKey) || "{}");
+
+      var recentRuns = agentRuns.filter(function (r) { return getTime(r) >= now - WEEK; });
+      var weeklyRate = recentRuns.length || agentRuns.length / 4;
+
+      function median(arr) {
+        if (!arr.length) return 0;
+        var s = arr.slice().sort(function (a, b) { return a - b; });
+        var m = Math.floor(s.length / 2);
+        return s.length % 2 === 0 ? (s[m - 1] + s[m]) / 2 : s[m];
+      }
+
+      var runsWithSpans = agentRuns.filter(function (r) { return r.spans && r.spans.length > 0; });
+      if (runsWithSpans.length >= 20) {
+        var toolSpanCounts = runsWithSpans.map(function (r) {
+          return (r.spans || []).filter(function (s) { return s.type === "tool"; }).length;
+        });
+        var medianToolCalls = median(toolSpanCounts);
+        var runsWithExtra = toolSpanCounts.filter(function (c) { return c > medianToolCalls + 1; }).length;
+        var extraRatio = runsWithExtra / runsWithSpans.length;
+
+        if (medianToolCalls >= 2 && extraRatio >= 0.8) {
+          var avgExtraSpanCost = median(agentRuns.map(function (r) { return r.cost_usd != null ? Number(r.cost_usd) : 0; })) * 0.3;
+          var monthlySaving = Math.round(avgExtraSpanCost * weeklyRate * 4 * 100) / 100;
+          var id = "redundant_tools_" + agentName;
+          if (!dismissed[id] || dismissed[id] < now - 30 * 24 * 60 * 60 * 1000) {
+            insights.push({
+              id: id,
+              agent: agentName,
+              type: "redundant_tools",
+              title: "Possible redundant tool calls",
+              message: agentName + " makes " + medianToolCalls + "+ tool calls per run in 80%+ of cases. Some may not contribute to the final output.",
+              saving: monthlySaving > 0 ? "~$" + monthlySaving.toFixed(2) + "/mo potential saving" : null,
+              basis: "Based on " + runsWithSpans.length + " runs",
+            });
+          }
+        }
+      }
+
+      var llmSpans = agentRuns.reduce(function (acc, r) {
+        return acc.concat((r.spans || []).filter(function (s) { return s.type === "llm"; }));
+      }, []);
+      if (llmSpans.length >= 20) {
+        var totalTokens = llmSpans.map(function (s) {
+          return (Number(s.input_tokens) || 0) + (Number(s.output_tokens) || 0);
+        });
+        var medianTokens = median(totalTokens);
+        var expensiveModels = ["gpt-4", "gpt-4o", "claude-opus", "claude-3-opus"];
+        var model = "";
+        for (var ri = 0; ri < agentRuns.length; ri++) {
+          var mstr = ((agentRuns[ri].model) || "").toLowerCase();
+          if (expensiveModels.some(function (em) { return mstr.indexOf(em) !== -1; })) {
+            model = mstr;
+            break;
+          }
+        }
+        var isExpensive = model.length > 0;
+
+        if (isExpensive && medianTokens < 500) {
+          var currentCost = median(agentRuns.map(function (r) { return r.cost_usd != null ? Number(r.cost_usd) : 0; }));
+          var estimatedCheaperCost = currentCost * 0.1;
+          var monthlySaving2 = Math.round((currentCost - estimatedCheaperCost) * weeklyRate * 4 * 100) / 100;
+          var id2 = "model_mismatch_" + agentName;
+          if (!dismissed[id2] || dismissed[id2] < now - 30 * 24 * 60 * 60 * 1000) {
+            insights.push({
+              id: id2,
+              agent: agentName,
+              type: "model_mismatch",
+              title: "Model may be over-qualified for task",
+              message: agentName + " uses " + model + " but median token usage is only " + Math.round(medianTokens) + " tokens/run. A lighter model could handle this at 80-90% lower cost.",
+              saving: monthlySaving2 > 0 ? "~$" + monthlySaving2.toFixed(2) + "/mo potential saving" : null,
+              basis: "Based on " + llmSpans.length + " LLM spans",
+            });
+          }
+        }
+      }
+
+      var highCostRuns = agentRuns.filter(function (r) { return Number(r.cost_usd) > 0; });
+      if (highCostRuns.length >= 20) {
+        var costs = highCostRuns.map(function (r) { return Number(r.cost_usd); });
+        var medianCost = median(costs);
+        var sortedCosts = costs.slice().sort(function (a, b) { return a - b; });
+        var p90Cost = sortedCosts[Math.floor(sortedCosts.length * 0.9)];
+        var spikeyRatio = highCostRuns.filter(function (r) { return Number(r.cost_usd) > medianCost * 3; }).length / highCostRuns.length;
+
+        if (spikeyRatio >= 0.1 && p90Cost > medianCost * 2) {
+          var monthlySaving3 = Math.round((p90Cost - medianCost) * weeklyRate * 4 * 0.1 * 100) / 100;
+          var id3 = "cost_spikes_" + agentName;
+          if (!dismissed[id3] || dismissed[id3] < now - 30 * 24 * 60 * 60 * 1000) {
+            insights.push({
+              id: id3,
+              agent: agentName,
+              type: "cost_spikes",
+              title: "Frequent cost spikes detected",
+              message: "10%+ of " + agentName + " runs cost 3× more than median ($" + medianCost.toFixed(6) + " median vs $" + p90Cost.toFixed(6) + " p90). Investigate what causes expensive runs.",
+              saving: monthlySaving3 > 0 ? "~$" + monthlySaving3.toFixed(2) + "/mo if spikes eliminated" : null,
+              basis: "Based on " + highCostRuns.length + " runs",
+            });
+          }
+        }
+      }
+
+      return insights;
+    }
+
+    function renderCostInsights(agentName, runs) {
+      var insights = computeCostInsights(agentName, runs);
+      if (insights.length === 0) {
+        return '<p style="font-size:0.8rem;color:var(--text-muted)">No optimization opportunities detected yet. Need 20+ runs to analyze.</p>';
+      }
+
+      return insights.map(function (insight) {
+        var savingHtml = insight.saving ? '<span class="cost-insight-saving">' + escapeHtml(insight.saving) + "</span>" : "";
+        var escId = escapeHtml(insight.id);
+        var escAgent = escapeHtml(insight.agent);
+        return (
+          '<div class="cost-insight-card" data-insight-id="' + escId + '" data-agent="' + escAgent + '">' +
+          '<div class="cost-insight-header">' +
+          '<span class="cost-insight-icon">💡</span>' +
+          '<span class="cost-insight-title">' + escapeHtml(insight.title) + "</span>" +
+          "</div>" +
+          '<p class="cost-insight-message">' + escapeHtml(insight.message) + "</p>" +
+          '<div class="cost-insight-footer">' +
+          savingHtml +
+          '<span class="cost-insight-basis">' + escapeHtml(insight.basis) + "</span>" +
+          '<button type="button" class="cost-insight-dismiss" onclick="dismissInsight(' + JSON.stringify(insight.id) + ", " + JSON.stringify(insight.agent) + ')">Got it, intentional</button>' +
+          '<button type="button" class="cost-insight-view" onclick="viewInsightRuns(' + JSON.stringify(insight.agent) + ')">View runs →</button>' +
+          "</div></div>"
+        );
+      }).join("");
+    }
+
+    function dismissInsight(id, agent) {
+      var key = "farol_dismissed_insights_" + agent;
+      var dismissed = JSON.parse(localStorage.getItem(key) || "{}");
+      dismissed[id] = Date.now();
+      localStorage.setItem(key, JSON.stringify(dismissed));
+      var el = document.getElementById("agent-modal-insights");
+      if (el) el.innerHTML = renderCostInsights(agent, allRuns);
+    }
+
+    function viewInsightRuns(agent) {
+      runsPeriodDays = 0;
+      var periodEl = document.getElementById("runs-period-filter");
+      if (periodEl) periodEl.value = "0";
+      runsMultiAgentFilter = null;
+      populateAgentFilter();
+      var filterVal = agent === "—" ? AGENT_NONE_VALUE : agent;
+      if (Array.from(agentFilterEl.options).some(function (o) { return o.value === filterVal; })) {
+        agentFilterEl.value = filterVal;
+      }
+      applyFilterAndRender();
+      navigateTo("runs");
     }
 
     /* Reliability dot + KPI use recent-window rate; agent card success % uses rate >= 80 (inclusive) for green vs warn. */
@@ -4487,6 +4751,10 @@ def my_agent(task, run=None):
 
     function refreshAgentModal() {
       renderAgentModalHealthScore();
+      var insightsEl = document.getElementById("agent-modal-insights");
+      if (insightsEl) {
+        insightsEl.innerHTML = agentModalName ? renderCostInsights(agentModalName, allRuns) : "";
+      }
       const modalRuns = getAgentModalRuns();
       const emptyEl  = document.getElementById("agent-modal-empty");
       const chartsEl = document.getElementById("agent-modal-charts-grid");
