@@ -2205,6 +2205,7 @@ def my_agent(task, run=None):
       { id:"run_r_dur", agent:"research-agent", topic:"Duration spike demo — extended literature crawl", model:"claude-sonnet-4-5", status:"success", anomaly:false, anomaly_reason:null,                                                                           duration_ms:4200, cost_usd:0.00025, input_tokens:2400, output_tokens:800, error:null, steps:[], prompt_version:"v2", timestamp:ts(30*60*1000), spans:researchSpans(4200) }
     ];
     (function researchAgentCostInsightsDemo() {
+      /* 30 + 15 + 5 = 50 runs — triggers cost insights without flooding agent modal charts */
       function lowTokOpusSpans(dur) {
         var llm = Math.round(dur * 0.55);
         return [
@@ -2225,7 +2226,7 @@ def my_agent(task, run=None):
       }
       var base = NOW - 5 * H;
       var i;
-      for (i = 0; i < 480; i++) {
+      for (i = 0; i < 30; i++) {
         allRuns.push({
           id: "run_rad_opus_" + i,
           agent: "research-agent",
@@ -2245,7 +2246,7 @@ def my_agent(task, run=None):
           spans: lowTokOpusSpans(1800),
         });
       }
-      for (i = 0; i < 250; i++) {
+      for (i = 0; i < 15; i++) {
         allRuns.push({
           id: "run_rad_cheap_" + i,
           agent: "research-agent",
@@ -2265,7 +2266,7 @@ def my_agent(task, run=None):
           spans: i % 5 === 0 ? heavyTools(2000) : researchSpans(2000),
         });
       }
-      for (i = 0; i < 55; i++) {
+      for (i = 0; i < 5; i++) {
         allRuns.push({
           id: "run_rad_spike_" + i,
           agent: "research-agent",
@@ -3358,8 +3359,8 @@ def my_agent(task, run=None):
           '<div class="cost-insight-footer">' +
           savingHtml +
           '<span class="cost-insight-basis">' + escapeHtml(insight.basis) + "</span>" +
-          '<button type="button" class="cost-insight-dismiss" onclick="dismissInsight(' + JSON.stringify(insight.id) + ", " + JSON.stringify(insight.agent) + ')">Got it, intentional</button>' +
-          '<button type="button" class="cost-insight-view" onclick="viewInsightRuns(' + JSON.stringify(insight.agent) + ')">View runs →</button>' +
+          '<button type="button" class="cost-insight-dismiss" data-id="' + escId + '" data-agent="' + escAgent + '">Got it, intentional</button>' +
+          '<button type="button" class="cost-insight-view" data-agent="' + escAgent + '">View runs →</button>' +
           "</div></div>"
         );
       }).join("");
@@ -4805,6 +4806,19 @@ def my_agent(task, run=None):
 
     document.getElementById("agent-modal-close-btn").addEventListener("click", closeAgentModal);
     document.getElementById("agent-backdrop").addEventListener("click", closeAgentModal);
+    (function initAgentModalInsightsDelegation() {
+      var host = document.getElementById("agent-modal-insights");
+      if (!host) return;
+      host.addEventListener("click", function (e) {
+        var dismiss = e.target.closest(".cost-insight-dismiss");
+        var view = e.target.closest(".cost-insight-view");
+        if (dismiss && dismiss.dataset.id != null) {
+          dismissInsight(dismiss.dataset.id, dismiss.dataset.agent);
+        } else if (view && view.dataset.agent != null) {
+          viewInsightRuns(view.dataset.agent);
+        }
+      });
+    })();
     document.getElementById("agent-modal-date").addEventListener("change", function() {
       agentModalDays = Number(this.value);
       refreshAgentModal();

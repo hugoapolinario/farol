@@ -4819,8 +4819,8 @@ def my_agent(task, run=None):
           '<div class="cost-insight-footer">' +
           savingHtml +
           '<span class="cost-insight-basis">' + escapeHtml(insight.basis) + "</span>" +
-          '<button type="button" class="cost-insight-dismiss" onclick="dismissInsight(' + JSON.stringify(insight.id) + ", " + JSON.stringify(insight.agent) + ')">Got it, intentional</button>' +
-          '<button type="button" class="cost-insight-view" onclick="viewInsightRuns(' + JSON.stringify(insight.agent) + ')">View runs →</button>' +
+          '<button type="button" class="cost-insight-dismiss" data-id="' + escId + '" data-agent="' + escAgent + '">Got it, intentional</button>' +
+          '<button type="button" class="cost-insight-view" data-agent="' + escAgent + '">View runs →</button>' +
           "</div></div>"
         );
       }).join("");
@@ -5862,6 +5862,19 @@ def my_agent(task, run=None):
 
     document.getElementById("agent-modal-close-btn").addEventListener("click", closeAgentModal);
     document.getElementById("agent-backdrop").addEventListener("click", closeAgentModal);
+    (function initAgentModalInsightsDelegation() {
+      var host = document.getElementById("agent-modal-insights");
+      if (!host) return;
+      host.addEventListener("click", function (e) {
+        var dismiss = e.target.closest(".cost-insight-dismiss");
+        var view = e.target.closest(".cost-insight-view");
+        if (dismiss && dismiss.dataset.id != null) {
+          dismissInsight(dismiss.dataset.id, dismiss.dataset.agent);
+        } else if (view && view.dataset.agent != null) {
+          viewInsightRuns(view.dataset.agent);
+        }
+      });
+    })();
     document.getElementById("agent-modal-date").addEventListener("change", function () {
       agentModalDays = Number(this.value);
       refreshAgentModal();
