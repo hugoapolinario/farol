@@ -372,7 +372,18 @@
       <div class="changelog-timeline">
         <article class="changelog-entry">
           <div class="changelog-meta">
-            <p class="changelog-date">April 24, 2026 <span class="changelog-version">Latest</span></p>
+            <p class="changelog-date">May 1, 2026 <span class="changelog-version">Latest</span></p>
+          </div>
+          <ul class="changelog-items">
+            <li><span class="tag tag-new">New</span><span>Automatic trace propagation — parent agent runs now automatically link to child agents without manual parent_trace_id passing</span></li>
+            <li><span class="tag tag-improved">Improved</span><span>Python SDK 0.1.7 — uses contextvars for async-safe context propagation</span></li>
+            <li><span class="tag tag-improved">Improved</span><span>Node.js SDK 0.1.7 — uses AsyncLocalStorage for async-safe context propagation</span></li>
+          </ul>
+        </article>
+
+        <article class="changelog-entry">
+          <div class="changelog-meta">
+            <p class="changelog-date">April 24, 2026</p>
           </div>
           <ul class="changelog-items">
             <li><span class="tag tag-new">New</span><span>Proactive trend alerts — get notified when cost, latency, or success rate is drifting before it becomes a problem</span></li>
