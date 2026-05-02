@@ -79,19 +79,33 @@ Deno.serve(async (req) => {
     if (evalError || !evalDef) return new Response(JSON.stringify({ error: "Eval not found" }), { status: 404, headers: corsHeaders });
     if (!evalDef.active) return new Response(JSON.stringify({ error: "Eval is inactive" }), { status: 400, headers: corsHeaders });
 
-    // Fetch trace output
+    // Fetch trace metadata
     const { data: trace, error: traceError } = await userClient
       .from("runs")
-      .select("id, output, agent, status")
+      .select("id, agent, status")
       .eq("id", trace_id)
       .eq("user_id", user.id)
       .single();
 
     if (traceError || !trace) return new Response(JSON.stringify({ error: "Trace not found" }), { status: 404, headers: corsHeaders });
 
-    const output = typeof trace.output === "string" ? trace.output : JSON.stringify(trace.output);
-    if (!output || output === "null") {
-      return new Response(JSON.stringify({ error: "Trace has no output to evaluate" }), { status: 400, headers: corsHeaders });
+    // Fetch output from spans
+    const { data: spans, error: spansError } = await userClient
+      .from("spans")
+      .select("output")
+      .eq("run_id", trace_id)
+      .eq("user_id", user.id)
+      .not("output", "is", null)
+      .order("started_at", { ascending: false })
+      .limit(5);
+
+    const output = spans
+      ?.map(s => typeof s.output === "string" ? s.output : JSON.stringify(s.output))
+      .filter(Boolean)
+      .join("\n\n---\n\n") || "";
+
+    if (!output) {
+      return new Response(JSON.stringify({ error: "Trace has no span output to evaluate" }), { status: 400, headers: corsHeaders });
     }
 
     // Build prompt
@@ -125,7 +139,8 @@ Deno.serve(async (req) => {
 
     let judgement: { passed: boolean; score: number; reason: string };
     try {
-      judgement = JSON.parse(rawText);
+      const cleaned = rawText.replace(/```json|```/g, "").trim();
+      judgement = JSON.parse(cleaned);
     } catch {
       return new Response(JSON.stringify({ error: "Failed to parse LLM response", raw: rawText }), { status: 502, headers: corsHeaders });
     }
