@@ -1,5 +1,5 @@
 # verify_jwt = false: invoked by pg_cron (net.http_post) with project anon key, no user JWT.
-# Optional: set ONBOARDING_EMAIL_SECRET and require header x-onboarding-secret (pg_cron must send the same;
-# e.g. store in Vault like weekly-digest, then add the header in net.http_post).
+# Required: ONBOARDING_EMAIL_SECRET (Edge secret) and matching vault secret onboarding_email_secret in pg_cron headers.
+# See migration 20260502120000_onboarding_email_cron_secret_header.sql.
 [functions.onboarding-email]
 verify_jwt = false

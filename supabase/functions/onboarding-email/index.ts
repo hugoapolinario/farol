@@ -70,14 +70,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (ONBOARDING_EMAIL_SECRET) {
-      const h = req.headers.get("x-onboarding-secret");
-      if (h !== ONBOARDING_EMAIL_SECRET) {
-        return new Response(
-          JSON.stringify({ error: "Unauthorized" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
+    if (!ONBOARDING_EMAIL_SECRET) {
+      console.error("[onboarding-email] ONBOARDING_EMAIL_SECRET is not set");
+      return new Response(
+        JSON.stringify({ error: "Onboarding email secret not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const h = req.headers.get("x-onboarding-secret");
+    if (h !== ONBOARDING_EMAIL_SECRET) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     if (!event || !user_id) {
