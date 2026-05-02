@@ -290,6 +290,24 @@
 
     .docs-note strong { color: var(--accent); }
 
+    .docs-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.15rem 0.45rem;
+      border-radius: 6px;
+      vertical-align: middle;
+      margin-left: 0.35rem;
+    }
+
+    .docs-badge.beta {
+      background: rgba(249, 115, 22, 0.18);
+      color: var(--accent);
+      border: 1px solid rgba(249, 115, 22, 0.35);
+    }
+
     .steps {
       list-style: none;
       padding: 0;
@@ -695,6 +713,7 @@
       <a href="#webhook-integrations">Webhook integrations</a>
       <a href="#sdk-reference">SDK reference</a>
       <a href="#framework-integrations" class="nav-link">Framework integrations</a>
+      <a href="#otel">OpenTelemetry</a>
       <a href="#dashboard">Dashboard</a>
       <a href="#faq">FAQ</a>
     </nav>
@@ -1414,6 +1433,35 @@ result = run_crew(<span style="color:#86efac">"market analysis for Q2 2026"</spa
         <p>If your agent is a Python or Node.js function, <code style="font-family:var(--font-mono);font-size:0.88em">@trace</code> wraps it. This includes AutoGen, Haystack, LlamaIndex, smolagents, and any custom agent loop. Wrap the top-level entrypoint function and add <code style="font-family:var(--font-mono);font-size:0.88em">run.span()</code> calls inside for step-level visibility.</p>
       </section>
 
+      <section class="doc-section" id="otel" aria-labelledby="otel-heading">
+        <h2 id="otel-heading">OpenTelemetry integration <span class="docs-badge beta">Beta</span></h2>
+        <p>If you already use OpenTelemetry, point your OTLP/HTTP exporter at Farol — no SDK changes required.</p>
+
+        <h3>Python — opentelemetry-sdk</h3>
+        <pre><code>from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+exporter = OTLPSpanExporter(
+    endpoint="https://usefarol.dev/otel",
+    headers={"x-farol-key": "frl_your_key_here"}
+)
+tracer_provider.add_span_processor(BatchSpanProcessor(exporter))</code></pre>
+
+        <h3>Node.js — @opentelemetry/sdk-node</h3>
+        <pre><code>import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+
+const exporter = new OTLPTraceExporter({
+  url: 'https://usefarol.dev/otel',
+  headers: { 'x-farol-key': 'frl_your_key_here' },
+});</code></pre>
+
+        <div class="docs-note">
+          <strong>Beta:</strong> OTLP/HTTP JSON only. gRPC and Protobuf encoding are not yet supported.
+          Farol maps <code>service.name</code> → agent name, <code>gen_ai.*</code> attributes → token counts.
+          Use <code>farol.*</code> attributes for full control. <a class="inline" href="/roadmap">See roadmap →</a>
+        </div>
+      </section>
+
       <section id="dashboard" class="doc-section" aria-labelledby="dashboard-heading">
         <h2 id="dashboard-heading">Dashboard</h2>
         <p>The dashboard has four sections:</p>
@@ -1445,7 +1493,7 @@ result = run_crew(<span style="color:#86efac">"market analysis for Q2 2026"</spa
         </div>
         <div class="faq-item">
           <h3>Does Farol support OpenTelemetry?</h3>
-          <p>Not yet — but an OpenTelemetry compatibility bridge is on the roadmap. This will allow Farol to receive traces from any OTEL-compatible tool and work alongside existing observability stacks. For now, Farol's SDK works with any Python or Node.js framework directly. <a class="inline" href="/roadmap">View the roadmap →</a></p>
+          <p>Yes — in beta. Point an OTLP/HTTP JSON exporter at <code style="font-family:var(--font-mono);font-size:0.88em">https://usefarol.dev/otel</code> with your Farol API key in the <code style="font-family:var(--font-mono);font-size:0.88em">x-farol-key</code> header. gRPC and Protobuf encodings are not supported yet. See <a class="inline" href="#otel">OpenTelemetry integration</a> and the <a class="inline" href="/roadmap">roadmap</a>.</p>
         </div>
         <div class="faq-item">
           <h3>Does Farol have an evals system?</h3>

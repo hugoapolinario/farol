@@ -65,6 +65,8 @@
     { "source": "/roadmap", "destination": "/frontend/roadmap/index.html" },
     { "source": "/security", "destination": "/frontend/security/index.html" },
     { "source": "/update-password", "destination": "/frontend/auth/update-password.html" },
-    { "source": "/confirmed", "destination": "/frontend/auth/confirmed.html" }
+    { "source": "/confirmed", "destination": "/frontend/auth/confirmed.html" },
+    { "source": "/otel", "destination": "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/otel-ingest" },
+    { "source": "/otel/:path*", "destination": "https://drmyexzztahpudgrfjsk.supabase.co/functions/v1/otel-ingest" }
   ]
 }

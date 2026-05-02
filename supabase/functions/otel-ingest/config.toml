@@ -1,0 +1,2 @@
+[functions.otel-ingest]
+verify_jwt = false
