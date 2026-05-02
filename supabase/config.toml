@@ -75,3 +75,5 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/otel-ingest/index.ts"
 
+[functions.run-eval]
+verify_jwt = false
