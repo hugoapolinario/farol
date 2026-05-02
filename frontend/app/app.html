@@ -696,6 +696,27 @@
       border-bottom-color: var(--accent);
     }
 
+    .trace-evals-body { font-size: 0.84rem; }
+    .trace-evals-row {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 0.72rem;
+      margin-bottom: 0.55rem;
+      background: var(--bg-elevated);
+    }
+    .trace-evals-row:last-child { margin-bottom: 0; }
+    .trace-evals-row-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.45rem 0.65rem;
+      margin-bottom: 0.35rem;
+    }
+    .trace-evals-name { font-weight: 600; color: var(--text); }
+    .trace-evals-meta { font-size: 0.78rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .trace-evals-reason { font-size: 0.78rem; color: var(--text-muted); line-height: 1.45; margin-top: 0.25rem; }
+    .trace-evals-empty { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; }
+
     .dag-container { padding: 1rem 0; }
     .dag-legend { display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
     .dag-legend-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; color: var(--text-muted); }
@@ -2298,6 +2319,12 @@
           Alerts
           <span class="nav-count" id="alerts-count" hidden aria-label="unread alerts"></span>
         </button>
+        <a class="nav-item" href="/evals" aria-current="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+          Evals
+        </a>
         <a class="nav-item" href="/settings" aria-current="false">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -2694,6 +2721,7 @@ def my_agent(task, run=None):
       <div class="trace-tab-row" role="tablist" aria-label="Trace detail views">
         <button type="button" class="trace-tab trace-tab-active" id="trace-tab-trace" data-tab="trace" role="tab" aria-selected="true">Trace</button>
         <button type="button" class="trace-tab" id="trace-tab-pipeline" data-tab="pipeline" role="tab" aria-selected="false" style="display:none">Pipeline</button>
+        <button type="button" class="trace-tab" id="trace-tab-evals" data-tab="evals" role="tab" aria-selected="false">Evals</button>
       </div>
       <div class="trace-panel" id="trace-panel-trace" role="tabpanel">
         <div class="steps-title" id="trace-detail-title">Execution steps</div>
@@ -2701,6 +2729,9 @@ def my_agent(task, run=None):
       </div>
       <div class="trace-panel" id="trace-panel-pipeline" role="tabpanel" style="display:none">
         <div id="pipeline-dag-container"></div>
+      </div>
+      <div class="trace-panel" id="trace-panel-evals" role="tabpanel" style="display:none">
+        <div id="trace-evals-body" class="trace-evals-body"></div>
       </div>
       <div class="trace-notes-section">
         <div class="trace-notes-label">Notes</div>
@@ -5767,20 +5798,110 @@ def my_agent(task, run=None):
     function setTraceDetailTab(tab) {
       var traceBtn = document.getElementById("trace-tab-trace");
       var pipeBtn = document.getElementById("trace-tab-pipeline");
+      var evalsBtn = document.getElementById("trace-tab-evals");
       var tracePan = document.getElementById("trace-panel-trace");
       var pipePan = document.getElementById("trace-panel-pipeline");
+      var evalsPan = document.getElementById("trace-panel-evals");
       var pipeVisible = pipeBtn && pipeBtn.style.display !== "none";
-      var usePipeline = tab === "pipeline" && pipeVisible;
+      var effective = tab;
+      if (tab === "pipeline" && !pipeVisible) {
+        effective = "trace";
+      }
       if (traceBtn) {
-        traceBtn.classList.toggle("trace-tab-active", !usePipeline);
-        traceBtn.setAttribute("aria-selected", !usePipeline ? "true" : "false");
+        traceBtn.classList.toggle("trace-tab-active", effective === "trace");
+        traceBtn.setAttribute("aria-selected", effective === "trace" ? "true" : "false");
       }
       if (pipeBtn && pipeVisible) {
-        pipeBtn.classList.toggle("trace-tab-active", usePipeline);
-        pipeBtn.setAttribute("aria-selected", usePipeline ? "true" : "false");
+        pipeBtn.classList.toggle("trace-tab-active", effective === "pipeline");
+        pipeBtn.setAttribute("aria-selected", effective === "pipeline" ? "true" : "false");
+      } else if (pipeBtn) {
+        pipeBtn.classList.remove("trace-tab-active");
+        pipeBtn.setAttribute("aria-selected", "false");
       }
-      if (tracePan) tracePan.style.display = usePipeline ? "none" : "";
-      if (pipePan) pipePan.style.display = usePipeline ? "" : "none";
+      if (evalsBtn) {
+        evalsBtn.classList.toggle("trace-tab-active", effective === "evals");
+        evalsBtn.setAttribute("aria-selected", effective === "evals" ? "true" : "false");
+      }
+      if (tracePan) tracePan.style.display = effective === "trace" ? "" : "none";
+      if (pipePan) pipePan.style.display = effective === "pipeline" ? "" : "none";
+      if (evalsPan) evalsPan.style.display = effective === "evals" ? "" : "none";
+      if (effective === "evals") {
+        void renderTraceEvalsPanel();
+      }
+    }
+
+    async function renderTraceEvalsPanel() {
+      const host = document.getElementById("trace-evals-body");
+      if (!host) return;
+      if (!traceModalRun || traceModalRun.id == null || !currentUserId) {
+        host.innerHTML = "";
+        return;
+      }
+      host.innerHTML = '<div class="trace-loading">Loading evals…</div>';
+      const { data, error } = await client
+        .from("eval_results")
+        .select("id, passed, score, details, evaluated_at, evals(name, type)")
+        .eq("trace_id", traceModalRun.id)
+        .eq("user_id", currentUserId)
+        .order("evaluated_at", { ascending: false });
+      if (error) {
+        host.innerHTML =
+          '<p style="color:#f87171;font-size:0.85rem">Failed to load eval results.</p>';
+        return;
+      }
+      if (!data || data.length === 0) {
+        host.innerHTML =
+          '<p class="trace-evals-empty">No evals run on this trace yet. <a href="/evals" class="inline-link">Go to Evals →</a></p>';
+        return;
+      }
+      host.innerHTML = data
+        .map(function (row) {
+          const ev = row.evals;
+          const name = ev && ev.name ? ev.name : "—";
+          const typ = ev && ev.type ? ev.type : "—";
+          const reason =
+            row.details &&
+            typeof row.details === "object" &&
+            row.details.reason != null
+              ? String(row.details.reason)
+              : "";
+          const passStr = row.passed ? "✓" : "✗";
+          const passClass = row.passed ? "quality-indicator-good" : "quality-indicator-bad";
+          const scoreStr =
+            row.score != null && !Number.isNaN(Number(row.score))
+              ? Math.round(Number(row.score) * 100) + "%"
+              : "—";
+          return (
+            '<div class="trace-evals-row">' +
+            '<div class="trace-evals-row-head">' +
+            '<span class="trace-evals-name">' +
+            escapeHtml(name) +
+            '</span>' +
+            '<span class="badge baseline">' +
+            escapeHtml(typ) +
+            "</span>" +
+            '</div><div class="trace-evals-meta">' +
+            '<span class="' +
+            passClass +
+            '" style="font-weight:700">' +
+            passStr +
+            "</span>" +
+            "<span>Score: " +
+            escapeHtml(scoreStr) +
+            "</span>" +
+            "<span>" +
+            (row.evaluated_at
+              ? escapeHtml(new Date(row.evaluated_at).toLocaleString())
+              : "—") +
+            "</span>" +
+            "</div>" +
+            (reason
+              ? '<div class="trace-evals-reason">' + escapeHtml(reason) + "</div>"
+              : "") +
+            "</div>"
+          );
+        })
+        .join("");
     }
 
     async function openTraceRun(r, row) {
@@ -5795,6 +5916,9 @@ def my_agent(task, run=None):
 
       traceModalRun = r;
       updateQualityUI(r.quality_score);
+
+      var evalsBodyClear = document.getElementById("trace-evals-body");
+      if (evalsBodyClear) evalsBodyClear.innerHTML = "";
 
       const notesSavedEl = document.getElementById("trace-notes-saved");
       notesSavedEl.setAttribute("hidden", "");
@@ -6072,6 +6196,49 @@ def my_agent(task, run=None):
         startSecondsCounter();
         startAutoRefresh(user.id);
         setStatus("");
+
+        const hashSection = (window.location.hash || "").replace(/^#/, "");
+        if (
+          hashSection === "runs" ||
+          hashSection === "agents" ||
+          hashSection === "alerts" ||
+          hashSection === "overview"
+        ) {
+          navigateTo(hashSection);
+        }
+
+        const pendingTraceId = sessionStorage.getItem("farol_open_trace_id");
+        if (pendingTraceId) {
+          sessionStorage.removeItem("farol_open_trace_id");
+          const runSelect =
+            "id, agent, topic, model, status, anomaly, anomaly_reason, duration_ms, cost_usd, timestamp, steps, input_tokens, output_tokens, error, quality_score, notes, prompt_version, parent_trace_id";
+          let runRow = allRuns.find(function (x) {
+            return String(x.id) === String(pendingTraceId);
+          });
+          if (!runRow) {
+            const { data: oneRun } = await client
+              .from("runs")
+              .select(runSelect)
+              .eq("id", pendingTraceId)
+              .eq("user_id", user.id)
+              .maybeSingle();
+            if (oneRun) {
+              allRuns = [oneRun].concat(
+                allRuns.filter(function (x) {
+                  return String(x.id) !== String(oneRun.id);
+                })
+              );
+              populateAgentFilter();
+              populateOvAgentFilter();
+              applyFilterAndRender();
+              runRow = oneRun;
+            }
+          }
+          if (runRow) {
+            navigateTo("runs");
+            await openTraceRun(runRow, null);
+          }
+        }
       } catch (e) {
         setStatus(e && e.message ? e.message : "Failed to load dashboard data.");
       }

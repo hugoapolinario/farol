@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="/frontend/assets/favicon.svg">
+  <link rel="icon" type="image/png" href="/frontend/assets/favicon.png">
+  <title>Farol — Evals</title>
+  <style>
+    :root {
+      --bg-deep: #0a0b0d;
+      --bg-surface: #111318;
+      --bg-elevated: #181b22;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8eaef;
+      --text-muted: #8b919d;
+      --accent: #f97316;
+      --accent-dim: rgba(249, 115, 22, 0.14);
+      --accent-glow: rgba(249, 115, 22, 0.35);
+      --success: #4ade80;
+      --radius: 12px;
+      --radius-lg: 14px;
+      --radius-sm: 8px;
+      --max: 1120px;
+      --bg-card: #111318;
+    }
+
+    * { box-sizing: border-box; }
+
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      z-index: 9999;
+      padding: 0.5rem 1rem;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .skip-link:focus { left: 0; }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+
+    [hidden] { display: none !important; }
+
+    html, body { height: 100%; margin: 0; }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249, 115, 22, 0.12), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 40%, rgba(249, 115, 22, 0.06), transparent 50%),
+        var(--bg-deep);
+      color: var(--text);
+      color-scheme: dark;
+    }
+
+    .app-shell {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      background: rgba(10, 11, 13, 0.97);
+      overflow-y: auto;
+      padding: 1.15rem 0.75rem 1rem;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.55rem;
+      padding: 0 0.2rem 1rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0.65rem;
+      position: relative;
+    }
+
+    .nav-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      font-size: 0.975rem;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      width: 100%;
+      padding: 0.58rem 0.7rem;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      text-decoration: none;
+      transition: background 0.13s ease, color 0.13s ease;
+      position: relative;
+    }
+
+    .nav-item svg {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+      opacity: 0.75;
+      transition: opacity 0.13s ease;
+    }
+
+    .nav-item:hover { background: rgba(255, 255, 255, 0.05); color: var(--text); }
+    .nav-item:hover svg { opacity: 1; }
+
+    .nav-item.active {
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .nav-item.active svg { opacity: 1; }
+
+    .sidebar-footer {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.45rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border);
+      margin-top: 0.5rem;
+    }
+
+    .sidebar-email {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 0 0.2rem;
+    }
+
+    .plan-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.18rem 0.52rem;
+      border-radius: 999px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      margin-top: 0.15rem;
+      align-self: flex-start;
+    }
+
+    .usage-block { padding: 0.6rem 0.75rem; border-top: 1px solid var(--border); }
+    .usage-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
+    .usage-label { font-size: 0.72rem; color: var(--text-muted); }
+    .usage-value { font-size: 0.72rem; color: var(--text-muted); }
+    .usage-bar-wrap { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .usage-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+    .usage-bar-fill.warning  { background: #f97316; }
+    .usage-bar-fill.critical { background: #ef4444; }
+
+    .nav-count {
+      margin-left: auto;
+      min-width: 1.1rem;
+      height: 1.1rem;
+      padding: 0 0.28rem;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #0a0b0d;
+      font-size: 0.65rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 1.75rem 2.5rem;
+      min-width: 0;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 0.55rem 0.9rem;
+      text-decoration: none;
+      transition: background-color 0.18s ease, border-color 0.18s ease;
+    }
+
+    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .btn-ghost:hover {
+      border-color: rgba(249, 115, 22, 0.4);
+      background: var(--accent-dim);
+    }
+
+    .btn-primary { background: var(--accent); color: #0a0b0d; border-color: transparent; }
+    .btn-primary:hover { background: #fb923c; }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .btn-outline:hover {
+      border-color: rgba(249, 115, 22, 0.4);
+      background: var(--accent-dim);
+    }
+
+    .btn-sm {
+      font-size: 0.78rem;
+      padding: 0.32rem 0.62rem;
+    }
+
+    .btn-danger-outline {
+      background: transparent;
+      color: #fecaca;
+      border-color: rgba(248, 113, 113, 0.45);
+    }
+
+    .btn-danger-outline:hover {
+      background: rgba(248, 113, 113, 0.12);
+      border-color: rgba(248, 113, 113, 0.6);
+    }
+
+    .btn-icon {
+      padding: 0.35rem;
+      min-width: 2rem;
+      min-height: 2rem;
+    }
+
+    .eval-page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .eval-page-header h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .section-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 2rem 0 1rem;
+    }
+
+    .section-title:first-of-type { margin-top: 0; }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+    }
+
+    .card.eval-card { overflow: hidden; }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    thead { background: var(--bg-elevated); }
+
+    th, td {
+      padding: 0.72rem 0.8rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.73rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+
+    .success {
+      color: var(--success);
+      background: rgba(74, 222, 128, 0.09);
+      border-color: rgba(74, 222, 128, 0.25);
+    }
+
+    .baseline {
+      color: #b4bac7;
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .eval-empty {
+      padding: 3rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    @keyframes modal-backdrop-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes modal-card-in {
+      from { opacity: 0; transform: translateY(12px) scale(0.985); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+    }
+
+    .modal-overlay.visible { display: flex; }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 0;
+      animation: modal-backdrop-in 0.18s ease forwards;
+      cursor: pointer;
+    }
+
+    .modal-card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 520px;
+      max-height: 85vh;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, var(--bg-surface) 0%, var(--bg-deep) 100%);
+      padding: 1.25rem;
+      animation: modal-card-in 0.2s ease forwards;
+    }
+
+    .modal-card.modal-sm { max-width: 440px; }
+
+    body.modal-open { overflow: hidden; }
+
+    body.modal-open .sidebar,
+    body.modal-open main.content-area {
+      filter: blur(2px);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .close-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      padding: 0;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-family: inherit;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .close-btn:hover {
+      color: var(--text);
+      border-color: rgba(249, 115, 22, 0.35);
+      background: rgba(249, 115, 22, 0.08);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    .form-group { margin-bottom: 1rem; }
+
+    .form-group label {
+      display: block;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      padding: 0.55rem 0.75rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.88rem;
+      outline: none;
+    }
+
+    .form-input:focus-visible,
+    .form-select:focus-visible,
+    .form-textarea:focus-visible {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    .form-textarea { min-height: 88px; resize: vertical; }
+
+    .form-check {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.88rem;
+      color: var(--text);
+    }
+
+    .form-check input { width: 1rem; height: 1rem; accent-color: var(--accent); }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .inline-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .inline-link:hover { text-decoration: underline; }
+
+    .quality-indicator-good { color: #22c55e; font-weight: 700; }
+    .quality-indicator-bad { color: #ef4444; font-weight: 700; }
+
+    .toast {
+      position: fixed;
+      bottom: 1.25rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(120%);
+      z-index: 400;
+      padding: 0.65rem 1.1rem;
+      border-radius: var(--radius-sm);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.88rem;
+      font-weight: 500;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+      opacity: 0;
+      transition: transform 0.22s ease, opacity 0.22s ease;
+      max-width: min(90vw, 420px);
+      text-align: center;
+    }
+
+    .toast.visible {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .toast.error {
+      border-color: rgba(248, 113, 113, 0.4);
+      color: #fecaca;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .spinner {
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .mobile-topbar {
+      display: none;
+      flex-shrink: 0;
+      height: 52px;
+      padding: 0 1rem;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10, 11, 13, 0.97);
+      z-index: 90;
+    }
+
+    .mobile-hamburger {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 1.35rem;
+      line-height: 1;
+      padding: 0.25rem 0.35rem;
+      border-radius: var(--radius-sm);
+    }
+
+    .mobile-hamburger:hover { background: rgba(255, 255, 255, 0.07); }
+
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 299;
+    }
+
+    .sidebar-backdrop.open { display: block; }
+
+    .sidebar-close-btn {
+      display: none;
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      line-height: 1;
+      padding: 0.2rem 0.35rem;
+      border-radius: var(--radius-sm);
+    }
+
+    .sidebar-close-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.07); }
+
+    @media (max-width: 768px) {
+      .mobile-topbar { display: flex; }
+      .sidebar { display: none; }
+      .sidebar-close-btn { display: block; }
+
+      .sidebar.open {
+        display: flex;
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        z-index: 300;
+        overflow-y: auto;
+        border-right: none;
+      }
+
+      main.content-area {
+        padding: 1rem 1rem 2rem;
+      }
+
+      body.modal-open .mobile-topbar {
+        filter: blur(2px);
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .modal-overlay { padding: 0.5rem; }
+      .modal-card { max-width: 95vw; max-height: 90vh; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to main content</a>
+
+  <div class="mobile-topbar" aria-label="Mobile navigation bar">
+    <a href="/" class="nav-logo" aria-label="Farol home">
+      <img src="/frontend/assets/logo.svg" alt="Farol" height="28" style="display:block;">
+    </a>
+    <button class="mobile-hamburger" id="mobile-hamburger-btn" type="button" aria-label="Open navigation" aria-expanded="false">&#9776;</button>
+  </div>
+
+  <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <a href="/" class="nav-logo" aria-label="Farol home">
+          <img src="/frontend/assets/logo.svg" alt="Farol" height="28" style="display:block;">
+        </a>
+        <button class="sidebar-close-btn" id="sidebar-close-btn" type="button" aria-label="Close navigation">&#x2715;</button>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Main navigation">
+        <a class="nav-item" href="/app#overview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 3v18h18"/><path d="M7 12l4 4 8-8"/>
+          </svg>
+          Overview
+        </a>
+        <a class="nav-item" href="/app#runs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h8"/><path d="M8 9h2"/>
+          </svg>
+          Runs
+        </a>
+        <a class="nav-item" href="/app#agents">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+          </svg>
+          Agents
+        </a>
+        <a class="nav-item" href="/app#alerts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          Alerts
+        </a>
+        <a class="nav-item active" href="/evals" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+          Evals
+        </a>
+        <a class="nav-item" href="/settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          Settings
+        </a>
+        <a class="nav-item" href="/feedback">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          Feedback
+        </a>
+        <a class="nav-item" href="/changelog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>
+          </svg>
+          Changelog
+        </a>
+        <a class="nav-item" href="/roadmap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+          Roadmap
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="sidebar-email" id="user-email">—</span>
+        <span class="plan-badge" id="plan-badge" hidden>free</span>
+        <div class="usage-block" id="usage-block" hidden>
+          <div class="usage-row">
+            <span class="usage-label">Events</span>
+            <span class="usage-value" id="usage-events-text">0 / 50k</span>
+          </div>
+          <div class="usage-bar-wrap">
+            <div class="usage-bar-fill" id="usage-events-bar" style="width: 0%"></div>
+          </div>
+          <div class="usage-row" style="margin-top: 0.4rem">
+            <span class="usage-label">Agents</span>
+            <span class="usage-value" id="usage-agents-text">0 / 1</span>
+          </div>
+          <div class="usage-bar-wrap">
+            <div class="usage-bar-fill" id="usage-agents-bar" style="width: 0%"></div>
+          </div>
+        </div>
+        <button class="btn btn-ghost" id="logout-btn" type="button" style="font-size:0.82rem;padding:0.42rem 0.75rem;">Log out</button>
+      </div>
+    </aside>
+
+    <main id="main" class="content-area">
+      <h1 class="visually-hidden">Farol Evals</h1>
+
+      <div class="eval-page-header">
+        <h2>Evals</h2>
+        <button type="button" class="btn btn-primary" id="btn-new-eval">＋ New Eval</button>
+      </div>
+
+      <section class="card eval-card table-wrap" aria-labelledby="evals-def-heading">
+        <div class="table-wrap-inner">
+          <div id="evals-empty" class="eval-empty" hidden>
+            No evals configured yet. Create your first eval to start scoring agent outputs.
+          </div>
+          <table id="evals-table">
+            <thead>
+              <tr id="evals-def-heading">
+                <th>Name</th>
+                <th>Agent</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="evals-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <h2 class="section-title">Recent Results</h2>
+      <section class="card eval-card table-wrap" aria-labelledby="evals-results-heading">
+        <div class="table-wrap-inner">
+          <div id="results-empty" class="eval-empty" hidden>No eval results yet.</div>
+          <table id="results-table">
+            <thead>
+              <tr id="evals-results-heading">
+                <th>Eval Name</th>
+                <th>Agent</th>
+                <th>Trace</th>
+                <th>Passed</th>
+                <th>Score</th>
+                <th>Reason</th>
+                <th>Evaluated At</th>
+              </tr>
+            </thead>
+            <tbody id="results-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="new-eval-overlay" role="dialog" aria-modal="true" aria-labelledby="new-eval-title">
+    <div class="modal-backdrop" id="new-eval-backdrop"></div>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 class="modal-title" id="new-eval-title">New Eval</h2>
+        <button type="button" class="close-btn" id="new-eval-close" aria-label="Close">&#x2715;</button>
+      </div>
+      <form id="new-eval-form">
+        <div class="form-group">
+          <label for="new-eval-name">Name</label>
+          <input type="text" id="new-eval-name" class="form-input" required autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label for="new-eval-agent">Agent</label>
+          <select id="new-eval-agent" class="form-select" required></select>
+        </div>
+        <div class="form-group">
+          <label for="new-eval-type">Type</label>
+          <select id="new-eval-type" class="form-select" required>
+            <option value="correctness">correctness</option>
+            <option value="groundedness">groundedness</option>
+            <option value="json_validity">json_validity</option>
+            <option value="tone">tone</option>
+          </select>
+        </div>
+        <div class="form-group" id="new-eval-tone-wrap" hidden>
+          <label for="new-eval-tone">Expected tone</label>
+          <input type="text" id="new-eval-tone" class="form-input" placeholder="e.g. professional and helpful" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label for="new-eval-criteria">Criteria</label>
+          <textarea id="new-eval-criteria" class="form-textarea" placeholder="Optional: additional instructions for the evaluator"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-check">
+            <input type="checkbox" id="new-eval-active" checked />
+            <span>Active</span>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary" id="new-eval-submit">Create Eval</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="run-eval-overlay" role="dialog" aria-modal="true" aria-labelledby="run-eval-title">
+    <div class="modal-backdrop" id="run-eval-backdrop"></div>
+    <div class="modal-card modal-sm">
+      <div class="modal-head">
+        <h2 class="modal-title" id="run-eval-title">Select a trace to evaluate</h2>
+        <button type="button" class="close-btn" id="run-eval-close" aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="form-group">
+        <label for="run-eval-trace-select">Trace</label>
+        <select id="run-eval-trace-select" class="form-select"></select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" id="run-eval-confirm">
+          <span id="run-eval-btn-label">Run Eval</span>
+          <span id="run-eval-spinner" class="spinner" hidden></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const { createClient } = supabase;
+    const client = createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+
+    const PLAN_LIMITS = {
+      free:    { agents: 1,        events: 50000 },
+      starter: { agents: 3,        events: 300000 },
+      builder: { agents: Infinity, events: 1000000 },
+      studio:  { agents: Infinity, events: 1000000 },
+    };
+
+    let currentUserId = null;
+    let toastTimer = null;
+
+    function escapeHtml(s) {
+      if (s == null) return "";
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function showToast(message, isError) {
+      const el = document.getElementById("toast");
+      el.textContent = message;
+      el.classList.toggle("error", !!isError);
+      el.classList.add("visible");
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () {
+        el.classList.remove("visible");
+      }, 4200);
+    }
+
+    function setBodyModalOpen(on) {
+      document.body.classList.toggle("modal-open", on);
+    }
+
+    function openNewEvalModal() {
+      document.getElementById("new-eval-overlay").classList.add("visible");
+      setBodyModalOpen(true);
+      document.getElementById("new-eval-name").focus();
+    }
+
+    function closeNewEvalModal() {
+      document.getElementById("new-eval-overlay").classList.remove("visible");
+      setBodyModalOpen(false);
+    }
+
+    let runEvalTargetId = null;
+
+    function closeRunEvalModal() {
+      document.getElementById("run-eval-overlay").classList.remove("visible");
+      setBodyModalOpen(false);
+      runEvalTargetId = null;
+    }
+
+    async function openRunEvalModal(evalRow) {
+      runEvalTargetId = evalRow.id;
+      const agentName = evalRow.agent_id;
+      document.getElementById("run-eval-btn-label").hidden = false;
+      document.getElementById("run-eval-spinner").hidden = true;
+      document.getElementById("run-eval-overlay").classList.add("visible");
+      setBodyModalOpen(true);
+
+      const sel = document.getElementById("run-eval-trace-select");
+      sel.innerHTML = '<option value="">Loading…</option>';
+
+      const { data, error } = await client
+        .from("runs")
+        .select("id, timestamp")
+        .eq("user_id", currentUserId)
+        .eq("agent", agentName)
+        .order("timestamp", { ascending: false })
+        .limit(20);
+
+      sel.innerHTML = "";
+      if (error || !data || data.length === 0) {
+        const o = document.createElement("option");
+        o.value = "";
+        o.textContent = "No recent traces for this agent";
+        sel.appendChild(o);
+        return;
+      }
+      data.forEach(function (r) {
+        const o = document.createElement("option");
+        o.value = r.id;
+        const short = String(r.id).slice(0, 8);
+        const ts = r.timestamp ? new Date(r.timestamp).toLocaleString() : "—";
+        o.textContent = short + " · " + ts;
+        sel.appendChild(o);
+      });
+    }
+
+    function updateUsageBar(userPlan, eventCount, agentCount) {
+      const usageBlock = document.getElementById("usage-block");
+      usageBlock.hidden = false;
+
+      const plan = userPlan || "free";
+      const eventLimitStr =
+        plan === "free" ? "50k" : plan === "starter" ? "300k" : "Unlimited";
+      const agentLimitStr =
+        plan === "free" ? "1" : plan === "starter" ? "3" : "Unlimited";
+
+      const limits = PLAN_LIMITS[plan] ?? PLAN_LIMITS.free;
+      const isLimitedPlan = plan === "free" || plan === "starter";
+
+      document.getElementById("usage-events-text").textContent =
+        eventCount.toLocaleString() + " / " + eventLimitStr;
+      document.getElementById("usage-agents-text").textContent =
+        agentCount + " / " + agentLimitStr;
+
+      const eventsBar = document.getElementById("usage-events-bar");
+      const agentsBar = document.getElementById("usage-agents-bar");
+
+      if (!isLimitedPlan) {
+        eventsBar.style.width = "100%";
+        eventsBar.className = "usage-bar-fill";
+        agentsBar.style.width = "100%";
+        agentsBar.className = "usage-bar-fill";
+        return;
+      }
+
+      const eventPct = Math.min(100, (eventCount / limits.events) * 100);
+      const agentPct = Math.min(100, (agentCount / limits.agents) * 100);
+
+      eventsBar.style.width = eventPct + "%";
+      eventsBar.className =
+        "usage-bar-fill" +
+        (eventPct >= 100 ? " critical" : eventPct >= 80 ? " warning" : "");
+
+      agentsBar.style.width = agentPct + "%";
+      agentsBar.className =
+        "usage-bar-fill" +
+        (agentPct >= 100 ? " critical" : agentPct >= 80 ? " warning" : "");
+    }
+
+    async function loadAgentOptions() {
+      const select = document.getElementById("new-eval-agent");
+      select.innerHTML = "";
+      const { data, error } = await client
+        .from("runs")
+        .select("agent")
+        .eq("user_id", currentUserId);
+
+      if (error || !data) {
+        const o = document.createElement("option");
+        o.value = "";
+        o.textContent = "Could not load agents";
+        select.appendChild(o);
+        return;
+      }
+
+      const names = Array.from(
+        new Set(
+          data
+            .map(function (r) {
+              return r.agent;
+            })
+            .filter(function (a) {
+              return a != null && String(a).trim() !== "";
+            })
+        )
+      ).sort();
+
+      if (names.length === 0) {
+        const o = document.createElement("option");
+        o.value = "";
+        o.textContent = "No agents yet — send a run first";
+        select.appendChild(o);
+        return;
+      }
+
+      names.forEach(function (name) {
+        const o = document.createElement("option");
+        o.value = name;
+        o.textContent = name;
+        select.appendChild(o);
+      });
+    }
+
+    function toggleToneField() {
+      const type = document.getElementById("new-eval-type").value;
+      const wrap = document.getElementById("new-eval-tone-wrap");
+      wrap.hidden = type !== "tone";
+    }
+
+    async function loadEvalsList() {
+      const tbody = document.getElementById("evals-body");
+      const empty = document.getElementById("evals-empty");
+      const table = document.getElementById("evals-table");
+      tbody.innerHTML = "";
+
+      const { data, error } = await client
+        .from("evals")
+        .select("id, agent_id, name, type, active, created_at")
+        .eq("user_id", currentUserId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        empty.hidden = false;
+        empty.textContent = "Could not load evals.";
+        table.hidden = true;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        empty.hidden = false;
+        table.hidden = true;
+        return;
+      }
+
+      empty.hidden = true;
+      table.hidden = false;
+
+      data.forEach(function (row) {
+        const tr = document.createElement("tr");
+        const statusBadge = row.active
+          ? '<span class="badge success">Active</span>'
+          : '<span class="badge baseline">Inactive</span>';
+        const created = row.created_at
+          ? new Date(row.created_at).toLocaleString()
+          : "—";
+        tr.innerHTML =
+          "<td>" +
+          escapeHtml(row.name) +
+          "</td><td>" +
+          escapeHtml(row.agent_id) +
+          "</td><td>" +
+          escapeHtml(row.type) +
+          "</td><td>" +
+          statusBadge +
+          "</td><td>" +
+          escapeHtml(created) +
+          '</td><td><div style="display:flex;gap:0.4rem;flex-wrap:wrap">' +
+          '<button type="button" class="btn btn-outline btn-sm btn-run-eval" data-id="' +
+          escapeHtml(row.id) +
+          '">Run</button>' +
+          '<button type="button" class="btn btn-danger-outline btn-sm btn-delete-eval" data-id="' +
+          escapeHtml(row.id) +
+          '">Delete</button></div></td>';
+
+        tbody.appendChild(tr);
+      });
+
+      tbody.querySelectorAll(".btn-run-eval").forEach(function (btn) {
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          const id = btn.getAttribute("data-id");
+          const row = data.find(function (r) {
+            return r.id === id;
+          });
+          if (row) void openRunEvalModal(row);
+        });
+      });
+
+      tbody.querySelectorAll(".btn-delete-eval").forEach(function (btn) {
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          const id = btn.getAttribute("data-id");
+          if (!confirm("Delete this eval? This cannot be undone.")) return;
+          void (async function () {
+            const { error: delErr } = await client
+              .from("evals")
+              .delete()
+              .eq("id", id)
+              .eq("user_id", currentUserId);
+            if (delErr) {
+              showToast(delErr.message || "Delete failed", true);
+              return;
+            }
+            await loadEvalsList();
+            await loadEvalResults();
+          })();
+        });
+      });
+    }
+
+    function openTraceFromEvals(traceId) {
+      sessionStorage.setItem("farol_open_trace_id", traceId);
+      window.location.href = "/app";
+    }
+
+    async function loadEvalResults() {
+      const tbody = document.getElementById("results-body");
+      const empty = document.getElementById("results-empty");
+      const table = document.getElementById("results-table");
+      tbody.innerHTML = "";
+
+      const { data, error } = await client
+        .from("eval_results")
+        .select("id, trace_id, passed, score, details, evaluated_at, evals(name, agent_id)")
+        .eq("user_id", currentUserId)
+        .order("evaluated_at", { ascending: false })
+        .limit(50);
+
+      if (error) {
+        empty.hidden = false;
+        empty.textContent = "Could not load results.";
+        table.hidden = true;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        empty.hidden = false;
+        table.hidden = true;
+        return;
+      }
+
+      empty.hidden = true;
+      table.hidden = false;
+
+      data.forEach(function (row) {
+        const ev = row.evals;
+        const evName = ev && ev.name ? ev.name : "—";
+        const agent = ev && ev.agent_id ? ev.agent_id : "—";
+        const reason =
+          row.details &&
+          typeof row.details === "object" &&
+          row.details.reason != null
+            ? String(row.details.reason)
+            : "—";
+        const passedCell = row.passed
+          ? '<span class="quality-indicator-good">✓</span>'
+          : '<span class="quality-indicator-bad">✗</span>';
+        const scorePct =
+          row.score != null && !Number.isNaN(Number(row.score))
+            ? Math.round(Number(row.score) * 100) + "%"
+            : "—";
+        const evalAt = row.evaluated_at
+          ? new Date(row.evaluated_at).toLocaleString()
+          : "—";
+
+        const tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>" +
+          escapeHtml(evName) +
+          "</td><td>" +
+          escapeHtml(agent) +
+          '</td><td><button type="button" class="btn btn-outline btn-sm btn-icon btn-open-trace" title="Open trace" data-trace-id="' +
+          escapeHtml(row.trace_id) +
+          '" aria-label="Open trace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button></td><td>' +
+          passedCell +
+          "</td><td>" +
+          escapeHtml(scorePct) +
+          "</td><td>" +
+          escapeHtml(reason) +
+          "</td><td>" +
+          escapeHtml(evalAt) +
+          "</td>";
+        tbody.appendChild(tr);
+      });
+
+      tbody.querySelectorAll(".btn-open-trace").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          const tid = btn.getAttribute("data-trace-id");
+          if (tid) openTraceFromEvals(tid);
+        });
+      });
+    }
+
+    document.getElementById("btn-new-eval").addEventListener("click", function () {
+      void loadAgentOptions().then(openNewEvalModal);
+    });
+
+    document.getElementById("new-eval-backdrop").addEventListener("click", closeNewEvalModal);
+    document.getElementById("new-eval-close").addEventListener("click", closeNewEvalModal);
+
+    document.getElementById("new-eval-type").addEventListener("change", toggleToneField);
+    toggleToneField();
+
+    document.getElementById("new-eval-form").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const name = document.getElementById("new-eval-name").value.trim();
+      const agentId = document.getElementById("new-eval-agent").value;
+      const typeVal = document.getElementById("new-eval-type").value;
+      const criteria = document.getElementById("new-eval-criteria").value.trim();
+      const expectedTone = document.getElementById("new-eval-tone").value.trim();
+      const active = document.getElementById("new-eval-active").checked;
+
+      if (!name || !agentId) return;
+
+      const config = {};
+      if (criteria) config.criteria = criteria;
+      if (typeVal === "tone" && expectedTone) config.expected_tone = expectedTone;
+
+      const { error } = await client.from("evals").insert({
+        user_id: currentUserId,
+        agent_id: agentId,
+        name: name,
+        type: typeVal,
+        config: config,
+        active: active,
+      });
+
+      if (error) {
+        showToast(error.message || "Failed to create eval", true);
+        return;
+      }
+
+      closeNewEvalModal();
+      document.getElementById("new-eval-form").reset();
+      document.getElementById("new-eval-active").checked = true;
+      toggleToneField();
+      await loadEvalsList();
+    });
+
+    document.getElementById("run-eval-backdrop").addEventListener("click", closeRunEvalModal);
+    document.getElementById("run-eval-close").addEventListener("click", closeRunEvalModal);
+
+    document.getElementById("run-eval-confirm").addEventListener("click", async function () {
+      const traceId = document.getElementById("run-eval-trace-select").value;
+      if (!runEvalTargetId || !traceId) {
+        showToast("Select a trace first.", true);
+        return;
+      }
+
+      const label = document.getElementById("run-eval-btn-label");
+      const spin = document.getElementById("run-eval-spinner");
+      label.hidden = true;
+      spin.hidden = false;
+
+      const { data: sessionData, error: sessErr } = await client.auth.getSession();
+      if (sessErr || !sessionData.session) {
+        label.hidden = false;
+        spin.hidden = true;
+        showToast("Not signed in.", true);
+        return;
+      }
+
+      const session = sessionData.session;
+      let res;
+      try {
+        res = await fetch(window.SUPABASE_URL + "/functions/v1/run-eval", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + session.access_token,
+          },
+          body: JSON.stringify({ eval_id: runEvalTargetId, trace_id: traceId }),
+        });
+      } catch (err) {
+        label.hidden = false;
+        spin.hidden = true;
+        showToast(err && err.message ? err.message : "Network error", true);
+        return;
+      }
+
+      const responseText = await res.text();
+      let payload = null;
+      try {
+        payload = responseText ? JSON.parse(responseText) : null;
+      } catch (_e) {
+        payload = null;
+      }
+
+      label.hidden = false;
+      spin.hidden = true;
+
+      if (!res.ok) {
+        const msg =
+          (payload && (payload.error || payload.detail)) || responseText || "Request failed";
+        showToast(typeof msg === "string" ? msg : JSON.stringify(msg), true);
+        return;
+      }
+
+      const passed =
+        payload &&
+        payload.result &&
+        (payload.result.passed === true || payload.result.passed === false)
+          ? payload.result.passed
+          : null;
+      const statusWord =
+        passed === true ? "passed" : passed === false ? "failed" : "complete";
+      showToast("Eval complete — " + statusWord, false);
+      closeRunEvalModal();
+      await loadEvalResults();
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape") return;
+      if (document.getElementById("new-eval-overlay").classList.contains("visible")) {
+        closeNewEvalModal();
+      }
+      if (document.getElementById("run-eval-overlay").classList.contains("visible")) {
+        closeRunEvalModal();
+      }
+    });
+
+    const sidebar = document.querySelector(".sidebar");
+    const sidebarBackdrop = document.getElementById("sidebar-backdrop");
+    const hamburgerBtn = document.getElementById("mobile-hamburger-btn");
+    const sidebarCloseBtn = document.getElementById("sidebar-close-btn");
+
+    function openMobileNav() {
+      sidebar.classList.add("open");
+      sidebarBackdrop.classList.add("open");
+      sidebarBackdrop.setAttribute("aria-hidden", "false");
+      hamburgerBtn.setAttribute("aria-expanded", "true");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeMobileNav() {
+      sidebar.classList.remove("open");
+      sidebarBackdrop.classList.remove("open");
+      sidebarBackdrop.setAttribute("aria-hidden", "true");
+      hamburgerBtn.setAttribute("aria-expanded", "false");
+      document.body.style.overflow = "";
+    }
+
+    hamburgerBtn.addEventListener("click", openMobileNav);
+    sidebarCloseBtn.addEventListener("click", closeMobileNav);
+    sidebarBackdrop.addEventListener("click", closeMobileNav);
+
+    document.getElementById("logout-btn").addEventListener("click", async function () {
+      await client.auth.signOut();
+      window.location.href = "/login";
+    });
+
+    async function init() {
+      const { data, error } = await client.auth.getUser();
+      if (error || !data || !data.user) {
+        window.location.href = "/login";
+        return;
+      }
+
+      const user = data.user;
+      currentUserId = user.id;
+      document.getElementById("user-email").textContent = user.email || "Signed in";
+
+      const { data: sub } = await client
+        .from("subscriptions")
+        .select("plan, status, event_count, agent_names")
+        .eq("user_id", user.id)
+        .single();
+
+      const userPlan = sub?.plan ?? "free";
+      const eventCount = sub?.event_count ?? 0;
+      const agentCount = (sub?.agent_names ?? []).length;
+
+      const planBadgeEl = document.getElementById("plan-badge");
+      planBadgeEl.textContent = userPlan.toUpperCase();
+      planBadgeEl.hidden = false;
+      updateUsageBar(userPlan, eventCount, agentCount);
+
+      await loadEvalsList();
+      await loadEvalResults();
+    }
+
+    init();
+  </script>
+</body>
+</html>

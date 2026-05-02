@@ -54,6 +54,8 @@
     { "source": "/login", "destination": "/frontend/auth/login.html" },
     { "source": "/reset", "destination": "/frontend/auth/reset.html" },
     { "source": "/app", "destination": "/frontend/app/app.html" },
+    { "source": "/evals", "destination": "/frontend/evals.html" },
+    { "source": "/evals.html", "destination": "/frontend/evals.html" },
     { "source": "/settings", "destination": "/frontend/app/settings.html" },
     { "source": "/share", "destination": "/frontend/app/share.html" },
     { "source": "/docs", "destination": "/frontend/docs/docs.html" },
