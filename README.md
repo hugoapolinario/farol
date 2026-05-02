@@ -44,6 +44,9 @@ Farol is a monitoring tool for AI agents. Add one decorator to your agent functi
 - Shared read-only dashboards
 - CSV export
 - Run notes & annotations
+- Pipeline DAG visualization — see your full multi-agent pipeline as a graph with per-agent cost, duration, and status
+- LLM-as-judge evals — score agent outputs for correctness, groundedness, JSON validity, and tone (Builder)
+- OpenTelemetry bridge — point any OTLP/HTTP exporter at Farol, no SDK changes required
 
 ## Install
 
