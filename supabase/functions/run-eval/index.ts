@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
     // Fetch trace metadata (+ run-level output fallback when spans lack output)
     const { data: trace, error: traceError } = await userClient
       .from("runs")
-      .select("id, agent, status, output")
+      .select("id, agent, status")
       .eq("id", trace_id)
       .eq("user_id", user.id)
       .single();
@@ -105,12 +105,7 @@ Deno.serve(async (req) => {
         .filter(Boolean)
         .join("\n\n---\n\n") || "";
 
-    const runLevel =
-      trace.output != null && trace.output !== ""
-        ? typeof trace.output === "string"
-          ? trace.output
-          : JSON.stringify(trace.output)
-        : "";
+    const runLevel = "";
 
     const output =
       spanCombined ||
