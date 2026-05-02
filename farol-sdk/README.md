@@ -34,7 +34,7 @@ def my_agent(task: str, *, run):
     return "done"
 ```
 
-The wrapped function receives `run` with `steps`, token fields, and timing; Farol computes cost from `cost_per_1k_tokens` (default suits many providers—override as needed).
+The wrapped function receives `run` (a dict) with `steps`, token fields, and timing; Farol computes cost from `cost_per_1k_input_tokens` and `cost_per_1k_output_tokens` (defaults suit many providers—pass them to `@trace` to override).
 
 ---
 

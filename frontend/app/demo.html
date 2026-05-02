@@ -1919,10 +1919,11 @@
             <pre class="sdk-code">from farol import trace
 
 @trace(agent_name="my-agent", farol_key="frl_...")
-def my_agent(task, run=None):
-    with run.span("llm_call", type="llm") as span:
-        response = llm.call(task)
-        span.output_tokens = response.usage.output_tokens</pre>
+def my_agent(task, *, run):
+    response = llm.call(task)
+    run["input_tokens"] = response.usage.input_tokens
+    run["output_tokens"] = response.usage.output_tokens
+    return response.text</pre>
             <a class="btn btn-primary sdk-cta" href="/signup">Sign up free →</a>
           </div>
         </div>

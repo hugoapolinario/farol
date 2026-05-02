@@ -327,7 +327,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
           </div>
           <h2>What we store</h2>
-          <p>Run metadata — agent name, status, duration, token counts, cost, and errors. That’s it. We do not store your prompts, LLM responses, or any content from your agent unless you explicitly enable <code style="font-family:ui-monospace,monospace;font-size:0.85em">capture_io=True</code>.</p>
+          <p>Run metadata — agent name, status, duration, token counts, cost, and errors. That’s it. We do not store your prompts, LLM responses, or any content from your agent unless you explicitly enable optional capture (for example <code style="font-family:ui-monospace,monospace;font-size:0.85em">captureIo: true</code> on the Node.js <code style="font-family:ui-monospace,monospace;font-size:0.85em">trace()</code> helper, or OTLP attributes that include prompt text).</p>
         </article>
 
         <article class="security-card">
@@ -335,7 +335,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
           <h2>Prompts are never stored by default</h2>
-          <p>By default, Farol only tracks metadata. To store prompt inputs and outputs, you must explicitly set <code style="font-family:ui-monospace,monospace;font-size:0.85em">capture_io=True</code> in the <code style="font-family:ui-monospace,monospace;font-size:0.85em">@trace</code> decorator. Even then, inputs and outputs are truncated at 50,000 characters. Never enable this for sensitive or regulated data.</p>
+          <p>By default, Farol only tracks metadata. To store prompt inputs and outputs you must opt in (for example <code style="font-family:ui-monospace,monospace;font-size:0.85em">captureIo: true</code> in Node <code style="font-family:ui-monospace,monospace;font-size:0.85em">trace()</code> options, with <code style="font-family:ui-monospace,monospace;font-size:0.85em">span.input</code> / <code style="font-family:ui-monospace,monospace;font-size:0.85em">span.output</code> set). The published Python <code style="font-family:ui-monospace,monospace;font-size:0.85em">farol-sdk</code> does not send prompt bodies. When capture is on, values are truncated at 50,000 characters. Never enable this for sensitive or regulated data.</p>
         </article>
 
         <article class="security-card">

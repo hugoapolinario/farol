@@ -261,7 +261,7 @@
       <ul>
         <li><strong style="color:var(--text)">Account data</strong> — such as email and authentication identifiers you provide when you sign up.</li>
         <li><strong style="color:var(--text)">Agent run metadata</strong> — for each traced run, this may include timing, token counts, estimated cost, status, agent name, model label, structured steps or spans, and error messages when something fails.</li>
-        <li><strong style="color:var(--text)">Prompts and model output (optional)</strong> — when you enable input/output capture in the SDK (for example <code style="font-family:var(--font-mono);font-size:0.88em;color:var(--text)">capture_io=True</code>), we store the prompt and response text associated with spans as configured in your integration.</li>
+        <li><strong style="color:var(--text)">Prompts and model output (optional)</strong> — when you enable input/output capture in an SDK or integration (for example <code style="font-family:var(--font-mono);font-size:0.88em;color:var(--text)">captureIo: true</code> on the Node.js <code style="font-family:var(--font-mono);font-size:0.88em;color:var(--text)">trace()</code> helper and span fields set accordingly), we store the prompt and response text associated with spans as configured in your integration.</li>
       </ul>
       <p>We do not intentionally collect sensitive categories of personal data beyond what you or your application send to the API. You are responsible for not submitting regulated or unnecessary personal data in prompts or logs.</p>
 

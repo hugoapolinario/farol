@@ -831,18 +831,16 @@ pip install farol-sdk</code></pre>
 client = Anthropic()
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
-<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, *, run):
     run[<span style="color:#86efac">"topic"</span>] = task
 
-    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
-        response = client.messages.create(
-            model=<span style="color:#86efac">"claude-haiku-4-5"</span>,
-            max_tokens=<span style="color:#fbbf24">1024</span>,
-            messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
-        )
-        span.input_tokens = response.usage.input_tokens
-        span.output_tokens = response.usage.output_tokens
-
+    response = client.messages.create(
+        model=<span style="color:#86efac">"claude-haiku-4-5"</span>,
+        max_tokens=<span style="color:#fbbf24">1024</span>,
+        messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
+    )
+    run[<span style="color:#86efac">"input_tokens"</span>] = response.usage.input_tokens
+    run[<span style="color:#86efac">"output_tokens"</span>] = response.usage.output_tokens
     <span style="color:#c084fc">return</span> response.content[<span style="color:#fbbf24">0</span>].text</code></pre>
           </div>
 
@@ -857,25 +855,23 @@ client = Anthropic()
 <span style="color:#c084fc">import</span> httpx
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
-<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, *, run):
     run[<span style="color:#86efac">"topic"</span>] = task
 
-    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
-        response = httpx.post(
-            <span style="color:#86efac">"https://api.anthropic.com/v1/messages"</span>,
-            headers={
-                <span style="color:#86efac">"x-api-key"</span>: <span style="color:#86efac">"your-anthropic-key"</span>,
-                <span style="color:#86efac">"anthropic-version"</span>: <span style="color:#86efac">"2023-06-01"</span>
-            },
-            json={
-                <span style="color:#86efac">"model"</span>: <span style="color:#86efac">"claude-haiku-4-5"</span>,
-                <span style="color:#86efac">"max_tokens"</span>: <span style="color:#fbbf24">1024</span>,
-                <span style="color:#86efac">"messages"</span>: [{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
-            }
-        ).json()
-        span.input_tokens = response[<span style="color:#86efac">"usage"</span>][<span style="color:#86efac">"input_tokens"</span>]
-        span.output_tokens = response[<span style="color:#86efac">"usage"</span>][<span style="color:#86efac">"output_tokens"</span>]
-
+    response = httpx.post(
+        <span style="color:#86efac">"https://api.anthropic.com/v1/messages"</span>,
+        headers={
+            <span style="color:#86efac">"x-api-key"</span>: <span style="color:#86efac">"your-anthropic-key"</span>,
+            <span style="color:#86efac">"anthropic-version"</span>: <span style="color:#86efac">"2023-06-01"</span>
+        },
+        json={
+            <span style="color:#86efac">"model"</span>: <span style="color:#86efac">"claude-haiku-4-5"</span>,
+            <span style="color:#86efac">"max_tokens"</span>: <span style="color:#fbbf24">1024</span>,
+            <span style="color:#86efac">"messages"</span>: [{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
+        }
+    ).json()
+    run[<span style="color:#86efac">"input_tokens"</span>] = response[<span style="color:#86efac">"usage"</span>][<span style="color:#86efac">"input_tokens"</span>]
+    run[<span style="color:#86efac">"output_tokens"</span>] = response[<span style="color:#86efac">"usage"</span>][<span style="color:#86efac">"output_tokens"</span>]
     <span style="color:#c084fc">return</span> response[<span style="color:#86efac">"content"</span>][<span style="color:#fbbf24">0</span>][<span style="color:#86efac">"text"</span>]</code></pre>
           </div>
 
@@ -894,17 +890,15 @@ client = OpenAI(
 )
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
-<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, *, run):
     run[<span style="color:#86efac">"topic"</span>] = task
 
-    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
-        response = client.chat.completions.create(
-            model=<span style="color:#86efac">"gpt-4o-mini"</span>,
-            messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
-        )
-        span.input_tokens = response.usage.prompt_tokens
-        span.output_tokens = response.usage.completion_tokens
-
+    response = client.chat.completions.create(
+        model=<span style="color:#86efac">"gpt-4o-mini"</span>,
+        messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
+    )
+    run[<span style="color:#86efac">"input_tokens"</span>] = response.usage.prompt_tokens
+    run[<span style="color:#86efac">"output_tokens"</span>] = response.usage.completion_tokens
     <span style="color:#c084fc">return</span> response.choices[<span style="color:#fbbf24">0</span>].message.content</code></pre>
           </div>
 
@@ -922,14 +916,12 @@ genai.configure(api_key=<span style="color:#86efac">"your-gemini-key"</span>)
 model = genai.GenerativeModel(<span style="color:#86efac">"gemini-1.5-flash"</span>)
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
-<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, *, run):
     run[<span style="color:#86efac">"topic"</span>] = task
 
-    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
-        response = model.generate_content(task)
-        span.input_tokens = response.usage_metadata.prompt_token_count
-        span.output_tokens = response.usage_metadata.candidates_token_count
-
+    response = model.generate_content(task)
+    run[<span style="color:#86efac">"input_tokens"</span>] = response.usage_metadata.prompt_token_count
+    run[<span style="color:#86efac">"output_tokens"</span>] = response.usage_metadata.candidates_token_count
     <span style="color:#c084fc">return</span> response.text</code></pre>
           </div>
 
@@ -946,17 +938,15 @@ model = genai.GenerativeModel(<span style="color:#86efac">"gemini-1.5-flash"</sp
 client = Mistral(api_key=<span style="color:#86efac">"your-mistral-key"</span>)
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
-<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, *, run):
     run[<span style="color:#86efac">"topic"</span>] = task
 
-    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
-        response = client.chat.complete(
-            model=<span style="color:#86efac">"mistral-small-latest"</span>,
-            messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
-        )
-        span.input_tokens = response.usage.prompt_tokens
-        span.output_tokens = response.usage.completion_tokens
-
+    response = client.chat.complete(
+        model=<span style="color:#86efac">"mistral-small-latest"</span>,
+        messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
+    )
+    run[<span style="color:#86efac">"input_tokens"</span>] = response.usage.prompt_tokens
+    run[<span style="color:#86efac">"output_tokens"</span>] = response.usage.completion_tokens
     <span style="color:#c084fc">return</span> response.choices[<span style="color:#fbbf24">0</span>].message.content</code></pre>
           </div>
 
@@ -976,17 +966,15 @@ client = OpenAI(
 )
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
-<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, run=<span style="color:#c084fc">None</span>):
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, *, run):
     run[<span style="color:#86efac">"topic"</span>] = task
 
-    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
-        response = client.chat.completions.create(
-            model=<span style="color:#86efac">"grok-3-mini"</span>,
-            messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
-        )
-        span.input_tokens = response.usage.prompt_tokens
-        span.output_tokens = response.usage.completion_tokens
-
+    response = client.chat.completions.create(
+        model=<span style="color:#86efac">"grok-3-mini"</span>,
+        messages=[{<span style="color:#86efac">"role"</span>: <span style="color:#86efac">"user"</span>, <span style="color:#86efac">"content"</span>: task}]
+    )
+    run[<span style="color:#86efac">"input_tokens"</span>] = response.usage.prompt_tokens
+    run[<span style="color:#86efac">"output_tokens"</span>] = response.usage.completion_tokens
     <span style="color:#c084fc">return</span> response.choices[<span style="color:#fbbf24">0</span>].message.content</code></pre>
           </div>
 
@@ -1125,7 +1113,8 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
       <section id="sdk-reference" class="doc-section" aria-labelledby="sdk-heading">
         <h2 id="sdk-heading">SDK reference</h2>
         <p><strong style="color:var(--text)">Node.js SDK</strong> — Install with <code style="font-family:var(--font-mono);font-size:0.88em">npm install @usefarol/sdk</code>. Full TypeScript support. See <a class="inline" href="https://www.npmjs.com/package/@usefarol/sdk" rel="noopener noreferrer">npmjs.com/package/@usefarol/sdk</a>.</p>
-        <p>The <code style="font-family:var(--font-mono);font-size:0.88em;color:var(--text)">trace</code> decorator wraps your function and passes a <code style="font-family:var(--font-mono);font-size:0.88em">run</code> dict for steps, tokens, and timing.</p>
+        <p>Python’s <code style="font-family:var(--font-mono);font-size:0.88em;color:var(--text)">trace</code> decorator injects a <code style="font-family:var(--font-mono);font-size:0.88em">run</code> dict for tokens, timing, and optional <code style="font-family:var(--font-mono);font-size:0.88em">steps</code>. The Node SDK’s <code style="font-family:var(--font-mono);font-size:0.88em">trace()</code> wraps an async function and passes a <code style="font-family:var(--font-mono);font-size:0.88em">Run</code> object with <code style="font-family:var(--font-mono);font-size:0.88em">startSpan</code> (see below).</p>
+        <h3 style="margin-top:1rem;font-size:1.05rem">Python <code style="font-family:var(--font-mono);font-size:0.9em">@trace</code> parameters</h3>
         <table class="param-table">
           <thead>
             <tr><th scope="col">Parameter</th><th scope="col">Description</th></tr>
@@ -1137,11 +1126,11 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
             </tr>
             <tr>
               <th scope="row">farol_key</th>
-              <td>Required. API key from the dashboard; ties runs to your account.</td>
+              <td>Optional. API key from the dashboard; when set (and Supabase extras + env are configured), runs sync to your account.</td>
             </tr>
             <tr>
               <th scope="row">model</th>
-              <td>Optional. Model label for display. Default <code style="font-family:var(--font-mono);font-size:0.9em">"unknown"</code>.</td>
+              <td>Optional. Model label stored on the run. Default <code style="font-family:var(--font-mono);font-size:0.9em">"claude-haiku-4-5-20251001"</code>.</td>
             </tr>
             <tr>
               <th scope="row">cost_per_1k_input_tokens</th>
@@ -1152,20 +1141,12 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
               <td>Optional. USD per 1k output (completion) tokens. Default <code style="font-family:var(--font-mono);font-size:0.9em">0.00125</code> (Claude Haiku).</td>
             </tr>
             <tr>
-              <th scope="row">farol_endpoint</th>
-              <td>Optional. Custom ingest URL. Default points to Farol's hosted endpoint. Only change this if you are self-hosting the ingest function. Never set this to an untrusted URL — run data including token counts and costs will be sent there.</td>
-            </tr>
-            <tr>
-              <th scope="row">capture_io</th>
-              <td>Optional. Set <code style="font-family:var(--font-mono);font-size:0.9em">True</code> to store prompt inputs and outputs in the dashboard. Default <code style="font-family:var(--font-mono);font-size:0.9em">False</code>. Handle with care — prompts may contain sensitive data.</td>
-            </tr>
-            <tr>
               <th scope="row">prompt_version</th>
               <td>Optional. Tag this run with a prompt version label (e.g. <code style="font-family:var(--font-mono);font-size:0.9em">"v2"</code>, <code style="font-family:var(--font-mono);font-size:0.9em">"after_refactor"</code>). Max 50 characters. Shown in the runs table and trace modal.</td>
             </tr>
             <tr>
               <th scope="row">parent_trace_id</th>
-              <td>Optional. Link this run to a parent agent run. Usually left unset — the parent ID is filled automatically when a traced function calls another traced function. Set explicitly to force a specific parent; that value overrides automatic propagation.</td>
+              <td>Optional. Pass to <code style="font-family:var(--font-mono);font-size:0.9em">@trace(..., parent_trace_id="…")</code> to store a fixed parent link on every invocation. If omitted, the parent id is taken from the current trace context when a traced function calls another traced function and <code style="font-family:var(--font-mono);font-size:0.9em">propagate</code> is <code style="font-family:var(--font-mono);font-size:0.9em">True</code>.</td>
             </tr>
             <tr>
               <th scope="row">propagate</th>
@@ -1241,19 +1222,26 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
 )</code></pre>
         </div>
 
-        <h3 id="spans-tracking">Spans — tracking steps inside a run</h3>
-        <p>Use <code style="font-family:var(--font-mono);font-size:0.88em;color:var(--text)">run.span()</code> to record individual steps inside your agent — tool calls, LLM calls, database lookups, etc.</p>
+        <h3 id="spans-tracking">Spans — Node.js (<code style="font-family:var(--font-mono);font-size:0.9em">run.startSpan</code>)</h3>
+        <p>Use <code style="font-family:var(--font-mono);font-size:0.88em;color:var(--text)">run.startSpan(name, { type, metadata })</code> for tool calls, LLM calls, and other steps. Call <code style="font-family:var(--font-mono);font-size:0.88em">span.end()</code> (or <code style="font-family:var(--font-mono);font-size:0.88em">span.end(err)</code>) when finished.</p>
         <div class="code-panel" translate="no" style="margin-top:0.75rem">
-          <div class="code-header">example — tool and LLM spans</div>
-          <pre class="code-body"><code><span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"web_search"</span>, type=<span style="color:#86efac">"tool"</span>, metadata={<span style="color:#86efac">"url"</span>: url}) <span style="color:#c084fc">as</span> span:
-    result = search(url)
+          <div class="code-header">example — tool and LLM spans (Node)</div>
+          <pre class="code-body"><code><span style="color:#c084fc">const</span> search = run.startSpan(<span style="color:#86efac">'web_search'</span>, { type: <span style="color:#86efac">'tool'</span>, metadata: { url } });
+<span style="color:#c084fc">const</span> result = <span style="color:#c084fc">await</span> searchWeb(url);
+search.end();
 
-<span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"llm_call"</span>, type=<span style="color:#86efac">"llm"</span>) <span style="color:#c084fc">as</span> span:
-    response = llm.call(prompt)
-    span.input_tokens = response.usage.input_tokens
-    span.output_tokens = response.usage.output_tokens
-    span.input = prompt      <span style="color:#8b919d"># only stored if capture_io=True</span>
-    span.output = response.text</code></pre>
+<span style="color:#c084fc">const</span> llm = run.startSpan(<span style="color:#86efac">'llm_call'</span>, { type: <span style="color:#86efac">'llm'</span> });
+<span style="color:#c084fc">try</span> {
+  <span style="color:#c084fc">const</span> response = <span style="color:#c084fc">await</span> llmClient.call(prompt);
+  llm.inputTokens = response.usage.input_tokens;
+  llm.outputTokens = response.usage.output_tokens;
+  llm.input = prompt;       <span style="color:#8b919d">// only sent when captureIo: true</span>
+  llm.output = response.text;
+  llm.end();
+} <span style="color:#c084fc">catch</span> (e) {
+  llm.end(e <span style="color:#c084fc">instanceof</span> Error ? e : <span style="color:#c084fc">new</span> Error(String(e)));
+  <span style="color:#c084fc">throw</span> e;
+}</code></pre>
         </div>
         <table class="param-table" style="margin-top:1rem">
           <thead>
@@ -1262,7 +1250,7 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
           <tbody>
             <tr>
               <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">name</code></th>
-              <td>Required. Label for this span in the trace timeline.</td>
+              <td>Required (first argument to <code style="font-family:var(--font-mono);font-size:0.9em">startSpan</code>). Label for this span in the trace timeline.</td>
             </tr>
             <tr>
               <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">type</code></th>
@@ -1270,40 +1258,50 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
             </tr>
             <tr>
               <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">metadata</code></th>
-              <td>Optional. Dict of extra info shown in the trace panel.</td>
+              <td>Optional. Object of extra info shown in the trace panel.</td>
             </tr>
             <tr>
-              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">span.input_tokens</code></th>
-              <td>Token count for input (LLM spans).</td>
-            </tr>
-            <tr>
-              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">span.output_tokens</code></th>
-              <td>Token count for output (LLM spans).</td>
+              <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">span.inputTokens</code> / <code style="font-family:var(--font-mono);font-size:0.85em">outputTokens</code></th>
+              <td>Token counts (LLM spans).</td>
             </tr>
             <tr>
               <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">span.input</code></th>
-              <td>Prompt text — only stored if <code style="font-family:var(--font-mono);font-size:0.9em">capture_io=True</code>.</td>
+              <td>Prompt text — only included in the payload when <code style="font-family:var(--font-mono);font-size:0.9em">captureIo: true</code>.</td>
             </tr>
             <tr>
               <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">span.output</code></th>
-              <td>Response text — only stored if <code style="font-family:var(--font-mono);font-size:0.9em">capture_io=True</code>.</td>
+              <td>Response text — only included when <code style="font-family:var(--font-mono);font-size:0.9em">captureIo: true</code>.</td>
             </tr>
             <tr>
               <th scope="row"><code style="font-family:var(--font-mono);font-size:0.85em">span.error</code></th>
-              <td>Automatically set if your code raises an error inside the span.</td>
+              <td>Set when you call <code style="font-family:var(--font-mono);font-size:0.9em">span.end(error)</code>.</td>
             </tr>
           </tbody>
         </table>
         <p style="margin-top:1rem;font-size:0.875rem;color:var(--text-muted)">
-          <strong>Note:</strong> Farol currently supports sequential spans only. Parallel or concurrent spans (e.g. multiple tool calls firing simultaneously) will be recorded but may not display in the correct order in the trace timeline. Full parallel span support is on the roadmap.
+          <strong>Note:</strong> Farol currently supports sequential spans best. Parallel or concurrent spans may not display in the correct order in the trace timeline. Full parallel span support is on the roadmap.
         </p>
+
+        <h3 id="python-run-dict" style="margin-top:1.25rem;font-size:1.05rem">Python — <code style="font-family:var(--font-mono);font-size:0.9em">run</code> dict (no <code style="font-family:var(--font-mono);font-size:0.9em">run.span</code>)</h3>
+        <p>The Python package passes <code style="font-family:var(--font-mono);font-size:0.88em">run</code> as a plain dict. There is no <code style="font-family:var(--font-mono);font-size:0.88em">run.span()</code> helper and no <code style="font-family:var(--font-mono);font-size:0.88em">capture_io</code> / ingest-url options on <code style="font-family:var(--font-mono);font-size:0.88em">@trace</code>. Set <code style="font-family:var(--font-mono);font-size:0.88em">run["input_tokens"]</code>, <code style="font-family:var(--font-mono);font-size:0.88em">run["output_tokens"]</code>, <code style="font-family:var(--font-mono);font-size:0.88em">run["topic"]</code>, etc., and optionally append step summaries to <code style="font-family:var(--font-mono);font-size:0.88em">run["steps"]</code> (list of objects, e.g. <code style="font-family:var(--font-mono);font-size:0.88em">{"step": "llm_call"}</code>). Use the Node SDK or OpenTelemetry if you need per-span rows in the dashboard.</p>
+        <div class="code-panel" translate="no" style="margin-top:0.75rem">
+          <div class="code-header">example — tokens + steps (Python)</div>
+          <pre class="code-body"><code><span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"my-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">my_agent</span>(task, *, run):
+    run[<span style="color:#86efac">"topic"</span>] = task
+    response = llm.call(task)
+    run[<span style="color:#86efac">"input_tokens"</span>] = response.usage.input_tokens
+    run[<span style="color:#86efac">"output_tokens"</span>] = response.usage.output_tokens
+    run[<span style="color:#86efac">"steps"</span>].append({<span style="color:#86efac">"step"</span>: <span style="color:#86efac">"llm_call"</span>})
+    <span style="color:#c084fc">return</span> response.text</code></pre>
+        </div>
 
         <h3 id="multi-agent-tracing">Multi-agent tracing</h3>
         <p>Child agent runs are linked to their parent automatically. When a traced function calls another traced function on the same thread (Python) or within the same async chain (Node), the child run’s <code style="font-family:var(--font-mono);font-size:0.88em">parent_trace_id</code> is set from the parent run’s ID so you can reconstruct the full pipeline in Farol. You can still pass <code style="font-family:var(--font-mono);font-size:0.88em">parent_trace_id</code> on the decorator to force a specific parent when needed.</p>
         <div class="code-panel" translate="no" style="margin-top:0.75rem">
           <div class="code-header">example — parent and child agents</div>
           <pre class="code-body"><code><span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"research-agent"</span>, farol_key=<span style="color:#86efac">"frl_..."</span>)
-<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">research_agent</span>(topic, run=<span style="color:#c084fc">None</span>):
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">research_agent</span>(topic, *, run):
     run[<span style="color:#86efac">"topic"</span>] = topic
     <span style="color:#8b919d"># calling market_agent inside here automatically links it</span>
     result = market_agent(topic)
@@ -1311,7 +1309,7 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
 
 
 <span style="color:#c084fc">@</span>trace(agent_name=<span style="color:#86efac">"market-agent"</span>, farol_key=<span style="color:#86efac">"frl_..."</span>)
-<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">market_agent</span>(topic, run=<span style="color:#c084fc">None</span>):
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">market_agent</span>(topic, *, run):
     run[<span style="color:#86efac">"topic"</span>] = topic
     <span style="color:#8b919d"># parent_trace_id is set automatically</span>
     <span style="color:#8b919d"># do market analysis...</span></code></pre>
@@ -1336,12 +1334,11 @@ result = my_agent(<span style="color:#86efac">"your task here"</span>)</code></p
 <span style="color:#c084fc">from</span> langchain.chains <span style="color:#c084fc">import</span> LLMChain
 
 <span style="color:#fb923c">@trace</span>(agent_name=<span style="color:#86efac">"langchain-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
-<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">run_chain</span>(query, run=<span style="color:#c084fc">None</span>):
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">run_chain</span>(query, *, run):
     run[<span style="color:#86efac">"topic"</span>] = query
 
-    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"chain_invoke"</span>, type=<span style="color:#86efac">"tool"</span>) <span style="color:#c084fc">as</span> span:
-        result = chain.invoke({<span style="color:#86efac">"query"</span>: query})
-
+    result = chain.invoke({<span style="color:#86efac">"query"</span>: query})
+    run[<span style="color:#86efac">"steps"</span>].append({<span style="color:#86efac">"step"</span>: <span style="color:#86efac">"chain_invoke"</span>})
     <span style="color:#c084fc">return</span> result
 
 result = run_chain(<span style="color:#86efac">"summarise last quarter earnings"</span>)</code></pre>
@@ -1355,12 +1352,11 @@ result = run_chain(<span style="color:#86efac">"summarise last quarter earnings"
 <span style="color:#c084fc">from</span> crewai <span style="color:#c084fc">import</span> Crew
 
 <span style="color:#fb923c">@trace</span>(agent_name=<span style="color:#86efac">"crewai-agent"</span>, farol_key=<span style="color:#86efac">"frl_your_key_here"</span>)
-<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">run_crew</span>(topic, run=<span style="color:#c084fc">None</span>):
+<span style="color:#c084fc">def</span> <span style="color:#7dd3fc">run_crew</span>(topic, *, run):
     run[<span style="color:#86efac">"topic"</span>] = topic
 
-    <span style="color:#c084fc">with</span> run.span(<span style="color:#86efac">"crew_kickoff"</span>, type=<span style="color:#86efac">"tool"</span>) <span style="color:#c084fc">as</span> span:
-        result = crew.kickoff(inputs={<span style="color:#86efac">"topic"</span>: topic})
-
+    result = crew.kickoff(inputs={<span style="color:#86efac">"topic"</span>: topic})
+    run[<span style="color:#86efac">"steps"</span>].append({<span style="color:#86efac">"step"</span>: <span style="color:#86efac">"crew_kickoff"</span>})
     <span style="color:#c084fc">return</span> result
 
 result = run_crew(<span style="color:#86efac">"market analysis for Q2 2026"</span>)</code></pre>
@@ -1430,7 +1426,7 @@ result = run_crew(<span style="color:#86efac">"market analysis for Q2 2026"</spa
         </div>
 
         <h3>Works with any framework</h3>
-        <p>If your agent is a Python or Node.js function, <code style="font-family:var(--font-mono);font-size:0.88em">@trace</code> wraps it. This includes AutoGen, Haystack, LlamaIndex, smolagents, and any custom agent loop. Wrap the top-level entrypoint function and add <code style="font-family:var(--font-mono);font-size:0.88em">run.span()</code> calls inside for step-level visibility.</p>
+        <p>If your agent is a Python or Node.js function, wrap it with <code style="font-family:var(--font-mono);font-size:0.88em">@trace</code> (Python) or <code style="font-family:var(--font-mono);font-size:0.88em">trace()</code> (Node). This includes AutoGen, Haystack, LlamaIndex, smolagents, and custom loops. In Python, update the <code style="font-family:var(--font-mono);font-size:0.88em">run</code> dict with tokens and optional <code style="font-family:var(--font-mono);font-size:0.88em">steps</code>; in Node, use <code style="font-family:var(--font-mono);font-size:0.88em">run.startSpan()</code> for a per-span timeline.</p>
       </section>
 
       <section class="doc-section" id="otel" aria-labelledby="otel-heading">
@@ -1477,7 +1473,7 @@ const exporter = new OTLPTraceExporter({
         <h2 id="faq-heading">FAQ</h2>
         <div class="faq-item">
           <h3>Does Farol store my prompts?</h3>
-          <p>No — by default Farol only stores run metadata: timing, tokens, cost, and errors. Prompt inputs and outputs are never stored unless you explicitly set <code style="font-family:var(--font-mono);font-size:0.88em">capture_io=True</code> in the <code style="font-family:var(--font-mono);font-size:0.88em">@trace</code> decorator. Even with <code style="font-family:var(--font-mono);font-size:0.88em">capture_io=True</code>, inputs and outputs are truncated at 50,000 characters.</p>
+          <p>By default only run metadata is stored (timing, tokens, cost, errors). The Node SDK can optionally send span prompt/response text when you set <code style="font-family:var(--font-mono);font-size:0.88em">captureIo: true</code> on <code style="font-family:var(--font-mono);font-size:0.88em">trace()</code> and assign <code style="font-family:var(--font-mono);font-size:0.88em">span.input</code> / <code style="font-family:var(--font-mono);font-size:0.88em">span.output</code>; values are truncated at 50,000 characters. The Python <code style="font-family:var(--font-mono);font-size:0.88em">@trace</code> decorator does not collect prompt bodies.</p>
         </div>
         <div class="faq-item">
           <h3>Is Farol secure?</h3>
@@ -1485,7 +1481,7 @@ const exporter = new OTLPTraceExporter({
         </div>
         <div class="faq-item">
           <h3>How do I track multiple steps in my agent?</h3>
-          <p>Use <code style="font-family:var(--font-mono);font-size:0.88em">run.span()</code> as a context manager inside your traced function. Each span appears as a step in the trace timeline. See the <a class="inline" href="#spans-tracking">Spans</a> section above for full details.</p>
+          <p>For Node, use <code style="font-family:var(--font-mono);font-size:0.88em">run.startSpan()</code> so each span appears in the trace timeline (see <a class="inline" href="#spans-tracking">Spans</a>). For Python, append entries to <code style="font-family:var(--font-mono);font-size:0.88em">run["steps"]</code> for coarse step labels on the run, or use OpenTelemetry / the Node SDK for full span rows.</p>
         </div>
         <div class="faq-item">
           <h3>Which frameworks does Farol support?</h3>
@@ -1505,7 +1501,7 @@ const exporter = new OTLPTraceExporter({
         </div>
         <div class="faq-item">
           <h3>Which Python versions does Farol support?</h3>
-          <p>Farol SDK supports Python 3.8 and above.</p>
+          <p>Farol SDK supports Python 3.9+ (<code style="font-family:var(--font-mono);font-size:0.88em">requires-python</code> in the package metadata).</p>
         </div>
         <div class="faq-item">
           <h3>How does cost anomaly detection work?</h3>

@@ -68,18 +68,16 @@ from anthropic import Anthropic
 client = Anthropic()
 
 @trace(agent_name="my-agent", farol_key="frl_your_key_here")
-def my_agent(task, run=None):
+def my_agent(task, *, run):
     run["topic"] = task
 
-    with run.span("llm_call", type="llm") as span:
-        response = client.messages.create(
-            model="claude-haiku-4-5",
-            max_tokens=1024,
-            messages=[{"role": "user", "content": task}]
-        )
-        span.input_tokens = response.usage.input_tokens
-        span.output_tokens = response.usage.output_tokens
-
+    response = client.messages.create(
+        model="claude-haiku-4-5",
+        max_tokens=1024,
+        messages=[{"role": "user", "content": task}],
+    )
+    run["input_tokens"] = response.usage.input_tokens
+    run["output_tokens"] = response.usage.output_tokens
     return response.content[0].text
 
 result = my_agent("your task here")
@@ -106,44 +104,43 @@ await myAgent('your task here');
 
 ## Tracking spans (multi-step agents)
 
+The **Node** SDK uses `run.startSpan()` for per-span timelines (see [@usefarol/sdk on npm](https://www.npmjs.com/package/@usefarol/sdk)).
+
+With the **Python** SDK, `run` is a dict: set token fields and optionally append step labels to `run["steps"]` (there is no `run.span()` helper).
+
 ```python
 @trace(agent_name="research-agent", farol_key="frl_your_key_here")
-def research_agent(topic, run=None):
+def research_agent(topic, *, run):
     run["topic"] = topic
-
-    # Track a tool call
-    with run.span("web_search", type="tool", metadata={"query": topic}) as span:
-        results = search(topic)
-
-    # Track an LLM call
-    with run.span("llm_call", type="llm") as span:
-        response = llm.call(results)
-        span.input_tokens = response.usage.input_tokens
-        span.output_tokens = response.usage.output_tokens
-
+    results = search(topic)
+    response = llm.call(results)
+    run["input_tokens"] = response.usage.input_tokens
+    run["output_tokens"] = response.usage.output_tokens
+    run["steps"].extend(
+        [{"step": "web_search"}, {"step": "llm_call"}]
+    )
     return response.text
 ```
 
 ## Multi-agent tracing
 
-Link child agent runs to their parent using `parent_trace_id`:
+Nested traced calls automatically link runs via Python `contextvars` when `propagate=True` (the default on `@trace`):
 
 ```python
 @trace(agent_name="research-agent", farol_key="frl_...")
-def research_agent(topic, run=None):
+def research_agent(topic, *, run):
     run["topic"] = topic
-    # do research...
-    result = market_agent(topic, parent_trace_id=run["id"])
-    return result
+    return market_agent(topic)
+
 
 @trace(agent_name="market-agent", farol_key="frl_...")
-def market_agent(topic, run=None, parent_trace_id=None):
+def market_agent(topic, *, run):
     run["topic"] = topic
-    run["parent_trace_id"] = parent_trace_id
-    # do market analysis...
+    # parent_trace_id is filled from context when called under research_agent
+    ...
 ```
 
-Parent runs show spawned children and total pipeline cost in the dashboard.
+You can also pass `parent_trace_id=` on the **decorator** to force a specific parent. Parent runs show spawned children and total pipeline cost in the dashboard.
 
 ## Framework integrations
 
@@ -153,10 +150,10 @@ Works with any framework — wrap your agent's entrypoint with `@trace`:
 
 ```python
 @trace(agent_name="langchain-agent", farol_key="frl_...")
-def run_chain(query, run=None):
+def run_chain(query, *, run):
     run["topic"] = query
-    with run.span("chain_invoke", type="tool") as span:
-        result = chain.invoke({"query": query})
+    result = chain.invoke({"query": query})
+    run["steps"].append({"step": "chain_invoke"})
     return result
 ```
 
@@ -164,10 +161,10 @@ def run_chain(query, run=None):
 
 ```python
 @trace(agent_name="crewai-agent", farol_key="frl_...")
-def run_crew(topic, run=None):
+def run_crew(topic, *, run):
     run["topic"] = topic
-    with run.span("crew_kickoff", type="tool") as span:
-        result = crew.kickoff(inputs={"topic": topic})
+    result = crew.kickoff(inputs={"topic": topic})
+    run["steps"].append({"step": "crew_kickoff"})
     return result
 ```
 
@@ -205,17 +202,21 @@ Also works with AutoGen, Haystack, LlamaIndex, smolagents, and any custom agent 
 
 ## SDK options
 
+Python `@trace` (see `farol-sdk` on PyPI):
+
 | Parameter | Description |
 | --- | --- |
-| `agent_name` | Display name in the dashboard |
-| `farol_key` | API key from usefarol.dev |
-| `model` | Model label for display |
+| `agent_name` | Display name in the dashboard (required) |
+| `farol_key` | Optional API key; when set and Supabase extras + env are configured, runs sync to your account |
+| `model` | Model label on the run (default: `claude-haiku-4-5-20251001`) |
 | `cost_per_1k_input_tokens` | USD per 1k input tokens (default: 0.00025) |
 | `cost_per_1k_output_tokens` | USD per 1k output tokens (default: 0.00125) |
-| `capture_io` | Store prompt inputs/outputs (default: False) |
-| `prompt_version` | Tag runs with a version label (e.g. "v2"). Max 50 chars. |
-| `parent_trace_id` | Link to a parent agent run for multi-agent pipeline tracing. |
-| `sample_rate` | Fraction of runs to send, 0.0–1.0 (default: 1.0) |
+| `sample_rate` | Fraction of successful runs to persist, 0.0–1.0 (default: 1.0); errors always saved |
+| `prompt_version` | Tag runs with a version label (e.g. `"v2"`). Max 50 chars. |
+| `parent_trace_id` | Optional explicit parent run id; otherwise inherited from context when `propagate=True` |
+| `propagate` | When `True` (default), nested traces inherit parent id via `contextvars` |
+
+The Python SDK does **not** expose `capture_io` or a custom ingest URL on the decorator. The Node SDK (`trace()` options) supports `farolEndpoint`, `captureIo`, `sampleRate`, `promptVersion`, `parentTraceId`, and `propagate` — see `farol-sdk-js/README.md`.
 
 ### Supported providers
 
@@ -271,7 +272,7 @@ Built with these fantastic tools:
 
 - All data encrypted in transit (TLS 1.3) and at rest (AES-256)
 - Row-level security on all database tables
-- Prompts never stored by default (`capture_io=False`)
+- Prompts never stored by default (optional `captureIo` on Node `trace()` only if you enable it)
 - EU data residency (AWS Paris)
 
 See the full [Security page](https://usefarol.dev/security) for details.

@@ -171,6 +171,8 @@ const myAgent = trace(fn, {
 | `captureIo` | When `true`, include span `input`/`output` if set |
 | `sampleRate` | Fraction of successful runs to send (`0.0`–`1.0`). Errors always sent. Default `1.0`. |
 | `promptVersion` | Optional. Prompt version label (e.g. `v2`). Max 50 characters. Shown in the dashboard runs table and trace modal. |
+| `parentTraceId` | Optional. Force a parent run link; otherwise the parent is taken from async context when `propagate` is true. |
+| `propagate` | Optional. When `true` (default), child traces inherit the current run id from `AsyncLocalStorage`. Set `false` to disable. |
 
 ## Build (from source)
 
