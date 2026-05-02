@@ -1021,7 +1021,10 @@
       const { data, error } = await client
         .from("runs")
         .select("agent")
-        .eq("user_id", currentUserId);
+        .eq("user_id", currentUserId)
+        .not("agent", "is", null)
+        .order("timestamp", { ascending: false })
+        .limit(10000);
 
       if (error || !data) {
         const o = document.createElement("option");
