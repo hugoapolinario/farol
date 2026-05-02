@@ -68,6 +68,17 @@ Deno.serve(async (req) => {
     const { eval_id, trace_id } = await req.json();
     if (!eval_id || !trace_id) return new Response(JSON.stringify({ error: "eval_id and trace_id required" }), { status: 400, headers: corsHeaders });
 
+    // Check user is on Builder plan
+    const { data: subscription, error: subError } = await userClient
+      .from("subscriptions")
+      .select("plan")
+      .eq("user_id", user.id)
+      .single();
+
+    if (subError || !subscription || subscription.plan !== "builder") {
+      return new Response(JSON.stringify({ error: "Evals require the Builder plan." }), { status: 403, headers: corsHeaders });
+    }
+
     // Fetch eval definition — RLS ensures ownership
     const { data: evalDef, error: evalError } = await userClient
       .from("evals")

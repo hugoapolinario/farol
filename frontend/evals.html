@@ -15,6 +15,7 @@
       --text: #e8eaef;
       --text-muted: #8b919d;
       --accent: #f97316;
+      --orange: #f97316;
       --accent-dim: rgba(249, 115, 22, 0.14);
       --accent-glow: rgba(249, 115, 22, 0.35);
       --success: #4ade80;
@@ -262,6 +263,11 @@
     }
 
     .btn-sm {
+      font-size: 0.78rem;
+      padding: 0.32rem 0.62rem;
+    }
+
+    .btn-small {
       font-size: 0.78rem;
       padding: 0.32rem 0.62rem;
     }
@@ -769,6 +775,9 @@
           <div id="evals-empty" class="eval-empty" hidden>
             No evals configured yet. Create your first eval to start scoring agent outputs.
           </div>
+          <div id="evals-upgrade-notice" style="display:none; margin-bottom: 1rem; padding: 0.75rem 1rem; background: rgba(255,140,0,0.08); border: 1px solid rgba(255,140,0,0.25); border-radius: 8px; color: #ccc; font-size: 0.875rem;">
+            ⚡ Running evals requires the <a href="/#pricing" style="color: var(--orange); text-decoration: underline;">Builder plan</a>. You can configure evals now and run them after upgrading.
+          </div>
           <table id="evals-table">
             <thead>
               <tr id="evals-def-heading">
@@ -890,6 +899,7 @@
     };
 
     let currentUserId = null;
+    let isBuilder = false;
     let toastTimer = null;
 
     function escapeHtml(s) {
@@ -1104,6 +1114,14 @@
         const created = row.created_at
           ? new Date(row.created_at).toLocaleString()
           : "—";
+        const runBtnHtml = isBuilder
+          ? '<button type="button" class="btn btn-outline btn-small run-eval-btn" data-eval-id="' +
+            escapeHtml(row.id) +
+            '" data-agent-id="' +
+            escapeHtml(row.agent_id) +
+            '">Run</button>'
+          : '<button type="button" class="btn btn-outline btn-small" disabled title="Upgrade to Builder to run evals" style="opacity:0.4;cursor:not-allowed;">Run</button>';
+
         tr.innerHTML =
           "<td>" +
           escapeHtml(row.name) +
@@ -1116,9 +1134,7 @@
           "</td><td>" +
           escapeHtml(created) +
           '</td><td><div style="display:flex;gap:0.4rem;flex-wrap:wrap">' +
-          '<button type="button" class="btn btn-outline btn-sm btn-run-eval" data-id="' +
-          escapeHtml(row.id) +
-          '">Run</button>' +
+          runBtnHtml +
           '<button type="button" class="btn btn-danger-outline btn-sm btn-delete-eval" data-id="' +
           escapeHtml(row.id) +
           '">Delete</button></div></td>';
@@ -1126,10 +1142,10 @@
         tbody.appendChild(tr);
       });
 
-      tbody.querySelectorAll(".btn-run-eval").forEach(function (btn) {
+      tbody.querySelectorAll(".run-eval-btn").forEach(function (btn) {
         btn.addEventListener("click", function (e) {
           e.stopPropagation();
-          const id = btn.getAttribute("data-id");
+          const id = btn.getAttribute("data-eval-id");
           const row = data.find(function (r) {
             return r.id === id;
           });
@@ -1411,15 +1427,22 @@
       currentUserId = user.id;
       document.getElementById("user-email").textContent = user.email || "Signed in";
 
-      const { data: sub } = await client
+      // Check subscription plan
+      const { data: subData } = await client
         .from("subscriptions")
         .select("plan, status, event_count, agent_names")
         .eq("user_id", user.id)
         .single();
 
-      const userPlan = sub?.plan ?? "free";
-      const eventCount = sub?.event_count ?? 0;
-      const agentCount = (sub?.agent_names ?? []).length;
+      isBuilder = subData?.plan === "builder";
+
+      if (!isBuilder) {
+        document.getElementById("evals-upgrade-notice").style.display = "block";
+      }
+
+      const userPlan = subData?.plan ?? "free";
+      const eventCount = subData?.event_count ?? 0;
+      const agentCount = (subData?.agent_names ?? []).length;
 
       const planBadgeEl = document.getElementById("plan-badge");
       planBadgeEl.textContent = userPlan.toUpperCase();
