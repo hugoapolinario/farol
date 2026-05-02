@@ -79,18 +79,18 @@ Deno.serve(async (req) => {
     if (evalError || !evalDef) return new Response(JSON.stringify({ error: "Eval not found" }), { status: 404, headers: corsHeaders });
     if (!evalDef.active) return new Response(JSON.stringify({ error: "Eval is inactive" }), { status: 400, headers: corsHeaders });
 
-    // Fetch trace metadata
+    // Fetch trace metadata (+ run-level output fallback when spans lack output)
     const { data: trace, error: traceError } = await userClient
       .from("runs")
-      .select("id, agent, status")
+      .select("id, agent, status, output")
       .eq("id", trace_id)
       .eq("user_id", user.id)
       .single();
 
     if (traceError || !trace) return new Response(JSON.stringify({ error: "Trace not found" }), { status: 404, headers: corsHeaders });
 
-    // Fetch output from spans
-    const { data: spans, error: spansError } = await userClient
+    // Fetch output from spans ( newest first; combine up to 5 non-null outputs )
+    const { data: spans } = await userClient
       .from("spans")
       .select("output")
       .eq("run_id", trace_id)
@@ -99,13 +99,25 @@ Deno.serve(async (req) => {
       .order("started_at", { ascending: false })
       .limit(5);
 
-    const output = spans
-      ?.map(s => typeof s.output === "string" ? s.output : JSON.stringify(s.output))
-      .filter(Boolean)
-      .join("\n\n---\n\n") || "";
+    const spanCombined =
+      spans
+        ?.map((s) => (typeof s.output === "string" ? s.output : JSON.stringify(s.output)))
+        .filter(Boolean)
+        .join("\n\n---\n\n") || "";
+
+    const runLevel =
+      trace.output != null && trace.output !== ""
+        ? typeof trace.output === "string"
+          ? trace.output
+          : JSON.stringify(trace.output)
+        : "";
+
+    const output =
+      spanCombined ||
+      (runLevel && runLevel !== "null" ? runLevel : "");
 
     if (!output) {
-      return new Response(JSON.stringify({ error: "Trace has no span output to evaluate" }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: "Trace has no output to evaluate" }), { status: 400, headers: corsHeaders });
     }
 
     // Build prompt
